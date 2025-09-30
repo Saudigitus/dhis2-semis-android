@@ -13,3 +13,11 @@ dependencyResolutionManagement {
         maven("https://maven.pkg.jetbrains.space/public/p/compose/dev")
     }
 }
+include(":semis")
+include(":semis:attendance")
+include(":semis:performance")
+include(":semis:core")
+include(":semis:core:data")
+include(":semis:core:designsystem")
+include(":semis:core:utils")
+include(":semis:app")
