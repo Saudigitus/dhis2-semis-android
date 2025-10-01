@@ -85,7 +85,7 @@ dependencies {
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.viewModelKtx)
-    implementation(libs.androidx.navigation.compose)
+    implementation(libs.navigationCompose)
     implementation(libs.androidx.hilt.navigation.compose)
     implementation(libs.androidx.compose.materialIcons)
     implementation(libs.androidx.compose.material.iconsExtended)

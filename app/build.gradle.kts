@@ -254,6 +254,9 @@ dependencies {
     implementation(project(":tracker"))
     implementation(project(":aggregates"))
     implementation(project(":commonskmm"))
+    implementation(project(":semis:app"))
+    implementation(project(":semis:core:data"))
+    implementation(project(":semis:core:utils"))
 
     implementation(libs.security.conscrypt)
     implementation(libs.security.rootbeer)
