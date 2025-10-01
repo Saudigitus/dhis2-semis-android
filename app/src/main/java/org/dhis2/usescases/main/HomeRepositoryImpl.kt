@@ -3,6 +3,7 @@ package org.dhis2.usescases.main
 import dhis2.org.analytics.charts.Charts
 import io.reactivex.Completable
 import io.reactivex.Single
+import kotlinx.coroutines.runBlocking
 import org.dhis2.commons.bindings.dataSet
 import org.dhis2.commons.bindings.dataSetInstanceSummaries
 import org.dhis2.commons.bindings.isStockProgram
@@ -15,11 +16,17 @@ import org.hisp.dhis.android.core.category.CategoryOptionCombo
 import org.hisp.dhis.android.core.program.ProgramType
 import org.hisp.dhis.android.core.systeminfo.SystemInfo
 import org.hisp.dhis.android.core.user.User
+import org.saudigitus.semis.core.data.model.app_config.SEMISConfig
+import org.saudigitus.semis.core.utils.Constants.DATASTORE_KEY
+import org.saudigitus.semis.core.utils.Constants.DATASTORE_NAMESPACE
+import org.saudigitus.semis.core.utils.ProgramValidator
+import org.saudigitus.semis.core.utils.decodeJson
 
 class HomeRepositoryImpl(
     private val d2: D2,
     private val charts: Charts?,
     private val featureConfig: FeatureConfigRepository,
+    private  val programValidator: ProgramValidator,
 ) : HomeRepository {
     override fun user(): Single<User?> {
         return d2.userModule().user().get()
@@ -75,6 +82,17 @@ class HomeRepositoryImpl(
                     program.access().data().write() == true,
                     program.trackedEntityType()?.uid() ?: "",
                     isStockUseCase = d2.isStockProgram(program.uid()),
+                    isSEMIS = runBlocking {
+                        programValidator.isSEMIS(
+                            namespace = DATASTORE_NAMESPACE,
+                            key = DATASTORE_KEY
+                        ) { dataStoreEntry ->
+                            val decodedJson = decodeJson(dataStoreEntry?.value())
+                            val semisConfig = SEMISConfig.fromJson(decodedJson)
+
+                            semisConfig?.find { it.program == program.uid() } != null
+                        }
+                    },
                 )
 
             program?.programType() == ProgramType.WITHOUT_REGISTRATION ->

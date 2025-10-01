@@ -98,7 +98,8 @@ atomicfu = "0.27.0"
 #SEMIS
 semis = "2.0.0"
 materialIcons = "1.7.8"
-androidxHiltNavigation = "1.3.0"
+androidxHiltNavigation = "1.0.0"
+composeNavigation = "2.9.5"
 
 [libraries]
 gradlePlugin = { group = "com.android.tools.build", name = "gradle", version.ref = "gradle" }
@@ -241,6 +242,7 @@ ktxml = { module = "org.kobjects.ktxml:core", version.ref = "ktxml" }
 #SEMIS dependencies
 androidx-compose-materialIcons = { group = "androidx.compose.material", name = "material-icons-core", version.ref = "materialIcons" }
 androidx-compose-material-iconsExtended = { group = "androidx.compose.material", name = "material-icons-extended", version.ref = "materialIcons" }
+navigationCompose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "composeNavigation" }
 androidx-hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version.ref = "androidxHiltNavigation" }
 
 [plugins]

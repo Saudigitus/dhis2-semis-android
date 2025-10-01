@@ -11,6 +11,7 @@ import org.dhis2.usescases.main.program.ProgramUiModel
 import org.dhis2.usescases.programEventDetail.ProgramEventDetailActivity
 import org.dhis2.usescases.searchTrackEntity.SearchTEActivity
 import org.hisp.dhis.android.core.program.ProgramType
+import org.saudigitus.semis.app.SEMISActivity
 
 sealed class HomeItemData(
     open val uid: String,
@@ -23,6 +24,7 @@ sealed class HomeItemData(
         override val accessDataWrite: Boolean,
         val trackedEntityType: String,
         val isStockUseCase: Boolean,
+        val isSEMIS: Boolean,
     ) : HomeItemData(uid, label, accessDataWrite)
 
     data class EventProgram(
@@ -54,6 +56,7 @@ fun ProgramUiModel.toHomeItemData(): HomeItemData {
                 accessDataWrite,
                 type!!,
                 isStockUseCase,
+                isSEMIS,
             )
 
         else -> HomeItemData.DataSet(
@@ -95,6 +98,11 @@ fun ActivityResultLauncher<Intent>.navigateTo(context: Context, homeItemData: Ho
         is HomeItemData.TrackerProgram -> {
             if (homeItemData.isStockUseCase) {
                 Intent(context, HomeActivity::class.java).apply {
+                    putExtras(bundle)
+                    launch(this)
+                }
+            } else if (homeItemData.isSEMIS) {
+                Intent(context, SEMISActivity::class.java).apply {
                     putExtras(bundle)
                     launch(this)
                 }
