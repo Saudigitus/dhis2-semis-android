@@ -3,6 +3,7 @@ package org.dhis2.usescases.main
 import dagger.Module
 import dagger.Provides
 import dhis2.org.analytics.charts.Charts
+import kotlinx.coroutines.Dispatchers
 import org.dhis2.commons.di.dagger.PerActivity
 import org.dhis2.commons.featureconfig.data.FeatureConfigRepository
 import org.dhis2.commons.filters.FilterManager
@@ -22,6 +23,7 @@ import org.dhis2.usescases.login.SyncIsPerformedInteractor
 import org.dhis2.usescases.settings.DeleteUserData
 import org.dhis2.utils.customviews.navigationbar.NavigationPageConfigurator
 import org.hisp.dhis.android.core.D2
+import org.saudigitus.semis.core.utils.ProgramValidator
 
 @Module
 class MainModule(val view: MainView, private val forceToNotSynced: Boolean) {
@@ -70,12 +72,19 @@ class MainModule(val view: MainView, private val forceToNotSynced: Boolean) {
 
     @Provides
     @PerActivity
+    fun provideProgramValidator(d2: D2): ProgramValidator {
+        return ProgramValidator(d2, Dispatchers.IO)
+    }
+
+    @Provides
+    @PerActivity
     fun provideHomeRepository(
         d2: D2,
         charts: Charts?,
         featureConfigRepositoryImpl: FeatureConfigRepository,
+        programValidator: ProgramValidator
     ): HomeRepository {
-        return HomeRepositoryImpl(d2, charts, featureConfigRepositoryImpl)
+        return HomeRepositoryImpl(d2, charts, featureConfigRepositoryImpl, programValidator)
     }
 
     @Provides

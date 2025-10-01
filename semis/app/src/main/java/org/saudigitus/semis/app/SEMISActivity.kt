@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.fragment.app.FragmentActivity
 import dagger.hilt.android.AndroidEntryPoint
+import org.saudigitus.semis.app.presentation.home.HomeScreen
 import org.saudigitus.semis.core.designsystem.theme.SEMISTheme
 
 @AndroidEntryPoint
@@ -17,7 +18,7 @@ class SEMISActivity : FragmentActivity() {
                 dynamicColor = false,
                 darkTheme = false
             ) {
-
+                HomeScreen()
             }
         }
     }

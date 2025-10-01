@@ -174,6 +174,7 @@ class TeiProgramListPresenterTest {
             state = State.SYNCED,
             downloadState = ProgramDownloadState.NONE,
             isStockUseCase = false,
+            isSEMIS = false,
             lastUpdated = Date(),
             filtersAreActive = false,
             hasOverdueEvent = false,

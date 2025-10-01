@@ -2,6 +2,7 @@ package org.dhis2.usescases.main.program
 
 import dagger.Module
 import dagger.Provides
+import kotlinx.coroutines.Dispatchers
 import org.dhis2.commons.di.dagger.PerFragment
 import org.dhis2.commons.featureconfig.data.FeatureConfigRepository
 import org.dhis2.commons.filters.FilterManager
@@ -16,6 +17,7 @@ import org.dhis2.data.dhislogic.DhisProgramUtils
 import org.dhis2.data.dhislogic.DhisTrackedEntityInstanceUtils
 import org.dhis2.data.service.SyncStatusController
 import org.hisp.dhis.android.core.D2
+import org.saudigitus.semis.core.utils.ProgramValidator
 
 @Module
 class ProgramModule(private val view: ProgramView) {
@@ -45,6 +47,12 @@ class ProgramModule(private val view: ProgramView) {
 
     @Provides
     @PerFragment
+    internal fun programValidator(d2: D2): ProgramValidator {
+        return ProgramValidator(d2, Dispatchers.IO)
+    }
+
+    @Provides
+    @PerFragment
     internal fun homeRepository(
         d2: D2,
         filterPresenter: FilterPresenter,
@@ -53,6 +61,7 @@ class ProgramModule(private val view: ProgramView) {
         schedulerProvider: SchedulerProvider,
         colorUtils: ColorUtils,
         metadataIconProvider: MetadataIconProvider,
+        programValidator: ProgramValidator,
     ): ProgramRepository {
         return ProgramRepositoryImpl(
             d2,
@@ -62,6 +71,7 @@ class ProgramModule(private val view: ProgramView) {
             ResourceManager(view.context, colorUtils),
             metadataIconProvider,
             schedulerProvider,
+            programValidator
         )
     }
 }
