@@ -80,6 +80,7 @@ dependencies {
     implementation(libs.androidx.appcompat)
     implementation(libs.google.material)
     implementation(libs.dagger.hilt.android)
+    implementation(libs.kotlin.serialization.json)
 
     kapt(libs.dagger.hilt.android.compiler)
     coreLibraryDesugaring(libs.desugar)
