@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="academic_year">Academic Year</string>
+    <string name="grade">Grade</string>
+    <string name="cls">Section/class</string>
+    <string name="school">School</string>
+    <string name="unknown">Unknown</string>
+    <string name="calendar">Calendar</string>
+    <string name="filters">Filters</string>
+    <string name="back">Back</string>
+</resources>
