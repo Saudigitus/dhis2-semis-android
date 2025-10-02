@@ -100,6 +100,7 @@ semis = "2.0.0"
 materialIcons = "1.7.8"
 androidxHiltNavigation = "1.0.0"
 composeNavigation = "2.9.5"
+material3Version = "1.4.0"
 
 [libraries]
 gradlePlugin = { group = "com.android.tools.build", name = "gradle", version.ref = "gradle" }
@@ -244,6 +245,7 @@ androidx-compose-materialIcons = { group = "androidx.compose.material", name = "
 androidx-compose-material-iconsExtended = { group = "androidx.compose.material", name = "material-icons-extended", version.ref = "materialIcons" }
 navigationCompose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "composeNavigation" }
 androidx-hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version.ref = "androidxHiltNavigation" }
+androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3", version.ref = "material3Version" }
 
 [plugins]
 kotlin-compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
