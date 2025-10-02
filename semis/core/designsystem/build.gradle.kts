@@ -74,6 +74,8 @@ kotlin {
 
 dependencies {
     implementation(project(":commons"))
+    implementation(project(":semis:core:data"))
+    implementation(project(":semis:core:utils"))
 
     implementation(libs.androidx.coreKtx)
     implementation(libs.androidx.appcompat)
@@ -86,6 +88,7 @@ dependencies {
     implementation(libs.androidx.compose.uitooling)
     implementation(libs.google.material)
     implementation(libs.dagger.hilt.android)
+    implementation(libs.androidx.compose.material3)
 
     kapt(libs.dagger.hilt.android.compiler)
     coreLibraryDesugaring(libs.desugar)
