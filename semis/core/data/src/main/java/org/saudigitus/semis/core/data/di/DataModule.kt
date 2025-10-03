@@ -9,6 +9,7 @@ import org.saudigitus.semis.core.data.repository.AppConfigRepository
 import org.saudigitus.semis.core.data.repository.AppConfigRepositoryImpl
 import org.saudigitus.semis.core.data.repository.FilterRepository
 import org.saudigitus.semis.core.data.repository.FilterRepositoryImpl
+import org.saudigitus.semis.core.data.rules.RuleEngineRepository
 import javax.inject.Singleton
 
 @Module
@@ -24,6 +25,7 @@ object DataModule {
     @Singleton
     fun provideFilterRepository(
         d2: D2,
-        configRepository: AppConfigRepository
-    ): FilterRepository = FilterRepositoryImpl(d2, configRepository)
+        configRepository: AppConfigRepository,
+        ruleEngineRepository: RuleEngineRepository
+    ): FilterRepository = FilterRepositoryImpl(d2, configRepository, ruleEngineRepository)
 }
