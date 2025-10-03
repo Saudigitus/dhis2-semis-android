@@ -8,4 +8,8 @@ import kotlinx.serialization.Serializable
 data class Filters(
     @SerialName("dataElements")
     val dataElements: List<DataElement?>?
-)
+) {
+    override fun toString(): String {
+        return "$dataElements"
+    }
+}

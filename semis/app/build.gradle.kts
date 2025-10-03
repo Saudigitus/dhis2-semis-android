@@ -78,6 +78,7 @@ dependencies {
     implementation(project(":semis:attendance"))
     implementation(project(":semis:core:data"))
     implementation(project(":semis:core:designsystem"))
+    implementation(project(":semis:core:utils"))
     implementation(project(":semis:performance"))
 
     implementation(libs.androidx.coreKtx)
