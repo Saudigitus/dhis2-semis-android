@@ -16,4 +16,8 @@ data class DataElement(
     val order: Int?,
     @SerialName("ulrParam")
     val ulrParam: String?
-)
+) {
+    override fun toString(): String {
+        return "$code, $dataElement, $label, $order, $ulrParam"
+    }
+}

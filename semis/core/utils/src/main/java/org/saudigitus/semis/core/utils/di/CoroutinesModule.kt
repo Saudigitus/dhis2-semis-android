@@ -1,5 +1,6 @@
 package org.saudigitus.semis.core.utils.di
 
+/*
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -18,4 +19,4 @@ object CoroutinesModule {
     @Provides
     @IoDispatcher
     fun providesIoDispatcher(): CoroutineDispatcher = Dispatchers.IO
-}
+}*/
