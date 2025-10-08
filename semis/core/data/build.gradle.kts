@@ -43,6 +43,7 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+        isCoreLibraryDesugaringEnabled = true
     }
     buildFeatures {
         compose = true
@@ -74,6 +75,7 @@ kotlin {
 
 dependencies {
     implementation(project(":commons"))
+    implementation(project(":dhis2-mobile-program-rules"))
     implementation(project(":semis:core:utils"))
 
     implementation(libs.androidx.coreKtx)
