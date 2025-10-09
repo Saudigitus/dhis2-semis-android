@@ -11,16 +11,21 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import org.dhis2.commons.resources.ResourceManager
+import org.saudigitus.semis.core.data.model.Module
 import org.saudigitus.semis.core.data.model.OrgUnit
 import org.saudigitus.semis.core.data.model.app_config.Registration
 import org.saudigitus.semis.core.data.repository.AppConfigRepository
+import org.saudigitus.semis.core.data.repository.AppModulesRepository
 import org.saudigitus.semis.core.data.repository.FilterRepository
+import org.saudigitus.semis.core.designsystem.R
 import org.saudigitus.semis.core.designsystem.components.fields.DropdownState
 import org.saudigitus.semis.core.designsystem.components.model.DropdownItem
 import org.saudigitus.semis.core.designsystem.components.model.FilterType
 import org.saudigitus.semis.core.designsystem.filters.FilterComponentEvent
 import org.saudigitus.semis.core.designsystem.filters.FilterComponentState
 import org.saudigitus.semis.core.designsystem.utils.UiDefaults
+import org.saudigitus.semis.core.designsystem.utils.withFilterDetails
 import org.saudigitus.semis.core.designsystem.utils.withOUAndFilters
 import org.saudigitus.semis.core.designsystem.utils.withSelectedFilter
 import org.saudigitus.semis.core.designsystem.utils.withSubtitle
@@ -29,7 +34,9 @@ import javax.inject.Inject
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val filterRepository: FilterRepository,
-    private val appConfigRepository: AppConfigRepository
+    private val appConfigRepository: AppConfigRepository,
+    private val appModulesRepository: AppModulesRepository,
+    private val resourceManager: ResourceManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUIState())
@@ -55,7 +62,7 @@ class HomeViewModel @Inject constructor(
     fun initialize(program: String) {
         viewModelScope.launch {
             val filters = loadFilters(program).sortedBy { it.order }
-
+            val modules = loadModules(program)
             setRegistration(program)
 
             _uiState.update {
@@ -69,7 +76,8 @@ class HomeViewModel @Inject constructor(
                                 FilterType.ACADEMIC_YEAR to getAcademicYearDropdown().second!!
                             )
                         } else emptyMap()
-                    )
+                    ),
+                    modules = modules
                 )
             }
         }
@@ -94,6 +102,10 @@ class HomeViewModel @Inject constructor(
             emptyList()
         }
 
+    private suspend fun loadModules(program: String): List<Module> {
+        return appModulesRepository.getModules(program)
+    }
+
     private suspend fun getAcademicYearDropdown(): Pair<DropdownState, DropdownItem?> {
         val schoolCalendar = appConfigRepository.getSchoolCalendar()
         val filterData = dropdownItems(schoolCalendar?.academicYear.orEmpty())
@@ -105,11 +117,14 @@ class HomeViewModel @Inject constructor(
 
         val default = options.find { it.code == academicYearCode }
 
-        return Pair(DropdownState(
-            filterType = FilterType.ACADEMIC_YEAR,
-            displayName = default?.itemName ?: "Academic Year",
-            data = options
-        ), default)
+        return Pair(
+            DropdownState(
+                filterType = FilterType.ACADEMIC_YEAR,
+                displayName = default?.itemName
+                    ?: resourceManager.getString(R.string.academic_year),
+                data = options
+            ), default
+        )
     }
 
     private suspend fun dropdownItems(dataElement: String): List<DropdownItem> {
@@ -178,8 +193,10 @@ class HomeViewModel @Inject constructor(
                 else -> current
             }
 
-            _uiState.update { it.copy(filterState = updatedFilterState) }
-            updateToolbarHeader(current)
+            val lastUpdatedFilterState = updateFilterDetails(updatedFilterState)
+
+            _uiState.update { it.copy(filterState = lastUpdatedFilterState) }
+            updateToolbarHeader(updatedFilterState)
             autoHideFilters()
         }
     }
@@ -187,8 +204,23 @@ class HomeViewModel @Inject constructor(
     private fun updateToolbarHeader(filterState: FilterComponentState) {
         val toolbarHeader = uiState.value.toolbarHeaders
         val updatedToolbarHeader = toolbarHeader
-            .withSubtitle("${filterState.orgUnit?.displayName ?: "School" } | ${filterState.getAcademicYearSelection()?.itemName}")
+            .withSubtitle("${filterState.orgUnit?.displayName ?: resourceManager.getString(R.string.school)} | ${filterState.getAcademicYearSelection()?.itemName}")
         _uiState.update { it.copy(toolbarHeaders = updatedToolbarHeader) }
+    }
+
+    private fun updateFilterDetails(filterState: FilterComponentState): FilterComponentState {
+        val current = filterState.filterDetailsState
+
+        val updatedFilterDetailsState = current.copy(
+            academicYear = filterState.getAcademicYearSelection()?.itemName
+                ?: resourceManager.getString(R.string.academic_year),
+            orgUnit = filterState.orgUnit?.displayName
+                ?: resourceManager.getString(R.string.school),
+            grade = filterState.selectedFilters[FilterType.GRADE]?.itemName,
+            section = filterState.selectedFilters[FilterType.SECTION]?.itemName,
+        )
+
+        return filterState.withFilterDetails(updatedFilterDetailsState)
     }
 
     private fun autoHideFilters() {

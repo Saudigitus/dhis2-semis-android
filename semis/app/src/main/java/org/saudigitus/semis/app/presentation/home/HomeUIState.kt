@@ -1,6 +1,6 @@
 package org.saudigitus.semis.app.presentation.home
 
-import org.saudigitus.semis.app.presentation.model.Module
+import org.saudigitus.semis.core.data.model.Module
 import org.saudigitus.semis.core.designsystem.components.model.ToolbarHeaders
 import org.saudigitus.semis.core.designsystem.filters.FilterComponentState
 

@@ -4,9 +4,12 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import org.dhis2.commons.resources.ResourceManager
 import org.hisp.dhis.android.core.D2
 import org.saudigitus.semis.core.data.repository.AppConfigRepository
 import org.saudigitus.semis.core.data.repository.AppConfigRepositoryImpl
+import org.saudigitus.semis.core.data.repository.AppModulesRepository
+import org.saudigitus.semis.core.data.repository.AppModulesRepositoryImpl
 import org.saudigitus.semis.core.data.repository.FilterRepository
 import org.saudigitus.semis.core.data.repository.FilterRepositoryImpl
 import org.saudigitus.semis.core.data.rules.RuleEngineRepository
@@ -28,4 +31,11 @@ object DataModule {
         configRepository: AppConfigRepository,
         ruleEngineRepository: RuleEngineRepository
     ): FilterRepository = FilterRepositoryImpl(d2, configRepository, ruleEngineRepository)
+
+    @Provides
+    @Singleton
+    fun provideAppModulesRepository(
+        configRepository: AppConfigRepository,
+        resourceManager: ResourceManager
+    ): AppModulesRepository = AppModulesRepositoryImpl(configRepository, resourceManager)
 }
