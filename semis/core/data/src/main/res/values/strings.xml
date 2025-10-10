@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="download_completed_not_found">Download completed but no TEIs were found in local storage</string>
+    <string name="download_failed">Failed to download TEIs: %s</string>
+    <string name="tei_not_found">TEIs not fount for applied filters. Update your filters and try again</string>
+    <string name="failed_to_search_tei">Failed to search TEIs: %s</string>
+</resources>

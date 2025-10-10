@@ -6,6 +6,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.stateIn
@@ -15,9 +16,12 @@ import org.dhis2.commons.resources.ResourceManager
 import org.saudigitus.semis.core.data.model.Module
 import org.saudigitus.semis.core.data.model.OrgUnit
 import org.saudigitus.semis.core.data.model.app_config.Registration
+import org.saudigitus.semis.core.data.model.schoolcalendar_config.AcademicYear
 import org.saudigitus.semis.core.data.repository.AppConfigRepository
 import org.saudigitus.semis.core.data.repository.AppModulesRepository
 import org.saudigitus.semis.core.data.repository.FilterRepository
+import org.saudigitus.semis.core.data.repository.TeiDownloaderRepository
+import org.saudigitus.semis.core.data.repository.TeiRepository
 import org.saudigitus.semis.core.designsystem.R
 import org.saudigitus.semis.core.designsystem.components.fields.DropdownState
 import org.saudigitus.semis.core.designsystem.components.model.DropdownItem
@@ -29,6 +33,8 @@ import org.saudigitus.semis.core.designsystem.utils.withFilterDetails
 import org.saudigitus.semis.core.designsystem.utils.withOUAndFilters
 import org.saudigitus.semis.core.designsystem.utils.withSelectedFilter
 import org.saudigitus.semis.core.designsystem.utils.withSubtitle
+import org.saudigitus.semis.core.utils.onFailure
+import org.saudigitus.semis.core.utils.onSuccess
 import javax.inject.Inject
 
 @HiltViewModel
@@ -36,13 +42,17 @@ class HomeViewModel @Inject constructor(
     private val filterRepository: FilterRepository,
     private val appConfigRepository: AppConfigRepository,
     private val appModulesRepository: AppModulesRepository,
-    private val resourceManager: ResourceManager
+    private val resourceManager: ResourceManager,
+    private val teiDownloaderRepository: TeiDownloaderRepository,
+    private val teiRepository: TeiRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUIState())
     private val isAutoHideFilters = MutableStateFlow(true)
 
     private val registration = MutableStateFlow<Registration?>(null)
+    private val academicYear = MutableStateFlow<AcademicYear?>(null)
+    private val academicYearDL = MutableStateFlow<String>("")
 
     val uiState: StateFlow<HomeUIState> = combine(
         _uiState,
@@ -64,6 +74,7 @@ class HomeViewModel @Inject constructor(
             val filters = loadFilters(program).sortedBy { it.order }
             val modules = loadModules(program)
             setRegistration(program)
+            setAcademicYear()
 
             _uiState.update {
                 it.copy(
@@ -86,6 +97,16 @@ class HomeViewModel @Inject constructor(
     private suspend fun setRegistration(program: String) {
         val config = appConfigRepository.getAppConfig(program)
         registration.value = config?.registration
+    }
+
+    private suspend fun setAcademicYear() {
+        val schoolCalendar = appConfigRepository.getSchoolCalendar()
+        val default = schoolCalendar?.defaults?.academicYear
+        academicYearDL.value = schoolCalendar?.academicYear.orEmpty()
+
+        academicYear.value = schoolCalendar?.schoolCalendar?.find {
+            it?.academicYear?.code == default
+        }?.academicYear
     }
 
     private suspend fun loadFilters(program: String): List<DropdownState> =
@@ -175,11 +196,71 @@ class HomeViewModel @Inject constructor(
 
     fun handleFilterEvent(event: FilterComponentEvent) {
         when (event) {
-            is FilterComponentEvent.Sync -> {
-                // TODO: Implement students download
-            }
-
+            is FilterComponentEvent.Sync -> downloadTei()
             is FilterComponentEvent.FilterValueChange<*> -> handleFilterValueChange(event)
+        }
+    }
+
+    private fun downloadTei() {
+        viewModelScope.launch {
+            if (uiState.value.filterState.isFilterSelectionNotEmpty()) {
+                _uiState.update { it.copy(isLoading = true) }
+
+                val result = teiDownloaderRepository.downloadTei(
+                    ou = uiState.value.filterState.orgUnit?.uid.orEmpty(),
+                    program = uiState.value.program,
+                    dataElementIds = listOfNotNull(
+                        academicYearDL.value,
+                        registration.value?.grade,
+                        registration.value?.section
+                    ),
+                    dataValues = listOfNotNull(
+                        academicYear.value?.code,
+                        uiState.value.filterState.selectedFilters[FilterType.GRADE]?.code,
+                        uiState.value.filterState.selectedFilters[FilterType.SECTION]?.code
+                    )
+                )
+
+                result.onSuccess {
+                    loadTeis()
+                }.onFailure { f ->
+                    _uiState.update { it.copy(isLoading = false, errorMessage = f.message) }
+                }
+            } else {
+                _uiState.update { it.copy(errorMessage = resourceManager.getString(R.string.apply_filters)) }
+            }
+        }
+    }
+
+    private suspend fun loadTeis() {
+        teiRepository.getTrackerEntities(
+            ou = uiState.value.filterState.orgUnit?.uid.orEmpty(),
+            program = uiState.value.program,
+            stage = registration.value?.programStage.orEmpty(),
+            dataElementIds = listOfNotNull(
+                academicYearDL.value,
+                registration.value?.grade,
+                registration.value?.section
+            ),
+            dataValues = listOfNotNull(
+                academicYear.value?.code,
+                uiState.value.filterState.selectedFilters[FilterType.GRADE]?.code,
+                uiState.value.filterState.selectedFilters[FilterType.SECTION]?.code
+            )
+        ).collectLatest { data ->
+            val currentFieldState = uiState.value.filterState
+            val current = currentFieldState.filterDetailsState
+
+            val updateCount = current.copy(count = data.size)
+            val updateFieldState = currentFieldState.copy(filterDetailsState = updateCount)
+
+            _uiState.update {
+                it.copy(
+                    isLoading = false,
+                    filterState = updateFieldState,
+                    tei = data
+                )
+            }
         }
     }
 
@@ -198,6 +279,7 @@ class HomeViewModel @Inject constructor(
             _uiState.update { it.copy(filterState = lastUpdatedFilterState) }
             updateToolbarHeader(updatedFilterState)
             autoHideFilters()
+            loadTeis()
         }
     }
 
