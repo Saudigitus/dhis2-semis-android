@@ -10,4 +10,5 @@
     <string name="back">Back</string>
     <string name="config_not_found">App not configured, please contact System Administrator.</string>
     <string name="no_records_found">No records, please update your filters and/or sync data</string>
+    <string name="apply_filters">To start downloading students, please select your filters (e.g., school, grade, or year).\nThis helps us fetch only the data you need.</string>
 </resources>

@@ -60,7 +60,9 @@ fun ConfigNotFoud(
 
 @Composable
 fun NoRecordsFound(
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    imageVector: ImageVector = Icons.Default.HideSource,
+    message: String = stringResource(R.string.no_records_found)
 ) {
     Row(
         modifier = modifier.then(
@@ -73,12 +75,12 @@ fun NoRecordsFound(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
-            imageVector = Icons.Default.HideSource,
+            imageVector = imageVector,
             contentDescription = stringResource(R.string.no_records_found),
             tint = dark_warning
         )
         Text(
-            text = stringResource(R.string.no_records_found),
+            text = message,
             color = dark_warning
         )
     }

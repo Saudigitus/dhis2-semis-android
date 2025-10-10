@@ -14,8 +14,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import org.saudigitus.semis.app.presentation.navigation.AppRoutes
+import org.saudigitus.semis.core.designsystem.R
 import org.saudigitus.semis.core.designsystem.components.ConfigNotFoud
 import org.saudigitus.semis.core.designsystem.components.FilterDetails
 import org.saudigitus.semis.core.designsystem.components.NoRecordsFound
@@ -62,6 +64,7 @@ fun HomeScreen(
             NoRecordsFound(
                 modifier = Modifier.fillMaxWidth()
                     .padding(16.dp),
+                message = state.errorMessage ?: stringResource(R.string.no_records_found)
             )
         }
 
