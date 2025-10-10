@@ -45,8 +45,11 @@ fun ActionCard(
         modifier = modifier,
         border = border,
         elevation = elevation,
-        shape = shape,
         enabled = enabled,
+        shape = shape,
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White,
+        ),
         onClick = onClick,
     ) {
         Column(
@@ -61,7 +64,7 @@ fun ActionCard(
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Image(
-                    modifier = Modifier.size(120.dp),
+                    modifier = Modifier.size(84.dp),
                     painter = icon,
                     contentDescription = label,
                     contentScale = ContentScale.Fit

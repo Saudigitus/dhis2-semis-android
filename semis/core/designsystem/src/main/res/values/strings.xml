@@ -8,4 +8,6 @@
     <string name="calendar">Calendar</string>
     <string name="filters">Filters</string>
     <string name="back">Back</string>
+    <string name="config_not_found">App not configured, please contact System Administrator.</string>
+    <string name="no_records_found">No records, please update your filters and/or sync data</string>
 </resources>

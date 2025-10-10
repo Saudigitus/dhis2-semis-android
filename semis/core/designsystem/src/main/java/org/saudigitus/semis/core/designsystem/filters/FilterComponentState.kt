@@ -1,6 +1,7 @@
 package org.saudigitus.semis.core.designsystem.filters
 
 import org.saudigitus.semis.core.data.model.OrgUnit
+import org.saudigitus.semis.core.designsystem.components.FilterDetailsState
 import org.saudigitus.semis.core.designsystem.components.fields.DropdownState
 import org.saudigitus.semis.core.designsystem.components.model.DropdownItem
 import org.saudigitus.semis.core.designsystem.components.model.FilterType
@@ -10,6 +11,7 @@ data class FilterComponentState(
     val orgUnit: OrgUnit? = null,
     val filters: List<DropdownState> = emptyList(),
     val selectedFilters: Map<FilterType, DropdownItem> = emptyMap(),
+    val filterDetailsState: FilterDetailsState = FilterDetailsState()
 ) {
 
     fun getAcademicYearSelection() = selectedFilters

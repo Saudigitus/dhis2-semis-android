@@ -18,4 +18,10 @@ object Constants {
     const val SECTION = "section"
     const val SECTION_CLASS = "section/class"
     const val CLASS = "class"
+
+    const val APP_MODULES = "appmodules.json"
+
+    const val ATTENDANCE = "attendance"
+    const val ABSENTEEISM = "absenteeism"
+    const val PERFORMANCE = "performance"
 }

@@ -4,6 +4,7 @@ import org.hisp.dhis.android.core.D2
 import org.hisp.dhis.android.core.arch.repositories.scope.RepositoryScope
 import org.hisp.dhis.android.core.event.Event
 import org.hisp.dhis.android.core.option.Option
+import org.saudigitus.semis.core.data.model.Module
 
 fun D2.eventsWithTrackedDataValues(
     ou: String,
@@ -65,3 +66,6 @@ fun D2.optionsByOptionSetAndCode(
     .byOptionSetUid().eq(optionSet)
     .orderBySortOrder(RepositoryScope.OrderByDirection.ASC)
     .blockingGet()
+
+
+fun Module.isEnabled(enabled: Boolean) = copy(enabled = enabled)
