@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="sync_offline_check_connection">Parece que está offline. Por favor, verifique a sua ligação</string>
+</resources>

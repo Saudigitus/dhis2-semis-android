@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="academic_year">Ano lectivo</string>
+    <string name="grade">Ano</string>
+    <string name="cls">Turma/Classe</string>
+    <string name="school">Escola</string>
+    <string name="unknown">Desconhecido</string>
+    <string name="calendar">Calendário</string>
+    <string name="filters">Filtros</string>
+    <string name="back">Voltar</string>
+    <string name="config_not_found">Aplicação não configurada, por favor contacte o Administrador do Sistema.</string>
+    <string name="no_records_found">Sem registos. Actualize os filtros e/ou sincronize os dados.</string>
+    <string name="apply_filters">Para começar a transferir os estudantes, selecione os seus filtros (por exemplo, escola, ano ou ano lectivo).\nIsto ajuda-nos a obter apenas os dados de que precisa.</string>
+
+    <string name="not_synced">Não sincronizado</string>
+    <string name="programs">Programas</string>
+    <string name="sync_successful">Sincronização bem-sucedida</string>
+    <string name="sync_warning">Aviso de sincronização</string>
+    <string name="sync_error">Erro de sincronização</string>
+    <string name="sync_dialog_title_not_synced">Sincronização necessária</string>
+    <string name="sync_dialog_title_error">Erro de sincronização</string>
+    <string name="sync_dialog_title_synced">Sincronizado</string>
+    <string name="sync_dialog_title_warning">Aviso de sincronização</string>
+    <string name="sync_dialog_title_syncing">A sincronizar</string>
+    <string name="sync_dialog_title_sms_syced">SMS enviada</string>
+    <string name="enrolledIn">Inscrito em</string>
+    <string name="marked_follow_up">Marcado para acompanhamento</string>
+    <string name="sync_error_title">Erro de sincronização</string>
+
+</resources>
