@@ -20,7 +20,8 @@ import org.saudigitus.semis.core.designsystem.templates.TopAppBarScaffold
 fun AppScreen(
     viewModel: HomeViewModel,
     navBack: () -> Unit,
-    syncData: () -> Unit
+    syncData: () -> Unit,
+    navTo: (String) -> Unit
 ) {
     val internalNavController = rememberNavController()
     var route by rememberSaveable { mutableStateOf(HomeBarNavigation.HOME) }
@@ -49,7 +50,8 @@ fun AppScreen(
             composable(HomeBarNavigation.HOME.name) {
                 HomeScreen(
                     state = uiState,
-                    onFilterEvent = viewModel::handleFilterEvent
+                    onFilterEvent = viewModel::handleFilterEvent,
+                    navTo = navTo
                 )
             }
             composable(HomeBarNavigation.ANALYTICS.name) {

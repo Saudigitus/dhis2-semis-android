@@ -3,6 +3,7 @@ package org.saudigitus.semis.app.presentation.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -69,7 +70,9 @@ class HomeViewModel @Inject constructor(
             HomeUIState()
         )
 
-    fun initialize(program: String) {
+    private var loadJob: Job? = null
+
+    fun initialize(program: String, programName: String? = null) {
         viewModelScope.launch {
             val filters = loadFilters(program).sortedBy { it.order }
             val modules = loadModules(program)
@@ -79,6 +82,7 @@ class HomeViewModel @Inject constructor(
             _uiState.update {
                 it.copy(
                     program = program,
+                    programName = programName.orEmpty(),
                     filterState = FilterComponentState(
                         academicYear = getAcademicYearDropdown().first,
                         filters = filters,
@@ -251,7 +255,7 @@ class HomeViewModel @Inject constructor(
             val currentFieldState = uiState.value.filterState
             val current = currentFieldState.filterDetailsState
 
-            val updateCount = current.copy(count = data.size)
+            val updateCount = current.copy(count = data.size, enable = data.isNotEmpty())
             val updateFieldState = currentFieldState.copy(filterDetailsState = updateCount)
 
             _uiState.update {
@@ -266,6 +270,8 @@ class HomeViewModel @Inject constructor(
 
     private fun handleFilterValueChange(event: FilterComponentEvent.FilterValueChange<*>) {
         viewModelScope.launch {
+            loadJob?.cancel()
+
             val current = uiState.value.filterState
 
             val updatedFilterState = when (val obj = event.obj) {
@@ -276,10 +282,17 @@ class HomeViewModel @Inject constructor(
 
             val lastUpdatedFilterState = updateFilterDetails(updatedFilterState)
 
-            _uiState.update { it.copy(filterState = lastUpdatedFilterState) }
+            _uiState.update {
+                it.copy(
+                    isLoading = true,
+                    filterState = lastUpdatedFilterState,
+                    tei = emptyList()
+                )
+            }
             updateToolbarHeader(updatedFilterState)
             autoHideFilters()
-            loadTeis()
+
+            loadJob = launch { loadTeis() }
         }
     }
 

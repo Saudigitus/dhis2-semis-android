@@ -11,4 +11,19 @@
     <string name="config_not_found">App not configured, please contact System Administrator.</string>
     <string name="no_records_found">No records, please update your filters and/or sync data</string>
     <string name="apply_filters">To start downloading students, please select your filters (e.g., school, grade, or year).\nThis helps us fetch only the data you need.</string>
+
+    <string name="not_synced">Not synced</string>
+    <string name="programs">Programs</string>
+    <string name="sync_successful">Sync successful</string>
+    <string name="sync_warning">Sync warning</string>
+    <string name="sync_error">Sync Error</string>
+    <string name="sync_dialog_title_not_synced">Sync needed</string>
+    <string name="sync_dialog_title_error">Sync error</string>
+    <string name="sync_dialog_title_synced">Synced</string>
+    <string name="sync_dialog_title_warning">Sync warning</string>
+    <string name="sync_dialog_title_syncing">Syncing</string>
+    <string name="sync_dialog_title_sms_syced">SMS sent</string>
+    <string name="enrolledIn">Enrolled in</string>
+    <string name="marked_follow_up">Marked for follow-up</string>
+    <string name="sync_error_title">Sync Error</string>
 </resources>
