@@ -16,4 +16,32 @@ object DateHelper {
             null
         }
     }
+
+    fun formatDateWithWeekDay(date: Long): String? {
+        return try {
+            val strDate = formatDate(date).orEmpty()
+
+            val inputFormat = SimpleDateFormat(DateUtils.DATE_FORMAT_EXPRESSION, Locale.US)
+            val outputFormat = SimpleDateFormat("EEEE, MMM dd, yyyy", Locale.US)
+
+            val inputDate: Date = inputFormat.parse(strDate)!!
+            outputFormat.format(inputDate)
+        } catch (e: Exception) {
+            Timber.tag("DATE_FORMAT").e(e)
+            null
+        }
+    }
+
+    fun formatDateWithWeekDay(date: String): String? {
+        return try {
+            val inputFormat = SimpleDateFormat(DateUtils.DATE_FORMAT_EXPRESSION, Locale.US)
+            val outputFormat = SimpleDateFormat("EEEE, MMM dd, yyyy", Locale.US)
+
+            val inputDate: Date = inputFormat.parse(date)!!
+            outputFormat.format(inputDate)
+        } catch (e: Exception) {
+            Timber.tag("DATE_FORMAT").e(e)
+            null
+        }
+    }
 }
