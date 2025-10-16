@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="download_completed_not_found">Transferência concluída, mas não foram encontrados TEIs no armazenamento local</string>
+    <string name="download_failed">Falha ao transferir os TEIs: %s</string>
+    <string name="tei_not_found">Não foram encontrados TEIs para os filtros aplicados. Actualize os filtros e tente novamente</string>
+    <string name="failed_to_search_tei">Falha ao pesquisar TEIs: %s</string>
+</resources>
