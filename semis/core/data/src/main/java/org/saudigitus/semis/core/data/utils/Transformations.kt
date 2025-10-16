@@ -13,6 +13,7 @@ import javax.inject.Inject
 class Transformations @Inject constructor(private val d2: D2) {
 
     private lateinit var currentProgram: String
+    private val orgUnitNameCache = HashMap<String?, String?>()
 
 
     fun transform(
@@ -66,6 +67,11 @@ class Transformations @Inject constructor(private val d2: D2) {
         if (enrollment != null) {
             searchTei.addEnrollment(enrollment)
             searchTei.setCurrentEnrollment(enrollment)
+            searchTei.enrolledOrgUnit = orgUnitName(
+                searchTei.selectedEnrollment.organisationUnit()
+            )
+        } else {
+            searchTei.enrolledOrgUnit = orgUnitName(searchTei.tei.organisationUnit())
         }
 
         searchTei.displayOrgUnit = displayOrgUnit()
@@ -92,5 +98,16 @@ class Transformations @Inject constructor(private val d2: D2) {
         return d2.organisationUnitModule().organisationUnits()
             .byProgramUids(listOf(currentProgram))
             .blockingGet().size > 1
+    }
+
+    private fun orgUnitName(orgUnitUid: String?): String? {
+        if (!orgUnitNameCache.containsKey(orgUnitUid)) {
+            val organisationUnit = d2.organisationUnitModule()
+                .organisationUnits()
+                .uid(orgUnitUid)
+                .blockingGet()
+            orgUnitNameCache.put(orgUnitUid, organisationUnit!!.displayName())
+        }
+        return orgUnitNameCache[orgUnitUid]
     }
 }

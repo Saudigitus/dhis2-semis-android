@@ -15,6 +15,8 @@ import org.saudigitus.semis.core.data.repository.AppModulesRepository
 import org.saudigitus.semis.core.data.repository.AppModulesRepositoryImpl
 import org.saudigitus.semis.core.data.repository.FilterRepository
 import org.saudigitus.semis.core.data.repository.FilterRepositoryImpl
+import org.saudigitus.semis.core.data.repository.OptionRepository
+import org.saudigitus.semis.core.data.repository.OptionRepositoryImpl
 import org.saudigitus.semis.core.data.repository.TeiDownloaderRepository
 import org.saudigitus.semis.core.data.repository.TeiDownloaderRepositoryImpl
 import org.saudigitus.semis.core.data.repository.TeiRepository
@@ -34,11 +36,17 @@ object DataModule {
 
     @Provides
     @Singleton
-    fun provideFilterRepository(
+    fun provideOptionRepository(
         d2: D2,
-        configRepository: AppConfigRepository,
         ruleEngineRepository: RuleEngineRepository
-    ): FilterRepository = FilterRepositoryImpl(d2, configRepository, ruleEngineRepository)
+    ): OptionRepository = OptionRepositoryImpl(d2, ruleEngineRepository)
+
+    @Provides
+    @Singleton
+    fun provideFilterRepository(
+        configRepository: AppConfigRepository,
+        optionRepository: OptionRepository
+    ): FilterRepository = FilterRepositoryImpl(configRepository, optionRepository)
 
     @Provides
     @Singleton
