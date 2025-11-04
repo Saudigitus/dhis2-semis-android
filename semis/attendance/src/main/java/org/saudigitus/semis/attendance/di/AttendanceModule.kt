@@ -4,9 +4,13 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import org.saudigitus.semis.attendance.data.AttendanceTransformation
+import org.saudigitus.semis.attendance.data.repository.AttendanceEventRepository
+import org.saudigitus.semis.attendance.data.repository.AttendanceEventRepositoryImpl
 import org.saudigitus.semis.attendance.data.repository.AttendanceOptionRepository
 import org.saudigitus.semis.attendance.data.repository.AttendanceOptionRepositoryImpl
 import org.saudigitus.semis.core.data.repository.AppConfigRepository
+import org.saudigitus.semis.core.data.repository.EventRepository
 import org.saudigitus.semis.core.data.repository.OptionRepository
 import javax.inject.Singleton
 
@@ -23,4 +27,17 @@ object AttendanceModule {
         return AttendanceOptionRepositoryImpl(optionRepository, appConfigRepository)
     }
 
+    @Provides
+    @Singleton
+    fun provideAttendanceEventRepository(
+        eventRepository: EventRepository,
+        appConfigRepository: AppConfigRepository,
+        attendanceTransformation: AttendanceTransformation
+    ): AttendanceEventRepository {
+        return AttendanceEventRepositoryImpl(
+            eventRepository,
+            appConfigRepository,
+            attendanceTransformation
+        )
+    }
 }

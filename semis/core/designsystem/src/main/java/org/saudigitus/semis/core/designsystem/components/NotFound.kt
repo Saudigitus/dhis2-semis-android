@@ -28,14 +28,18 @@ import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.saudigitus.semis.core.designsystem.R
 import org.saudigitus.semis.core.designsystem.theme.dark_warning
 
 @Composable
-fun ConfigNotFoud(
-    modifier: Modifier = Modifier
+fun ConfigNotFound(
+    modifier: Modifier = Modifier,
+    iconSize: Dp = 74.dp,
+    imageVector: ImageVector = ImageVector.vectorResource(R.drawable.settings_alert),
+    message: String = stringResource(R.string.config_not_found)
 ) {
     Card(
         modifier = modifier,
@@ -51,13 +55,13 @@ fun ConfigNotFoud(
             verticalArrangement = Arrangement.Center,
         ) {
             Icon(
-                imageVector = ImageVector.vectorResource(R.drawable.settings_alert),
-                contentDescription = stringResource(R.string.config_not_found),
-                modifier = Modifier.size(74.dp),
+                imageVector = imageVector,
+                contentDescription = message,
+                modifier = Modifier.size(iconSize),
                 tint = dark_warning
             )
             Text(
-                text = stringResource(R.string.config_not_found),
+                text = message,
                 color = dark_warning,
                 textAlign = TextAlign.Center
             )

@@ -13,6 +13,8 @@ import org.saudigitus.semis.core.data.repository.AppConfigRepository
 import org.saudigitus.semis.core.data.repository.AppConfigRepositoryImpl
 import org.saudigitus.semis.core.data.repository.AppModulesRepository
 import org.saudigitus.semis.core.data.repository.AppModulesRepositoryImpl
+import org.saudigitus.semis.core.data.repository.EventRepository
+import org.saudigitus.semis.core.data.repository.EventRepositoryImpl
 import org.saudigitus.semis.core.data.repository.FilterRepository
 import org.saudigitus.semis.core.data.repository.FilterRepositoryImpl
 import org.saudigitus.semis.core.data.repository.OptionRepository
@@ -75,4 +77,10 @@ object DataModule {
         d2: D2,
         transformations: Transformations
     ): TeiRepository = TeiRepositoryImpl(d2, transformations)
+
+    @Provides
+    @Singleton
+    fun provideEventRepository(
+        d2: D2,
+    ): EventRepository = EventRepositoryImpl(d2)
 }

@@ -6,10 +6,12 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
@@ -31,8 +33,10 @@ import org.hisp.dhis.mobile.ui.designsystem.component.ListCardDescriptionModel
 import org.hisp.dhis.mobile.ui.designsystem.component.ListCardTitleModel
 import org.hisp.dhis.mobile.ui.designsystem.component.state.rememberAdditionalInfoColumnState
 import org.hisp.dhis.mobile.ui.designsystem.component.state.rememberListCardState
+import org.saudigitus.semis.attendance.ui.model.ButtonStep
 import org.saudigitus.semis.core.designsystem.R
 import org.saudigitus.semis.core.designsystem.attendance.AttendanceButton
+import org.saudigitus.semis.core.designsystem.components.ConfigNotFound
 import org.saudigitus.semis.core.designsystem.components.FilterDetails
 import org.saudigitus.semis.core.designsystem.components.NoResults
 import org.saudigitus.semis.core.designsystem.components.ToolbarActionState
@@ -44,6 +48,7 @@ import org.saudigitus.semis.core.designsystem.utils.mapper.searchTeiMapper
 fun AttendanceScreen(
     state: AttendanceUiState,
     teiCardMapper: TEICardMapper,
+    onEvent: (AttendanceUiEvent) -> Unit,
 ) {
     TopAppBarScaffold(
         toolbarHeaders = state.toolbarHeaders,
@@ -51,11 +56,18 @@ fun AttendanceScreen(
             filterVisibility = false,
             showCalendar = true
         ),
+        navigationAction = { onEvent(AttendanceUiEvent.NavBack) },
+        syncAction = { onEvent(AttendanceUiEvent.OnSyncClicked) },
+        calendarAction = { onEvent(AttendanceUiEvent.OnDateSelect(it)) },
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 text = {
                     Text(
-                        text = stringResource(R.string.save),
+                        text = if (state.buttonStep == ButtonStep.NONE) {
+                            stringResource(R.string.update)
+                        } else {
+                            stringResource(R.string.save)
+                        },
                         color = colorPrimary,
                         style = LocalTextStyle.current.copy(
                             fontFamily = FontFamily(Font(R.font.rubik_medium)),
@@ -64,12 +76,22 @@ fun AttendanceScreen(
                 },
                 icon = {
                     Icon(
-                        imageVector = Icons.Default.Edit,
+                        imageVector = if (state.buttonStep == ButtonStep.NONE) {
+                            Icons.Default.Edit
+                        } else {
+                            Icons.Default.Save
+                        },
                         contentDescription = null,
                         tint = colorPrimary,
                     )
                 },
-                onClick = {  },
+                onClick = {
+                    if (state.buttonStep == ButtonStep.NONE) {
+                        onEvent(AttendanceUiEvent.OnEditClicked)
+                    } else {
+                        onEvent(AttendanceUiEvent.OnSaveClicked)
+                    }
+                },
             )
         }
     ) {
@@ -80,7 +102,7 @@ fun AttendanceScreen(
         )
 
         if (state.isLoading) {
-            Box (
+            Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
@@ -89,6 +111,17 @@ fun AttendanceScreen(
         } else if (state.teis.isEmpty()) {
             NoResults(message = stringResource(id = R.string.no_records_found))
         } else {
+            if (state.attendanceButtonState.buttons.isEmpty()) {
+                ConfigNotFound(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .wrapContentHeight()
+                        .padding(horizontal = 16.dp),
+                    iconSize = 32.dp,
+                    message = stringResource(id = R.string.app_not_properly_config)
+                )
+            }
+
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(start = 16.dp, top = 10.dp, bottom = 108.dp)
@@ -97,7 +130,7 @@ fun AttendanceScreen(
                     val card = searchTeiMapper(
                         tei = tei,
                         teiCardMapper = teiCardMapper,
-                        onImageClick = {  },
+                        onImageClick = { },
                         onCardClick = { tei, enrollment ->
 
                         }
@@ -139,11 +172,18 @@ fun AttendanceScreen(
                             listAvatar = card.first.avatar,
                         )
                         AttendanceButton(
+                            key = tei.uid(),
                             modifier = Modifier.padding(horizontal = 16.dp),
-                            state = state.attendanceButtonState
-                        ) {
-
-                        }
+                            state = state.attendanceButtonState,
+                            onClick = {
+                                onEvent(
+                                    AttendanceUiEvent.OnAttendanceClick(
+                                        tei = tei.uid(),
+                                        buttonModel = it
+                                    )
+                                )
+                            }
+                        )
                     }
                 }
             }
