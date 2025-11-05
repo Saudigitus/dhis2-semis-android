@@ -6,5 +6,6 @@ import org.saudigitus.semis.core.data.model.schoolcalendar_config.SchoolCalendar
 interface AppConfigRepository {
     suspend fun getAppConfig(program: String): SEMISConfigItem?
     suspend fun getSchoolCalendar(): SchoolCalendarConfig?
+    fun allowedCalenderYearDates(dateLong: Long, schoolCalendar: SchoolCalendarConfig?): Boolean
 }
 

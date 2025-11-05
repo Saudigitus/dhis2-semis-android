@@ -50,6 +50,19 @@ class AttendanceViewModel @Inject constructor(
             _uiState.value
         )
 
+    init {
+        viewModelScope.launch {
+            val schoolCalendar = appConfigRepository.getSchoolCalendar()
+
+            _uiState.update {
+                it.copy(
+                    dateValidator = { date ->
+                        appConfigRepository.allowedCalenderYearDates(date, schoolCalendar)
+                    }
+                )
+            }
+        }
+    }
 
     private suspend fun buttonState(
         program: String,

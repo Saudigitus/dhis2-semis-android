@@ -9,6 +9,7 @@ import org.saudigitus.semis.core.designsystem.components.model.ToolbarHeaders
 data class AttendanceUiState(
     val isLoading: Boolean = false,
     val toolbarHeaders: ToolbarHeaders = ToolbarHeaders(""),
+    val dateValidator: (Long) -> Boolean = { _ -> true },
     val program: String = "",
     val buttonStep: ButtonStep = ButtonStep.NONE,
     val teis: List<SearchTeiModel> = emptyList(),

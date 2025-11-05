@@ -3,6 +3,8 @@ package org.saudigitus.semis.core.utils
 import org.dhis2.commons.date.DateUtils
 import timber.log.Timber
 import java.text.SimpleDateFormat
+import java.time.DayOfWeek
+import java.time.LocalDate
 import java.util.Date
 import java.util.Locale
 
@@ -44,4 +46,14 @@ object DateHelper {
             null
         }
     }
+
+    fun isWeekend(date: LocalDate): Boolean {
+        val dayOfWeek = date.dayOfWeek
+        return dayOfWeek == DayOfWeek.SATURDAY || dayOfWeek == DayOfWeek.SUNDAY
+    }
+
+    fun stringToLocalDate(date: String): LocalDate {
+        return LocalDate.parse(date)
+    }
+
 }
