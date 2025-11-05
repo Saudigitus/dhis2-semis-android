@@ -106,7 +106,7 @@ class Transformations @Inject constructor(private val d2: D2) {
                 .organisationUnits()
                 .uid(orgUnitUid)
                 .blockingGet()
-            orgUnitNameCache.put(orgUnitUid, organisationUnit!!.displayName())
+            orgUnitNameCache[orgUnitUid] = organisationUnit!!.displayName()
         }
         return orgUnitNameCache[orgUnitUid]
     }

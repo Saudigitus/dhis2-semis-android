@@ -73,3 +73,5 @@ val light_error = Color(0xFFE57373)
 
 
 val dark_warning = Color(0xFFFD9600)
+
+val white = 0xFFFFFFFF

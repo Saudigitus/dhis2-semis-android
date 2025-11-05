@@ -10,6 +10,7 @@ import org.saudigitus.semis.core.designsystem.attendance.model.AttendanceEventWi
 import org.saudigitus.semis.core.data.model.app_config.Attendance
 import org.saudigitus.semis.core.data.utils.Transformations
 import org.saudigitus.semis.core.designsystem.attendance.model.AttendanceButtonDecorator
+import org.saudigitus.semis.core.designsystem.theme.white
 import org.saudigitus.semis.core.designsystem.utils.UiDefaults
 import org.saudigitus.semis.core.designsystem.utils.UiDefaults.getAttendanceStatusColor
 import org.saudigitus.semis.core.utils.DateHelper
@@ -55,7 +56,7 @@ class AttendanceTransformation @Inject constructor(
                     status?.key.orEmpty(),
                     status?.color.orEmpty()
                 ),
-                contentColor = 0xFFFFFFFF
+                contentColor = white
             ),
             icon = UiDefaults.dynamicIcons(status?.icon.orEmpty()),
             iconName = status?.icon.orEmpty(),
