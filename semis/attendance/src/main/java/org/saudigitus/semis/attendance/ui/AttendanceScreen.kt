@@ -40,6 +40,7 @@ import org.saudigitus.semis.core.designsystem.components.ConfigNotFound
 import org.saudigitus.semis.core.designsystem.components.FilterDetails
 import org.saudigitus.semis.core.designsystem.components.NoResults
 import org.saudigitus.semis.core.designsystem.components.ToolbarActionState
+import org.saudigitus.semis.core.designsystem.components.bottomsheet.SummaryBottomSheet
 import org.saudigitus.semis.core.designsystem.templates.TopAppBarScaffold
 import org.saudigitus.semis.core.designsystem.utils.mapper.TEICardMapper
 import org.saudigitus.semis.core.designsystem.utils.mapper.searchTeiMapper
@@ -50,6 +51,15 @@ fun AttendanceScreen(
     teiCardMapper: TEICardMapper,
     onEvent: (AttendanceUiEvent) -> Unit,
 ) {
+
+    if (state.displaySummary) {
+        SummaryBottomSheet(
+            state = state.bottomSheetState,
+            onDismissRequest = { onEvent(AttendanceUiEvent.DismissBottomSheet) },
+            onSave = { onEvent(AttendanceUiEvent.OnSaveClicked) },
+        )
+    }
+
     TopAppBarScaffold(
         toolbarHeaders = state.toolbarHeaders,
         toolbarActionState = ToolbarActionState(
@@ -90,7 +100,7 @@ fun AttendanceScreen(
                     if (state.buttonStep == ButtonStep.NONE) {
                         onEvent(AttendanceUiEvent.OnEditClicked)
                     } else {
-                        onEvent(AttendanceUiEvent.OnSaveClicked)
+                        onEvent(AttendanceUiEvent.ShowBottomSheet)
                     }
                 },
             )
@@ -176,11 +186,11 @@ fun AttendanceScreen(
                             key = tei.uid(),
                             modifier = Modifier.padding(horizontal = 16.dp),
                             state = state.attendanceButtonState,
-                            onClick = {
+                            onClick = { model ->
                                 onEvent(
                                     AttendanceUiEvent.OnAttendanceClick(
-                                        tei = tei.uid(),
-                                        buttonModel = it
+                                        tei = tei,
+                                        buttonModel = model
                                     )
                                 )
                             }

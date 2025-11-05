@@ -56,7 +56,7 @@ fun AttendanceButton(
 
                 IconButton(
                     onClick = {
-                        onClick.invoke(item)
+                        onClick.invoke( item)
                     },
                     enabled = item.enabled,
                     modifier = Modifier

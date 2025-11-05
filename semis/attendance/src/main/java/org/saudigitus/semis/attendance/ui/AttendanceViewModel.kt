@@ -1,5 +1,6 @@
 package org.saudigitus.semis.attendance.ui
 
+import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -17,9 +18,16 @@ import org.saudigitus.semis.core.data.model.SearchTeiModel
 import org.saudigitus.semis.core.data.model.app_config.Attendance
 import org.saudigitus.semis.core.data.repository.AppConfigRepository
 import org.saudigitus.semis.core.designsystem.attendance.AttendanceButtonState
+import org.saudigitus.semis.core.designsystem.attendance.model.AttendanceButtonDecorator
+import org.saudigitus.semis.core.designsystem.attendance.model.AttendanceButtonModel
+import org.saudigitus.semis.core.designsystem.attendance.model.AttendanceEvent
 import org.saudigitus.semis.core.designsystem.attendance.model.AttendanceEventWithDecorator
 import org.saudigitus.semis.core.designsystem.components.FilterDetailsState
+import org.saudigitus.semis.core.designsystem.components.bottomsheet.model.SummaryIndicator
 import org.saudigitus.semis.core.designsystem.components.model.ToolbarHeaders
+import org.saudigitus.semis.core.designsystem.theme.white
+import org.saudigitus.semis.core.designsystem.utils.UiDefaults
+import org.saudigitus.semis.core.designsystem.utils.UiDefaults.getAttendanceStatusColor
 import org.saudigitus.semis.core.utils.DateHelper
 import javax.inject.Inject
 
@@ -33,6 +41,7 @@ class AttendanceViewModel @Inject constructor(
 
     private var attendanceConfig: Attendance? = null
     private var studentsIds: List<String> = emptyList()
+    private var selectedDate: String? = null
 
     private val _uiState = MutableStateFlow(
         AttendanceUiState(
@@ -103,6 +112,7 @@ class AttendanceViewModel @Inject constructor(
     }
 
     private fun loadAttendanceEventsByDate(date: String? = null) {
+        selectedDate = date
         viewModelScope.launch {
             val currentToolbar = uiState.value.toolbarHeaders
             var updatedToolbar = currentToolbar
@@ -135,6 +145,102 @@ class AttendanceViewModel @Inject constructor(
         }
     }
 
+    private fun attendanceSummary() {
+        viewModelScope.launch {
+            val current = uiState.value.attendanceButtonState.attendanceEvents
+            val bottomSheetState = uiState.value.bottomSheetState
+
+            val options =
+                attendanceOptionRepository.getAttendanceStatusOptions(uiState.value.program)
+
+            val summaries = options.map { option ->
+                val count = current.count { option.code == it.event?.value }
+
+                SummaryIndicator(
+                    icon = option.icon,
+                    iconName = option.iconName,
+                    label = option.name,
+                    value = "$count",
+                    color = option.color
+                )
+            }
+
+            _uiState.update {
+                it.copy(
+                    displaySummary = true,
+                    bottomSheetState = bottomSheetState.copy(
+                        title = resourceManager.getString(R.string.attendance_summary),
+                        indicators = summaries
+                    )
+                )
+            }
+        }
+    }
+
+    private fun updateAttendanceEvent(tei: SearchTeiModel?, buttonModel: AttendanceButtonModel) {
+        val current = uiState.value.attendanceButtonState
+        val attendanceEvents = current.attendanceEvents.toMutableList()
+
+        val event = attendanceEvents.find {
+            it.event?.tei == tei?.uid()
+        }
+
+        if (event != null) {
+            val updatedEvent = event.event?.copy(value = buttonModel.code.orEmpty())
+            val eventWithDecorator = event.copy(
+                event = updatedEvent,
+                decorator = AttendanceButtonDecorator(
+                    buttonType = buttonModel.code.orEmpty(),
+                    containerColor = buttonModel.color ?: getAttendanceStatusColor(
+                        buttonModel.code.orEmpty()
+                    ),
+                    contentColor = white
+                ),
+            )
+
+            val hasBeenRemoved = attendanceEvents.removeIf { it.event?.tei == tei?.uid() }
+
+            if (hasBeenRemoved) {
+                attendanceEvents.add(eventWithDecorator)
+            }
+        } else {
+            attendanceEvents.add(
+                AttendanceEventWithDecorator(
+                    tei = tei,
+                    event = AttendanceEvent(
+                        tei = tei?.uid().orEmpty(),
+                        enrollment = tei?.selectedEnrollment?.uid().orEmpty(),
+                        dataElement = buttonModel.dataElement.orEmpty(),
+                        reasonDataElement = attendanceConfig?.absenceReason,
+                        reasonOfAbsence = "",
+                        value = buttonModel.code.orEmpty(),
+                        date = selectedDate ?: DateHelper.formatDate(System.currentTimeMillis())
+                            .orEmpty()
+                    ),
+                    decorator = AttendanceButtonDecorator(
+                        buttonType = buttonModel.code.orEmpty(),
+                        containerColor = buttonModel.color ?: getAttendanceStatusColor(
+                            buttonModel.code.orEmpty()
+                        ),
+                        contentColor = white
+                    ),
+                    icon = buttonModel.icon
+                        ?: UiDefaults.dynamicIcons(buttonModel.iconName.orEmpty()),
+                    iconName = buttonModel.iconName.orEmpty(),
+                    iconColor = Color.White,
+                )
+            )
+        }
+
+        _uiState.update {
+            it.copy(
+                attendanceButtonState = current.copy(
+                    attendanceEvents = attendanceEvents
+                )
+            )
+        }
+    }
+
     fun handleUiEvent(uiEvent: AttendanceUiEvent) {
         when (uiEvent) {
             is AttendanceUiEvent.OnDateSelect -> {
@@ -155,10 +261,23 @@ class AttendanceViewModel @Inject constructor(
             }
 
             is AttendanceUiEvent.OnAttendanceClick -> {
+                updateAttendanceEvent(uiEvent.tei, uiEvent.buttonModel)
+            }
+
+            is AttendanceUiEvent.ShowBottomSheet -> {
+                attendanceSummary()
+            }
+
+            is AttendanceUiEvent.DismissBottomSheet -> {
+                _uiState.update {
+                    it.copy(displaySummary = false)
+                }
+            }
+
+            is AttendanceUiEvent.OnSaveClicked -> {
 
             }
 
-            is AttendanceUiEvent.OnSaveClicked -> {}
             else -> {}
         }
     }
