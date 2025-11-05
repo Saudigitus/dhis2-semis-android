@@ -43,7 +43,7 @@ object UiDefaults {
         }
     }
 
-    private fun getAttendanceStatusColor(key: String): Color {
+    fun getAttendanceStatusColor(key: String): Color {
         return when (key) {
             "present" -> Color(0xFF81C784)
             "absent" -> Color(0xFFE57373)

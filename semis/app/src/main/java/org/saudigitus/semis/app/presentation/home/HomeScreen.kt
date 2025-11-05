@@ -18,7 +18,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import org.saudigitus.semis.app.presentation.navigation.AppRoutes
 import org.saudigitus.semis.core.designsystem.R
-import org.saudigitus.semis.core.designsystem.components.ConfigNotFoud
+import org.saudigitus.semis.core.designsystem.components.ConfigNotFound
 import org.saudigitus.semis.core.designsystem.components.FilterDetails
 import org.saudigitus.semis.core.designsystem.components.NoRecordsFound
 import org.saudigitus.semis.core.designsystem.components.cards.ActionCard
@@ -92,7 +92,7 @@ fun HomeScreen(
                 }
             }
         } else {
-            ConfigNotFoud(Modifier.fillMaxWidth().padding(horizontal = 16.dp))
+            ConfigNotFound(Modifier.fillMaxWidth().padding(horizontal = 16.dp))
         }
     }
 }

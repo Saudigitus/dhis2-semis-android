@@ -31,6 +31,7 @@ fun TopAppBarScaffold(
         showFavorite = true,
     ),
     navigationAction: () -> Unit = {},
+    calendarAction: (String) -> Unit = {},
     filterAction: () -> Unit = {},
     syncAction: () -> Unit = {},
     content: @Composable ColumnScope.() -> Unit,
@@ -48,6 +49,7 @@ fun TopAppBarScaffold(
                 navigationAction = navigationAction,
                 disableNavigation = false,
                 actionState = toolbarActionState,
+                calendarAction = calendarAction,
                 filterAction = filterAction,
                 syncAction = syncAction,
             )

@@ -14,6 +14,7 @@ import org.saudigitus.semis.app.presentation.navigation.AppRoutes
 import org.saudigitus.semis.app.presentation.tei.TeiListEvent
 import org.saudigitus.semis.app.presentation.tei.TeiListScreen
 import org.saudigitus.semis.attendance.ui.AttendanceScreen
+import org.saudigitus.semis.attendance.ui.AttendanceUiEvent
 import org.saudigitus.semis.attendance.ui.AttendanceViewModel
 import org.saudigitus.semis.core.designsystem.utils.mapper.TEICardMapper
 
@@ -72,7 +73,14 @@ fun AppNavGraph(
 
             AttendanceScreen(
                 state = state,
-                teiCardMapper = teiCardMapper
+                teiCardMapper = teiCardMapper,
+                onEvent = {
+                    when (it) {
+                        is AttendanceUiEvent.NavBack -> navController.navigateUp()
+                        is AttendanceUiEvent.OnSyncClicked -> syncData()
+                        else -> attendanceViewModel.handleUiEvent(it)
+                    }
+                }
             )
         }
     }
