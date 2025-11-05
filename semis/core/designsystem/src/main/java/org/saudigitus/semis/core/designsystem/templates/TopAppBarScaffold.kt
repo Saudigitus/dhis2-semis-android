@@ -34,6 +34,7 @@ fun TopAppBarScaffold(
     calendarAction: (String) -> Unit = {},
     filterAction: () -> Unit = {},
     syncAction: () -> Unit = {},
+    dateValidator: (Long) -> Boolean = { true },
     content: @Composable ColumnScope.() -> Unit,
 ) {
     SimpleScaffold(
@@ -52,6 +53,7 @@ fun TopAppBarScaffold(
                 calendarAction = calendarAction,
                 filterAction = filterAction,
                 syncAction = syncAction,
+                dateValidator = dateValidator,
             )
         },
         content = content,

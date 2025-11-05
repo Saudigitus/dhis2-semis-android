@@ -59,6 +59,7 @@ fun AttendanceScreen(
         navigationAction = { onEvent(AttendanceUiEvent.NavBack) },
         syncAction = { onEvent(AttendanceUiEvent.OnSyncClicked) },
         calendarAction = { onEvent(AttendanceUiEvent.OnDateSelect(it)) },
+        dateValidator = { state.dateValidator(it) },
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 text = {
@@ -131,7 +132,7 @@ fun AttendanceScreen(
                         tei = tei,
                         teiCardMapper = teiCardMapper,
                         onImageClick = { },
-                        onCardClick = { tei, enrollment ->
+                        onCardClick = { _, _ ->
 
                         }
                     )
