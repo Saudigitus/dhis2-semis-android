@@ -9,6 +9,7 @@ import org.saudigitus.semis.core.designsystem.components.model.ToolbarHeaders
 
 data class AttendanceUiState(
     val isLoading: Boolean = false,
+    val hasDataToSave: Boolean = false,
     val displaySummary: Boolean = false,
     val toolbarHeaders: ToolbarHeaders = ToolbarHeaders(""),
     val dateValidator: (Long) -> Boolean = { _ -> true },

@@ -122,7 +122,7 @@ fun AttendanceScreen(
         } else if (state.teis.isEmpty()) {
             NoResults(message = stringResource(id = R.string.no_records_found))
         } else {
-            if (state.attendanceButtonState.buttons.isEmpty()) {
+            if (state.attendanceButtonState.buttons.isEmpty() && !state.attendanceButtonState.isLoading) {
                 ConfigNotFound(
                     modifier = Modifier
                         .fillMaxWidth()

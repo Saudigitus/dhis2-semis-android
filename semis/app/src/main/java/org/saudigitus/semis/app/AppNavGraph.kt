@@ -3,6 +3,7 @@ package org.saudigitus.semis.app
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.fragment.app.FragmentActivity
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
@@ -16,10 +17,12 @@ import org.saudigitus.semis.app.presentation.tei.TeiListScreen
 import org.saudigitus.semis.attendance.ui.AttendanceScreen
 import org.saudigitus.semis.attendance.ui.AttendanceUiEvent
 import org.saudigitus.semis.attendance.ui.AttendanceViewModel
+import org.saudigitus.semis.core.designsystem.components.bottomsheet.launchBottomSheet
 import org.saudigitus.semis.core.designsystem.utils.mapper.TEICardMapper
 
 @Composable
 fun AppNavGraph(
+    activity: FragmentActivity,
     viewModel: HomeViewModel,
     teiCardMapper: TEICardMapper,
     navController: NavHostController,
@@ -76,7 +79,19 @@ fun AppNavGraph(
                 teiCardMapper = teiCardMapper,
                 onEvent = {
                     when (it) {
-                        is AttendanceUiEvent.NavBack -> navController.navigateUp()
+                        is AttendanceUiEvent.NavBack -> {
+                            if (state.hasDataToSave) {
+                                launchBottomSheet(
+                                    activity.getString(R.string.not_saved),
+                                    activity.getString(R.string.attendance_not_saved),
+                                    supportFragmentManager = activity.supportFragmentManager,
+                                    onDiscard = { navController.navigateUp() },
+                                    onKeepEdition = {  },
+                                )
+                            } else {
+                                navController.navigateUp()
+                            }
+                        }
                         is AttendanceUiEvent.OnSyncClicked -> syncData()
                         else -> attendanceViewModel.handleUiEvent(it)
                     }

@@ -234,6 +234,7 @@ class AttendanceViewModel @Inject constructor(
 
         _uiState.update {
             it.copy(
+                hasDataToSave = true,
                 attendanceButtonState = current.copy(
                     attendanceEvents = attendanceEvents
                 )
