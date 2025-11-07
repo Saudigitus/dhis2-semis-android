@@ -16,6 +16,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalTextStyle
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -39,6 +40,7 @@ import org.saudigitus.semis.core.designsystem.attendance.AttendanceButton
 import org.saudigitus.semis.core.designsystem.components.ConfigNotFound
 import org.saudigitus.semis.core.designsystem.components.FilterDetails
 import org.saudigitus.semis.core.designsystem.components.NoResults
+import org.saudigitus.semis.core.designsystem.components.SnackBar
 import org.saudigitus.semis.core.designsystem.components.ToolbarActionState
 import org.saudigitus.semis.core.designsystem.components.bottomsheet.SummaryBottomSheet
 import org.saudigitus.semis.core.designsystem.templates.TopAppBarScaffold
@@ -48,10 +50,10 @@ import org.saudigitus.semis.core.designsystem.utils.mapper.searchTeiMapper
 @Composable
 fun AttendanceScreen(
     state: AttendanceUiState,
+    snackbarHostState: SnackbarHostState,
     teiCardMapper: TEICardMapper,
     onEvent: (AttendanceUiEvent) -> Unit,
 ) {
-
     if (state.displaySummary) {
         SummaryBottomSheet(
             state = state.bottomSheetState,
@@ -70,6 +72,14 @@ fun AttendanceScreen(
         syncAction = { onEvent(AttendanceUiEvent.OnSyncClicked) },
         calendarAction = { onEvent(AttendanceUiEvent.OnDateSelect(it)) },
         dateValidator = { state.dateValidator(it) },
+        snackbarHost = {
+            SnackBar(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                hostState = snackbarHostState,
+            )
+        },
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 text = {

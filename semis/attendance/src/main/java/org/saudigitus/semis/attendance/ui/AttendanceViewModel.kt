@@ -4,12 +4,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.dhis2.commons.resources.ResourceManager
+import org.hisp.dhis.android.core.maintenance.D2Error
 import org.saudigitus.semis.attendance.R
 import org.saudigitus.semis.attendance.data.repository.AttendanceEventRepository
 import org.saudigitus.semis.attendance.data.repository.AttendanceOptionRepository
@@ -42,6 +45,9 @@ class AttendanceViewModel @Inject constructor(
     private var attendanceConfig: Attendance? = null
     private var studentsIds: List<String> = emptyList()
     private var selectedDate: String? = null
+
+    private val _snackbarEvent = MutableSharedFlow<String?>()
+    val snackbarEvent: SharedFlow<String?> = _snackbarEvent
 
     private val _uiState = MutableStateFlow(
         AttendanceUiState(
@@ -242,6 +248,63 @@ class AttendanceViewModel @Inject constructor(
         }
     }
 
+    private fun saveAttendanceEvents() {
+        viewModelScope.launch {
+            val current = uiState.value
+
+            runCatching {
+                attendanceEventRepository.save(
+                    program = current.program,
+                    programStage = attendanceConfig?.programStage.orEmpty(),
+                    attendanceEvents = current.attendanceButtonState.attendanceEvents
+                )
+            }.onSuccess {
+                val currentButtonState = uiState.value.attendanceButtonState
+
+                _uiState.update {
+                    it.copy(
+                        hasDataToSave = false,
+                        displaySummary = false,
+                        buttonStep = ButtonStep.NONE,
+                        attendanceButtonState = currentButtonState.copy(
+                            isEditing = false,
+                        )
+                    )
+                }
+                loadAttendanceEventsByDate(selectedDate)
+                _snackbarEvent.emit(resourceManager.getString(R.string.attendance_saved))
+            }.onFailure { error ->
+                val friendlyMessage = when (error) {
+                    is D2Error -> {
+                        "${error.errorCode()} – ${
+                            error.message ?: resourceManager
+                                .getString(R.string.error_unexpected)
+                        }"
+                    }
+
+                    else -> error.message ?: resourceManager
+                        .getString(R.string.error_unexpected)
+                }
+
+                _uiState.update {
+                    it.copy(
+                        hasDataToSave = true,
+                        displaySummary = false,
+                        errorMessage = friendlyMessage
+                    )
+                }
+                _uiState.update {
+                    it.copy(
+                        hasDataToSave = true,
+                        displaySummary = false,
+                        errorMessage = error.message
+                    )
+                }
+            }
+        }
+    }
+
+
     fun handleUiEvent(uiEvent: AttendanceUiEvent) {
         when (uiEvent) {
             is AttendanceUiEvent.OnDateSelect -> {
@@ -276,7 +339,7 @@ class AttendanceViewModel @Inject constructor(
             }
 
             is AttendanceUiEvent.OnSaveClicked -> {
-
+                saveAttendanceEvents()
             }
 
             else -> {}

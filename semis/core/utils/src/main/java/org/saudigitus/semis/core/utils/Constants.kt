@@ -5,6 +5,8 @@ object Constants {
     const val DATASTORE_KEY = "values"
     const val CALENDAR_KEY = "schoolCalendar"
 
+    const val DEFAULT = "default"
+
     const val ANALYTICS_TEI = "ANALYTICS_TEI"
     const val ANALYTICS_PROGRAM = "ANALYTICS_PROGRAM"
     const val OWNER_ORG_UNIT = "OWNER_ORG_UNIT"

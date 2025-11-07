@@ -19,4 +19,5 @@ data class AttendanceUiState(
     val filterDetailsState: FilterDetailsState = FilterDetailsState(),
     val attendanceButtonState: AttendanceButtonState = AttendanceButtonState(),
     val bottomSheetState: BottomSheetState.SaveState = BottomSheetState.SaveState(),
+    val errorMessage: String? = null
 )

@@ -2,4 +2,5 @@
 <resources>
     <string name="attendance">Attendance</string>
     <string name="attendance_summary">Attendance Summary</string>
+    <string name="attendance_not_saved">You have unsaved attendance changes. If you go back now, your data will be discarded.</string>
 </resources>

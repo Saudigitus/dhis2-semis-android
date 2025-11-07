@@ -5,6 +5,7 @@ import kotlinx.coroutines.withContext
 import org.saudigitus.semis.attendance.data.AttendanceTransformation
 import org.saudigitus.semis.core.data.repository.AppConfigRepository
 import org.saudigitus.semis.core.data.repository.EventRepository
+import org.saudigitus.semis.core.designsystem.attendance.model.AttendanceEventWithDecorator
 import javax.inject.Inject
 
 class AttendanceEventRepositoryImpl @Inject constructor(
@@ -12,9 +13,33 @@ class AttendanceEventRepositoryImpl @Inject constructor(
     private val appConfigRepository: AppConfigRepository,
     private val transformations: AttendanceTransformation,
 ) : AttendanceEventRepository {
-    override suspend fun save() {
-        TODO("Not yet implemented")
-    }
+    override suspend fun save(
+        program: String,
+        programStage: String,
+        attendanceEvents: List<AttendanceEventWithDecorator>
+    ) =
+        withContext(Dispatchers.IO) {
+            attendanceEvents.forEach { attendanceEvent ->
+                eventRepository.saveEvent(
+                    event = attendanceEvent.event?.event,
+                    orgUnit = attendanceEvent.tei!!.tei.organisationUnit().orEmpty(),
+                    tei = attendanceEvent.tei!!,
+                    program = program,
+                    programStage = programStage,
+                    data = mapOf(
+                        "dataElement" to Pair(
+                            attendanceEvent.event?.dataElement.orEmpty(),
+                            attendanceEvent.event?.value.orEmpty()
+                        ),
+                        "reasonDataElement" to Pair(
+                            attendanceEvent.event?.reasonDataElement.orEmpty(),
+                            attendanceEvent.event?.reasonOfAbsence.orEmpty()
+                        ),
+                    ),
+                    eventDate = attendanceEvent.event?.date
+                )
+            }
+        }
 
     override suspend fun getAttendanceEvent(
         teiUids: List<String>,

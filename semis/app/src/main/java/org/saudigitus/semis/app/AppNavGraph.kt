@@ -14,10 +14,8 @@ import org.saudigitus.semis.app.presentation.home.HomeViewModel
 import org.saudigitus.semis.app.presentation.navigation.AppRoutes
 import org.saudigitus.semis.app.presentation.tei.TeiListEvent
 import org.saudigitus.semis.app.presentation.tei.TeiListScreen
-import org.saudigitus.semis.attendance.ui.AttendanceScreen
-import org.saudigitus.semis.attendance.ui.AttendanceUiEvent
+import org.saudigitus.semis.attendance.ui.AttendanceUi
 import org.saudigitus.semis.attendance.ui.AttendanceViewModel
-import org.saudigitus.semis.core.designsystem.components.bottomsheet.launchBottomSheet
 import org.saudigitus.semis.core.designsystem.utils.mapper.TEICardMapper
 
 @Composable
@@ -74,28 +72,13 @@ fun AppNavGraph(
                 )
             }
 
-            AttendanceScreen(
+            AttendanceUi(
+                activity = activity,
+                viewModel = attendanceViewModel,
                 state = state,
                 teiCardMapper = teiCardMapper,
-                onEvent = {
-                    when (it) {
-                        is AttendanceUiEvent.NavBack -> {
-                            if (state.hasDataToSave) {
-                                launchBottomSheet(
-                                    activity.getString(R.string.not_saved),
-                                    activity.getString(R.string.attendance_not_saved),
-                                    supportFragmentManager = activity.supportFragmentManager,
-                                    onDiscard = { navController.navigateUp() },
-                                    onKeepEdition = {  },
-                                )
-                            } else {
-                                navController.navigateUp()
-                            }
-                        }
-                        is AttendanceUiEvent.OnSyncClicked -> syncData()
-                        else -> attendanceViewModel.handleUiEvent(it)
-                    }
-                }
+                navController = navController,
+                syncData = syncData
             )
         }
     }
