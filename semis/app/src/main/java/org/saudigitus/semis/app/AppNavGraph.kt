@@ -3,6 +3,7 @@ package org.saudigitus.semis.app
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.fragment.app.FragmentActivity
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
@@ -13,13 +14,13 @@ import org.saudigitus.semis.app.presentation.home.HomeViewModel
 import org.saudigitus.semis.app.presentation.navigation.AppRoutes
 import org.saudigitus.semis.app.presentation.tei.TeiListEvent
 import org.saudigitus.semis.app.presentation.tei.TeiListScreen
-import org.saudigitus.semis.attendance.ui.AttendanceScreen
-import org.saudigitus.semis.attendance.ui.AttendanceUiEvent
+import org.saudigitus.semis.attendance.ui.AttendanceUi
 import org.saudigitus.semis.attendance.ui.AttendanceViewModel
 import org.saudigitus.semis.core.designsystem.utils.mapper.TEICardMapper
 
 @Composable
 fun AppNavGraph(
+    activity: FragmentActivity,
     viewModel: HomeViewModel,
     teiCardMapper: TEICardMapper,
     navController: NavHostController,
@@ -71,16 +72,13 @@ fun AppNavGraph(
                 )
             }
 
-            AttendanceScreen(
+            AttendanceUi(
+                activity = activity,
+                viewModel = attendanceViewModel,
                 state = state,
                 teiCardMapper = teiCardMapper,
-                onEvent = {
-                    when (it) {
-                        is AttendanceUiEvent.NavBack -> navController.navigateUp()
-                        is AttendanceUiEvent.OnSyncClicked -> syncData()
-                        else -> attendanceViewModel.handleUiEvent(it)
-                    }
-                }
+                navController = navController,
+                syncData = syncData
             )
         }
     }

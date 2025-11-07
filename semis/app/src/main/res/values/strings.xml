@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="sync_offline_check_connection">Looks like you\\\\\\\'re offline. Please check you connection</string>
+    <string name="not_saved">Not saved</string>
+    <string name="attendance_not_saved">You have unsaved attendance changes. If you go back now, your data will be discarded.</string>
 </resources>

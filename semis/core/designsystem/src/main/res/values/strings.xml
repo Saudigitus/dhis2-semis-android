@@ -28,4 +28,6 @@
     <string name="sync_error_title">Sync Error</string>
     <string name="update">Update</string>
     <string name="app_not_properly_config">App not configured properly. Please contact System Administrator</string>
+    <string name="attendance_saved">Attendance saved successfully</string>
+    <string name="not_saved">Not saved</string>
 </resources>

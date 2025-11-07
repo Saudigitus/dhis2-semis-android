@@ -43,6 +43,7 @@ class SEMISActivity : FragmentActivity() {
                 }
 
                 AppNavGraph(
+                    activity = this,
                     viewModel = viewModel,
                     teiCardMapper = teiCardMapper,
                     navController = navController,
