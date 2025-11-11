@@ -1,5 +1,7 @@
 package org.saudigitus.semis.attendance.ui
 
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Rocket
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -16,6 +18,8 @@ import org.hisp.dhis.android.core.maintenance.D2Error
 import org.saudigitus.semis.attendance.R
 import org.saudigitus.semis.attendance.data.repository.AttendanceEventRepository
 import org.saudigitus.semis.attendance.data.repository.AttendanceOptionRepository
+import org.saudigitus.semis.attendance.ui.model.BottomSheetConfirmAction
+import org.saudigitus.semis.attendance.ui.model.BottomSheetType
 import org.saudigitus.semis.attendance.ui.model.ButtonStep
 import org.saudigitus.semis.core.data.model.SearchTeiModel
 import org.saudigitus.semis.core.data.model.app_config.Attendance
@@ -26,7 +30,7 @@ import org.saudigitus.semis.core.designsystem.attendance.model.AttendanceButtonM
 import org.saudigitus.semis.core.designsystem.attendance.model.AttendanceEvent
 import org.saudigitus.semis.core.designsystem.attendance.model.AttendanceEventWithDecorator
 import org.saudigitus.semis.core.designsystem.components.FilterDetailsState
-import org.saudigitus.semis.core.designsystem.components.bottomsheet.model.SummaryIndicator
+import org.saudigitus.semis.core.designsystem.components.bottomsheet.model.BottomSheetModel
 import org.saudigitus.semis.core.designsystem.components.model.ToolbarHeaders
 import org.saudigitus.semis.core.designsystem.theme.white
 import org.saudigitus.semis.core.designsystem.utils.UiDefaults
@@ -121,6 +125,7 @@ class AttendanceViewModel @Inject constructor(
         selectedDate = date
         viewModelScope.launch {
             val currentToolbar = uiState.value.toolbarHeaders
+            val currentBulkBottomSheet = uiState.value.genericsBottomSheetState
             var updatedToolbar = currentToolbar
 
             if (date != null) {
@@ -144,8 +149,14 @@ class AttendanceViewModel @Inject constructor(
             _uiState.update {
                 it.copy(
                     isLoading = false,
+                    hasDataToSave = false,
                     toolbarHeaders = updatedToolbar,
                     attendanceButtonState = currentButtonState,
+                    genericsBottomSheetState = currentBulkBottomSheet.copy(
+                        imageVector = Icons.Default.Rocket,
+                        title = resourceManager.getString(R.string.bulk_attendance),
+                        items = currentButtonState.buttons
+                    )
                 )
             }
         }
@@ -162,7 +173,7 @@ class AttendanceViewModel @Inject constructor(
             val summaries = options.map { option ->
                 val count = current.count { option.code == it.event?.value }
 
-                SummaryIndicator(
+                BottomSheetModel(
                     icon = option.icon,
                     iconName = option.iconName,
                     label = option.name,
@@ -176,17 +187,19 @@ class AttendanceViewModel @Inject constructor(
                     displaySummary = true,
                     bottomSheetState = bottomSheetState.copy(
                         title = resourceManager.getString(R.string.attendance_summary),
-                        indicators = summaries
+                        items = summaries
                     )
                 )
             }
         }
     }
 
-    private fun updateAttendanceEvent(tei: SearchTeiModel?, buttonModel: AttendanceButtonModel) {
-        val current = uiState.value.attendanceButtonState
-        val attendanceEvents = current.attendanceEvents.toMutableList()
-
+    private fun updateAttendanceEvent(
+        buttonState: AttendanceButtonState,
+        attendanceEvents: MutableList<AttendanceEventWithDecorator>,
+        tei: SearchTeiModel?,
+        buttonModel: AttendanceButtonModel
+    ) {
         val event = attendanceEvents.find {
             it.event?.tei == tei?.uid()
         }
@@ -241,10 +254,21 @@ class AttendanceViewModel @Inject constructor(
         _uiState.update {
             it.copy(
                 hasDataToSave = true,
-                attendanceButtonState = current.copy(
+                attendanceButtonState = buttonState.copy(
                     attendanceEvents = attendanceEvents
                 )
             )
+        }
+    }
+
+    private fun bulkAttendance(buttonModel: AttendanceButtonModel) {
+        viewModelScope.launch {
+            val current = uiState.value.attendanceButtonState
+            val attendanceEvents = current.attendanceEvents.toMutableList()
+
+            uiState.value.teis.forEach {
+                updateAttendanceEvent(current, attendanceEvents, it, buttonModel)
+            }
         }
     }
 
@@ -260,12 +284,16 @@ class AttendanceViewModel @Inject constructor(
                 )
             }.onSuccess {
                 val currentButtonState = uiState.value.attendanceButtonState
+                val currentFilterDetailsState = uiState.value.filterDetailsState
 
                 _uiState.update {
                     it.copy(
                         hasDataToSave = false,
                         displaySummary = false,
                         buttonStep = ButtonStep.NONE,
+                        filterDetailsState = currentFilterDetailsState.copy(
+                            enableBulk = false,
+                        ),
                         attendanceButtonState = currentButtonState.copy(
                             isEditing = false,
                         )
@@ -313,10 +341,14 @@ class AttendanceViewModel @Inject constructor(
 
             is AttendanceUiEvent.OnEditClicked -> {
                 val current = uiState.value.attendanceButtonState
+                val currentFilterDetailsState = uiState.value.filterDetailsState
 
                 _uiState.update {
                     it.copy(
                         buttonStep = ButtonStep.EDITING,
+                        filterDetailsState = currentFilterDetailsState.copy(
+                            enableBulk = true
+                        ),
                         attendanceButtonState = current.copy(
                             isEditing = true,
                         )
@@ -325,21 +357,54 @@ class AttendanceViewModel @Inject constructor(
             }
 
             is AttendanceUiEvent.OnAttendanceClick -> {
-                updateAttendanceEvent(uiEvent.tei, uiEvent.buttonModel)
+                val current = uiState.value.attendanceButtonState
+                val attendanceEvents = current.attendanceEvents.toMutableList()
+
+                updateAttendanceEvent(
+                    current,
+                    attendanceEvents,
+                    uiEvent.tei,
+                    uiEvent.buttonModel
+                )
             }
 
             is AttendanceUiEvent.ShowBottomSheet -> {
-                attendanceSummary()
-            }
-
-            is AttendanceUiEvent.DismissBottomSheet -> {
-                _uiState.update {
-                    it.copy(displaySummary = false)
+                if (uiEvent.type == BottomSheetType.BULK) {
+                    _uiState.update {
+                        it.copy(displayBulk = true)
+                    }
+                } else {
+                    attendanceSummary()
                 }
             }
 
-            is AttendanceUiEvent.OnSaveClicked -> {
-                saveAttendanceEvents()
+            is AttendanceUiEvent.DismissBottomSheet -> {
+                if (uiEvent.type == BottomSheetType.BULK) {
+                    _uiState.update {
+                        it.copy(displayBulk = false)
+                    }
+                } else {
+                    _uiState.update {
+                        it.copy(displaySummary = false)
+                    }
+                }
+            }
+
+            is AttendanceUiEvent.PerformBulk -> {
+                bulkAttendance(uiEvent.buttonModel)
+                _uiState.update {
+                    it.copy(displayBulk = false)
+                }
+            }
+
+            is AttendanceUiEvent.BottomSheetAction -> {
+                if (uiEvent.action == BottomSheetConfirmAction.PERFORM_BULK) {
+                    _uiState.update {
+                        it.copy(displayBulk = false)
+                    }
+                } else {
+                    saveAttendanceEvents()
+                }
             }
 
             else -> {}

@@ -4,7 +4,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 
 
-data class SummaryIndicator(
+data class BottomSheetModel(
     val icon: ImageVector? = null,
     val iconName: String? = null,
     val label: String? = null,
