@@ -3,7 +3,9 @@ package org.saudigitus.semis.attendance.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -11,6 +13,7 @@ import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Save
@@ -39,15 +42,17 @@ import org.hisp.dhis.mobile.ui.designsystem.component.ListCardDescriptionModel
 import org.hisp.dhis.mobile.ui.designsystem.component.ListCardTitleModel
 import org.hisp.dhis.mobile.ui.designsystem.component.state.rememberAdditionalInfoColumnState
 import org.hisp.dhis.mobile.ui.designsystem.component.state.rememberListCardState
+import org.hisp.dhis.mobile.ui.designsystem.theme.Radius
+import org.hisp.dhis.mobile.ui.designsystem.theme.SurfaceColor
+import org.hisp.dhis.mobile.ui.designsystem.theme.dropShadow
+import org.saudigitus.semis.attendance.ui.components.AttendanceSummary
 import org.saudigitus.semis.attendance.ui.components.BulkCard
 import org.saudigitus.semis.attendance.ui.model.BottomSheetConfirmAction
 import org.saudigitus.semis.attendance.ui.model.BottomSheetType
 import org.saudigitus.semis.attendance.ui.model.ButtonStep
 import org.saudigitus.semis.core.designsystem.R
-import org.saudigitus.semis.core.designsystem.attendance.AttendanceButton
 import org.saudigitus.semis.core.designsystem.attendance.model.AttendanceButtonModel
 import org.saudigitus.semis.core.designsystem.components.ConfigNotFound
-import org.saudigitus.semis.core.designsystem.components.FilterDetails
 import org.saudigitus.semis.core.designsystem.components.NoResults
 import org.saudigitus.semis.core.designsystem.components.SnackBar
 import org.saudigitus.semis.core.designsystem.components.ToolbarActionState
@@ -57,22 +62,19 @@ import org.saudigitus.semis.core.designsystem.templates.TopAppBarScaffold
 import org.saudigitus.semis.core.designsystem.utils.UiDefaults
 import org.saudigitus.semis.core.designsystem.utils.mapper.TEICardMapper
 import org.saudigitus.semis.core.designsystem.utils.mapper.searchTeiMapper
+import org.saudigitus.semis.core.form.ui.FormContent
+import org.saudigitus.semis.core.form.ui.state.FormEvent
+import org.saudigitus.semis.core.form.ui.state.FormUiState
 
 @Composable
 fun AttendanceScreen(
     state: AttendanceUiState,
+    formState: FormUiState,
     snackbarHostState: SnackbarHostState,
     teiCardMapper: TEICardMapper,
+    onFormEvent: (FormEvent) -> Unit,
     onEvent: (AttendanceUiEvent) -> Unit,
 ) {
-    if (state.displaySummary) {
-        ListingBottomSheet(
-            state = state.bottomSheetState,
-            onDismissRequest = { onEvent(AttendanceUiEvent.DismissBottomSheet(BottomSheetType.SUMMARY)) },
-            onConfirm = { onEvent(AttendanceUiEvent.BottomSheetAction(BottomSheetConfirmAction.PERFORM_SAVE)) },
-        )
-    }
-
     if (state.displayBulk) {
         ListingBottomSheet(
             state = state.genericsBottomSheetState,
@@ -161,9 +163,15 @@ fun AttendanceScreen(
             )
         }
     ) {
-        FilterDetails(
-            modifier = Modifier.fillMaxWidth(),
-            state = state.filterDetailsState,
+        AttendanceSummary(
+            modifier = Modifier.fillMaxWidth()
+                .padding(5.dp)
+                .dropShadow(RoundedCornerShape(Radius.S))
+                .background(
+                    color = SurfaceColor.SurfaceBright,
+                    shape = RoundedCornerShape(Radius.S)
+                ),
+            state = state.attendanceSummaryState,
             onBulk = { onEvent(AttendanceUiEvent.ShowBottomSheet(BottomSheetType.BULK)) }
         )
 
@@ -190,7 +198,9 @@ fun AttendanceScreen(
 
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(start = 16.dp, top = 10.dp, bottom = 108.dp)
+                contentPadding = PaddingValues(start = 16.dp, top = 10.dp, end = 16.dp, bottom = 108.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.Top),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 items(state.teis, key = { it.tei.uid() }) { tei ->
                     val card = searchTeiMapper(
@@ -202,11 +212,16 @@ fun AttendanceScreen(
                         }
                     )
 
-                    Box(
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .background(color = Color.White),
-                        contentAlignment = Alignment.CenterEnd,
+                            .dropShadow(RoundedCornerShape(Radius.S))
+                            .background(
+                                color = SurfaceColor.SurfaceBright,
+                                shape = RoundedCornerShape(Radius.S)
+                            ),
+                        verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
+                        horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         ListCard(
                             modifier = Modifier
@@ -223,33 +238,31 @@ fun AttendanceScreen(
                                     )
                                 },
                                 lastUpdated = card.first.lastUpdated,
+                                expandable = false,
+                                shadow = false,
                                 additionalInfoColumnState = rememberAdditionalInfoColumnState(
                                     additionalInfoList = card.first.additionalInfo,
                                     syncProgressItem = AdditionalInfoItem(
                                         key = stringResource(id = R.string.syncing),
                                         value = "",
                                     ),
+                                    minItemsToShow = 2,
                                     expandLabelText = stringResource(id = R.string.show_more),
                                     shrinkLabelText = stringResource(id = R.string.show_less),
-                                    scrollableContent = true,
+                                    scrollableContent = false,
                                 ),
                             ),
                             onCardClick = card.first.onCardCLick,
                             listAvatar = card.first.avatar,
                         )
-                        AttendanceButton(
+                        FormContent(
                             key = tei.uid(),
-                            modifier = Modifier.padding(horizontal = 16.dp),
-                            state = state.attendanceButtonState,
-                            onClick = { model ->
-                                onEvent(
-                                    AttendanceUiEvent.OnAttendanceClick(
-                                        tei = tei,
-                                        buttonModel = model
-                                    )
-                                )
-                            }
+                            modifier = Modifier.fillMaxWidth(),
+                            state = formState,
+                            attendanceButtonState = state.attendanceButtonState,
+                            onEvent = onFormEvent
                         )
+                        Spacer(modifier = Modifier.padding(2.dp))
                     }
                 }
             }

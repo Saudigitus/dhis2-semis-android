@@ -17,6 +17,7 @@ import org.saudigitus.semis.app.presentation.tei.TeiListScreen
 import org.saudigitus.semis.attendance.ui.AttendanceUi
 import org.saudigitus.semis.attendance.ui.AttendanceViewModel
 import org.saudigitus.semis.core.designsystem.utils.mapper.TEICardMapper
+import org.saudigitus.semis.core.form.ui.FormViewModel
 
 @Composable
 fun AppNavGraph(
@@ -61,6 +62,7 @@ fun AppNavGraph(
         }
         composable(route = AppRoutes.ATTENDANCE) {
             val attendanceViewModel = hiltViewModel<AttendanceViewModel>()
+            val formViewModel = hiltViewModel<FormViewModel>()
             val state by attendanceViewModel.uiState.collectAsStateWithLifecycle()
             val homeState by viewModel.uiState.collectAsStateWithLifecycle()
 
@@ -75,6 +77,7 @@ fun AppNavGraph(
             AttendanceUi(
                 activity = activity,
                 viewModel = attendanceViewModel,
+                formViewModel = formViewModel,
                 state = state,
                 teiCardMapper = teiCardMapper,
                 navController = navController,
