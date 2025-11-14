@@ -243,23 +243,23 @@ class RuleEngineRepository @Inject constructor(
     suspend fun evaluateDataEntry(
         ou: String,
         program: String,
-        stage: String,
         dataElement: String,
         event: String,
-        eventDate: String,
         value: String
-    ) = evaluate(
-        ou,
-        program,
-        event,
-        Collections.singletonList(
-            dataEntry(
-                eventDate,
-                stage,
+    ) = try {
+        evaluate(
+            ou,
+            program,
+            event,
+            Collections.singletonList(
+                dataEntry(
+                    dataElement,
+                    value,
+                )
             )
         )
-    ).find { effect ->
-        effect.ruleAction.type == ProgramRuleActionType.SHOWERROR.name
+    } catch (_: Exception) {
+        emptyList()
     }
 
     suspend fun evaluate(
