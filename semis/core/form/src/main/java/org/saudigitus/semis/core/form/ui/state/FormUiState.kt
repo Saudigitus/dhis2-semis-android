@@ -1,0 +1,16 @@
+package org.saudigitus.semis.core.form.ui.state
+
+import androidx.compose.runtime.Immutable
+import org.saudigitus.semis.core.designsystem.components.model.ToolbarHeaders
+import org.saudigitus.semis.core.form.data.model.FormFieldState
+
+
+@Immutable
+data class FormUiState(
+    val isLoading: Boolean = false,
+    val formBuilderState: FormBuilderState = FormBuilderState(),
+    val toolbarHeaders: ToolbarHeaders = ToolbarHeaders(""),
+    val fields: List<FormFieldState> = emptyList(),
+    val error: String? = null,
+    val isSaved: Boolean = false
+)
