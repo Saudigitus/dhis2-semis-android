@@ -108,16 +108,27 @@ class AttendanceViewModel @Inject constructor(
             val config = appConfigRepository.getAppConfig(program)
             attendanceConfig = config?.attendance
 
+            val currentAttendanceSummaryState = uiState.value.attendanceSummaryState
+            val currentFormState = uiState.value.formBuilderState
+
             _uiState.update {
                 it.copy(
                     isLoading = false,
                     program = program,
                     teis = teis,
-                    filterDetailsState = filterDetailsState
+                    attendanceSummaryState = currentAttendanceSummaryState.copy(
+                        filterDetailsState = filterDetailsState
+                    ),
+                    formBuilderState = currentFormState.copy(
+                        orgUnit = "Shc3qNhrPAz",
+                        program = program,
+                        programStage = config?.attendance?.programStage.orEmpty()
+                    )
                 )
             }
 
             loadAttendanceEventsByDate()
+            attendanceSummary()
         }
     }
 
@@ -165,7 +176,7 @@ class AttendanceViewModel @Inject constructor(
     private fun attendanceSummary() {
         viewModelScope.launch {
             val current = uiState.value.attendanceButtonState.attendanceEvents
-            val bottomSheetState = uiState.value.bottomSheetState
+            val attendanceSummaryState = uiState.value.attendanceSummaryState
 
             val options =
                 attendanceOptionRepository.getAttendanceStatusOptions(uiState.value.program)
@@ -184,10 +195,8 @@ class AttendanceViewModel @Inject constructor(
 
             _uiState.update {
                 it.copy(
-                    displaySummary = true,
-                    bottomSheetState = bottomSheetState.copy(
-                        title = resourceManager.getString(R.string.attendance_summary),
-                        items = summaries
+                    attendanceSummaryState = attendanceSummaryState.copy(
+                        bottomSheetModels = summaries
                     )
                 )
             }
@@ -284,14 +293,13 @@ class AttendanceViewModel @Inject constructor(
                 )
             }.onSuccess {
                 val currentButtonState = uiState.value.attendanceButtonState
-                val currentFilterDetailsState = uiState.value.filterDetailsState
+                val currentAttendanceSummaryState = uiState.value.attendanceSummaryState
 
                 _uiState.update {
                     it.copy(
                         hasDataToSave = false,
-                        displaySummary = false,
                         buttonStep = ButtonStep.NONE,
-                        filterDetailsState = currentFilterDetailsState.copy(
+                        attendanceSummaryState = currentAttendanceSummaryState.copy(
                             enableBulk = false,
                         ),
                         attendanceButtonState = currentButtonState.copy(
@@ -317,14 +325,12 @@ class AttendanceViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(
                         hasDataToSave = true,
-                        displaySummary = false,
                         errorMessage = friendlyMessage
                     )
                 }
                 _uiState.update {
                     it.copy(
                         hasDataToSave = true,
-                        displaySummary = false,
                         errorMessage = error.message
                     )
                 }
@@ -341,12 +347,12 @@ class AttendanceViewModel @Inject constructor(
 
             is AttendanceUiEvent.OnEditClicked -> {
                 val current = uiState.value.attendanceButtonState
-                val currentFilterDetailsState = uiState.value.filterDetailsState
+                val currentAttendanceSummaryState = uiState.value.attendanceSummaryState
 
                 _uiState.update {
                     it.copy(
                         buttonStep = ButtonStep.EDITING,
-                        filterDetailsState = currentFilterDetailsState.copy(
+                        attendanceSummaryState = currentAttendanceSummaryState.copy(
                             enableBulk = true
                         ),
                         attendanceButtonState = current.copy(
@@ -366,6 +372,7 @@ class AttendanceViewModel @Inject constructor(
                     uiEvent.tei,
                     uiEvent.buttonModel
                 )
+                attendanceSummary()
             }
 
             is AttendanceUiEvent.ShowBottomSheet -> {
@@ -379,14 +386,8 @@ class AttendanceViewModel @Inject constructor(
             }
 
             is AttendanceUiEvent.DismissBottomSheet -> {
-                if (uiEvent.type == BottomSheetType.BULK) {
-                    _uiState.update {
-                        it.copy(displayBulk = false)
-                    }
-                } else {
-                    _uiState.update {
-                        it.copy(displaySummary = false)
-                    }
+                _uiState.update {
+                    it.copy(displayBulk = false)
                 }
             }
 
@@ -395,6 +396,7 @@ class AttendanceViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(displayBulk = false)
                 }
+                attendanceSummary()
             }
 
             is AttendanceUiEvent.BottomSheetAction -> {

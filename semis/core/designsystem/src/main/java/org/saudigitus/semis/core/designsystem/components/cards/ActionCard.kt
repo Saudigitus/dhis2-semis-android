@@ -2,6 +2,7 @@ package org.saudigitus.semis.core.designsystem.components.cards
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -26,6 +27,9 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import org.hisp.dhis.mobile.ui.designsystem.theme.Radius
+import org.hisp.dhis.mobile.ui.designsystem.theme.SurfaceColor
+import org.hisp.dhis.mobile.ui.designsystem.theme.dropShadow
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
@@ -42,7 +46,14 @@ fun ActionCard(
     onClick: () -> Unit,
 ) {
     Card(
-        modifier = modifier,
+        modifier = modifier.then(
+            Modifier
+                .dropShadow(RoundedCornerShape(Radius.S))
+                .background(
+                    color = SurfaceColor.SurfaceBright,
+                    shape = RoundedCornerShape(Radius.S)
+                )
+        ),
         border = border,
         elevation = elevation,
         enabled = enabled,

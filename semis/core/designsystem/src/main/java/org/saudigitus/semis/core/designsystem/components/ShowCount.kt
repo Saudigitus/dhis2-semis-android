@@ -24,12 +24,13 @@ fun ShowCount(
     modifier: Modifier = Modifier,
     count: Int,
     imageVector: ImageVector = Icons.Outlined.Person,
+    color: Color = Color.LightGray.copy(.35f),
 ) {
     Row(
         modifier = modifier.then(
             Modifier
                 .background(
-                    color = Color.LightGray.copy(.35f),
+                    color = color,
                     shape = RoundedCornerShape(16.dp),
                 )
                 .padding(horizontal = 16.dp, vertical = 8.dp)
@@ -40,11 +41,11 @@ fun ShowCount(
         Icon(
             imageVector = imageVector,
             contentDescription = "Image",
-            tint = Color.Black.copy(.5f),
+            tint = if (imageVector == Icons.Outlined.Person) Color.Black.copy(.5f) else Color.White,
         )
         Text(
             text = "$count",
-            color = Color.Black.copy(.5f),
+            color = if (imageVector == Icons.Outlined.Person) Color.Black.copy(.5f) else Color.White,
             maxLines = 1,
             softWrap = true,
             overflow = TextOverflow.Ellipsis,

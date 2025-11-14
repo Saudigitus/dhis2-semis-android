@@ -1,11 +1,16 @@
 package org.saudigitus.semis.app.presentation.tei
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -16,6 +21,9 @@ import org.hisp.dhis.mobile.ui.designsystem.component.ListCardDescriptionModel
 import org.hisp.dhis.mobile.ui.designsystem.component.ListCardTitleModel
 import org.hisp.dhis.mobile.ui.designsystem.component.state.rememberAdditionalInfoColumnState
 import org.hisp.dhis.mobile.ui.designsystem.component.state.rememberListCardState
+import org.hisp.dhis.mobile.ui.designsystem.theme.Radius
+import org.hisp.dhis.mobile.ui.designsystem.theme.SurfaceColor
+import org.hisp.dhis.mobile.ui.designsystem.theme.dropShadow
 import org.saudigitus.semis.app.R
 import org.saudigitus.semis.app.presentation.home.HomeUIState
 import org.saudigitus.semis.core.designsystem.components.FilterDetails
@@ -39,7 +47,13 @@ fun TeiListScreen(
         syncAction = { onEvent(TeiListEvent.OnSyncClick) }
     ) {
         FilterDetails(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth()
+                .padding(5.dp)
+                .dropShadow(RoundedCornerShape(Radius.S))
+                .background(
+                    color = SurfaceColor.SurfaceBright,
+                    shape = RoundedCornerShape(Radius.S)
+                ),
             state = state.filterState.filterDetailsState,
             onClick = {}
         )
@@ -49,7 +63,9 @@ fun TeiListScreen(
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+                contentPadding = PaddingValues(start = 16.dp, top = 10.dp, end = 16.dp, bottom = 108.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.Top),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 items(state.tei, key = { it.tei.uid() }) { tei ->
                     val card = searchTeiMapper(
