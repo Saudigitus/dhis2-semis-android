@@ -9,6 +9,7 @@ import org.saudigitus.semis.core.form.data.model.FormFieldState
 @Composable
 fun OptionSetField(
     field: FormFieldState,
+    enabled: Boolean? = null,
     colors: TextFieldColors = TextFieldDefaults.colors(),
     onItemClick: (code: String) -> Unit
 ) {
@@ -19,7 +20,7 @@ fun OptionSetField(
         isError = field.hasError,
         data = field.optionSet ?: emptyList(),
         selectedItem = null,
-        enabled = field.enabled,
+        enabled = enabled ?: field.enabled,
         colors = colors,
         onClick = {
             onItemClick.invoke(it.code.orEmpty())

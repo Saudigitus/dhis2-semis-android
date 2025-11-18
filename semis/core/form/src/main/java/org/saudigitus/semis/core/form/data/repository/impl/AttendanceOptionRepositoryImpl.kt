@@ -1,4 +1,4 @@
-package org.saudigitus.semis.attendance.data.repository
+package org.saudigitus.semis.core.form.data.repository.impl
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -7,6 +7,7 @@ import org.saudigitus.semis.core.data.repository.OptionRepository
 import org.saudigitus.semis.core.designsystem.attendance.model.AttendanceButtonModel
 import org.saudigitus.semis.core.designsystem.utils.UiDefaults
 import org.saudigitus.semis.core.designsystem.utils.UiDefaults.getAttendanceStatusColor
+import org.saudigitus.semis.core.form.data.repository.AttendanceOptionRepository
 import javax.inject.Inject
 
 class AttendanceOptionRepositoryImpl @Inject constructor(

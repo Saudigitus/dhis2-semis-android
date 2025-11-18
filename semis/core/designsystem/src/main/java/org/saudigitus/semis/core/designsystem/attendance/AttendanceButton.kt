@@ -18,8 +18,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.unit.dp
-import org.hisp.dhis.mobile.ui.designsystem.component.ProgressIndicator
-import org.hisp.dhis.mobile.ui.designsystem.component.ProgressIndicatorType
 import org.saudigitus.semis.core.designsystem.attendance.model.AttendanceButtonModel
 import org.saudigitus.semis.core.designsystem.utils.UiDefaults
 import org.saudigitus.semis.core.designsystem.utils.UiDefaults.GRAY
@@ -33,12 +31,7 @@ fun AttendanceButton(
     onClick: (AttendanceButtonModel) -> Unit
 ) {
 
-    if (state.isLoading) {
-        ProgressIndicator(
-            modifier = modifier.then(Modifier.size(28.dp)),
-            type = ProgressIndicatorType.CIRCULAR_SMALL
-        )
-    } else if (state.buttons.isEmpty()) {
+    if (state.buttons.isEmpty()) {
         Icon(
             modifier = modifier.then(Modifier.size(45.dp)),
             imageVector = Icons.AutoMirrored.Filled.Help,

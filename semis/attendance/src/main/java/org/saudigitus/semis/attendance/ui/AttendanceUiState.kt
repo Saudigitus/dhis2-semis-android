@@ -4,7 +4,6 @@ import androidx.compose.runtime.Immutable
 import org.saudigitus.semis.attendance.ui.components.AttendanceSummaryState
 import org.saudigitus.semis.attendance.ui.model.ButtonStep
 import org.saudigitus.semis.core.data.model.SearchTeiModel
-import org.saudigitus.semis.core.designsystem.attendance.AttendanceButtonState
 import org.saudigitus.semis.core.designsystem.attendance.model.AttendanceButtonModel
 import org.saudigitus.semis.core.designsystem.components.bottomsheet.model.BottomSheetState
 import org.saudigitus.semis.core.designsystem.components.model.ToolbarHeaders
@@ -22,7 +21,6 @@ data class AttendanceUiState(
     val teis: List<SearchTeiModel> = emptyList(),
     val formBuilderState: FormBuilderState = FormBuilderState(),
     val attendanceSummaryState: AttendanceSummaryState = AttendanceSummaryState(),
-    val attendanceButtonState: AttendanceButtonState = AttendanceButtonState(),
     val bottomSheetState: BottomSheetState.HasItemsState = BottomSheetState.HasItemsState(),
     val genericsBottomSheetState: BottomSheetState.GenericsState<AttendanceButtonModel> = BottomSheetState.GenericsState(),
     val errorMessage: String? = null

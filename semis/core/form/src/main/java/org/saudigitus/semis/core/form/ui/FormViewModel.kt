@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -39,16 +40,37 @@ class FormViewModel @Inject constructor(
             _uiState.value
         )
 
+    val attendanceState = formRepository
+        .attendanceButtonStateFlow.map {
+            it
+        }.stateIn(
+            viewModelScope,
+            SharingStarted.Eagerly,
+            formRepository.attendanceButtonStateFlow.value
+        )
+
+    init {
+        viewModelScope.launch {
+            formRepository.attendanceButtonStateFlow
+                .collect { newAttendanceState ->
+                    _uiState.update { currentState ->
+                        currentState.copy(attendanceButtonState = newAttendanceState)
+                    }
+                }
+        }
+    }
 
     fun initialize(formBuilderState: FormBuilderState) {
         viewModelScope.launch {
             _uiState.update {
-                it.copy(formBuilderState = formBuilderState)
+                it.copy(
+                    formBuilderState = formBuilderState,
+                    attendanceButtonState = attendanceState.value
+                )
             }
             loadForm(formBuilderState.program, formBuilderState.programStage)
         }
     }
-
 
     fun handleUiEvent(uiEvent: FormEvent) {
         viewModelScope.launch {
@@ -59,6 +81,7 @@ class FormViewModel @Inject constructor(
                         uiState.value.formBuilderState.programStage
                     )
                 }
+
                 is FormEvent.UpdateField -> updateField(uiEvent.dataElementUid, uiEvent.value)
                 else -> {}
             }
@@ -111,7 +134,8 @@ class FormViewModel @Inject constructor(
                 field.copy(
                     hasError = true,
                     errorMessage = resourceManager.getString(
-                        R.string.required_field, field.label)
+                        R.string.required_field, field.label
+                    )
                 )
             }
 

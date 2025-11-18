@@ -11,7 +11,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import org.hisp.dhis.mobile.ui.designsystem.component.ProgressIndicator
 import org.hisp.dhis.mobile.ui.designsystem.component.ProgressIndicatorType
-import org.saudigitus.semis.core.designsystem.attendance.AttendanceButtonState
 import org.saudigitus.semis.core.form.ui.state.FormEvent
 import org.saudigitus.semis.core.form.ui.state.FormUiState
 
@@ -21,7 +20,6 @@ fun FormContent(
     key: String,
     modifier: Modifier = Modifier,
     state: FormUiState,
-    attendanceButtonState: AttendanceButtonState = AttendanceButtonState(),
     onEvent: (FormEvent) -> Unit
 ) {
     Box(modifier = modifier) {
@@ -43,7 +41,8 @@ fun FormContent(
                         FormFieldItem(
                             key = key,
                             field = field,
-                            attendanceButtonState = attendanceButtonState,
+                            enabled = state.attendanceButtonState.isEditing,
+                            attendanceButtonState = state.attendanceButtonState,
                             onValueChange = { value ->
                                 onEvent(FormEvent.UpdateField(field.dataElementUid, value))
                             }

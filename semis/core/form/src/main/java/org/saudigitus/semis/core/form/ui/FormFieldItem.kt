@@ -27,6 +27,7 @@ import org.saudigitus.semis.core.form.utils.FactoryData
 fun FormFieldItem(
     key: String,
     field: FormFieldState,
+    enabled: Boolean? = null,
     attendanceButtonState: AttendanceButtonState = AttendanceButtonState(),
     colors: TextFieldColors = TextFieldDefaults.colors(
         focusedIndicatorColor = InputShellState.FOCUSED.color,
@@ -53,6 +54,7 @@ fun FormFieldItem(
                 } else {
                     OptionSetField(
                         field,
+                        enabled = enabled,
                         colors =
                             TextFieldDefaults.colors(
                                 focusedIndicatorColor = Color.Transparent,
