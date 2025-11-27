@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.updateAndGet
 import kotlinx.coroutines.withContext
 import org.hisp.dhis.android.core.D2
 import org.hisp.dhis.android.core.common.ValueType
@@ -31,6 +32,7 @@ import org.saudigitus.semis.core.form.data.repository.AttendanceOptionRepository
 import org.saudigitus.semis.core.form.data.repository.FormRepository
 import org.saudigitus.semis.core.utils.DateHelper
 import javax.inject.Inject
+import kotlin.text.orEmpty
 
 class FormRepositoryImpl @Inject constructor(
     private val d2: D2,
@@ -65,8 +67,6 @@ class FormRepositoryImpl @Inject constructor(
 
     override suspend fun updateAttendanceEvent(
         eventDate: String?,
-        reasonDataElement: String,
-        reasonOfAbsence: String,
         tei: SearchTeiModel?,
         buttonModel: AttendanceButtonModel
     ): AttendanceButtonState {
@@ -102,8 +102,6 @@ class FormRepositoryImpl @Inject constructor(
                         tei = tei?.uid().orEmpty(),
                         enrollment = tei?.selectedEnrollment?.uid().orEmpty(),
                         dataElement = buttonModel.dataElement.orEmpty(),
-                        reasonDataElement = reasonDataElement,
-                        reasonOfAbsence = reasonOfAbsence,
                         value = buttonModel.code.orEmpty(),
                         date = eventDate ?: DateHelper.formatDate(System.currentTimeMillis())
                             .orEmpty()
@@ -121,6 +119,34 @@ class FormRepositoryImpl @Inject constructor(
                     iconColor = Color.White,
                 )
             )
+        }
+
+        return attendanceButtonState.updateAndGet {
+            it.copy(attendanceEvents =  attendanceEvents)
+        }
+    }
+
+    override fun updateAttendanceReason(tei: String, dataElement: String, value: String): AttendanceButtonState? {
+        val attendanceEvents = attendanceButtonStateFlow.value.attendanceEvents.toMutableList()
+
+        val event = attendanceEvents.find {
+            it.event?.tei == tei
+        }
+
+        if (event == null) return null
+
+        val updatedEvent = event.event?.copy(
+            reasonDataElement = dataElement,
+            reasonOfAbsence = value
+        )
+        val eventWithDecorator = event.copy(
+            event = updatedEvent,
+        )
+
+        val hasBeenRemoved = attendanceEvents.removeIf { it.event?.tei == tei }
+
+        if (hasBeenRemoved) {
+            attendanceEvents.add(eventWithDecorator)
         }
 
         attendanceButtonState.update {
@@ -276,6 +302,10 @@ class FormRepositoryImpl @Inject constructor(
 
             getSummaries(summaries)
         }
+    }
+
+    override fun reset() {
+        attendanceButtonState.value = AttendanceButtonState()
     }
 
 }

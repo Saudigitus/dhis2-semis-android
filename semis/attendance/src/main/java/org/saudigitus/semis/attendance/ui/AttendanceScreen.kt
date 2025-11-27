@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -51,6 +52,7 @@ import org.saudigitus.semis.attendance.ui.model.BottomSheetType
 import org.saudigitus.semis.attendance.ui.model.ButtonStep
 import org.saudigitus.semis.core.designsystem.R
 import org.saudigitus.semis.core.designsystem.attendance.model.AttendanceButtonModel
+import org.saudigitus.semis.core.designsystem.components.ConfigNotFound
 import org.saudigitus.semis.core.designsystem.components.NoResults
 import org.saudigitus.semis.core.designsystem.components.SnackBar
 import org.saudigitus.semis.core.designsystem.components.ToolbarActionState
@@ -60,6 +62,7 @@ import org.saudigitus.semis.core.designsystem.templates.TopAppBarScaffold
 import org.saudigitus.semis.core.designsystem.utils.UiDefaults
 import org.saudigitus.semis.core.designsystem.utils.mapper.TEICardMapper
 import org.saudigitus.semis.core.designsystem.utils.mapper.searchTeiMapper
+import org.saudigitus.semis.core.form.data.model.FormType
 import org.saudigitus.semis.core.form.ui.FormContent
 import org.saudigitus.semis.core.form.ui.state.FormEvent
 import org.saudigitus.semis.core.form.ui.state.FormUiState
@@ -183,7 +186,7 @@ fun AttendanceScreen(
         } else if (state.teis.isEmpty()) {
             NoResults(message = stringResource(id = R.string.no_records_found))
         } else {
-            /*if (state.attendanceButtonState.buttons.isEmpty() && !state.attendanceButtonState.isLoading) {
+            if (formState.attendanceButtonState.buttons.isEmpty() && !formState.isLoading) {
                 ConfigNotFound(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -192,7 +195,7 @@ fun AttendanceScreen(
                     iconSize = 32.dp,
                     message = stringResource(id = R.string.app_not_properly_config)
                 )
-            }*/
+            }
 
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
@@ -255,6 +258,7 @@ fun AttendanceScreen(
                         )
                         FormContent(
                             key = tei.uid(),
+                            type = FormType.ATTENDANCE,
                             modifier = Modifier.fillMaxWidth(),
                             state = formState,
                             onEvent = onFormEvent

@@ -12,7 +12,6 @@ import org.saudigitus.semis.core.form.ui.state.FormBuilderState
 @Immutable
 data class AttendanceUiState(
     val isLoading: Boolean = false,
-    val hasDataToSave: Boolean = false,
     val displayBulk: Boolean = false,
     val toolbarHeaders: ToolbarHeaders = ToolbarHeaders(""),
     val dateValidator: (Long) -> Boolean = { _ -> true },

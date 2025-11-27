@@ -53,12 +53,15 @@ fun AttendanceUi(
         onEvent = {
             when (it) {
                 is AttendanceUiEvent.NavBack -> {
-                    if (state.hasDataToSave) {
+                    if (formState.hasCachedData) {
                         launchBottomSheet(
                             activity.getString(R.string.not_saved),
                             activity.getString(R.string.attendance_not_saved),
                             supportFragmentManager = activity.supportFragmentManager,
-                            onDiscard = { navController.navigateUp() },
+                            onDiscard = {
+                                viewModel.resetForm()
+                                navController.navigateUp()
+                            },
                             onKeepEdition = {  },
                         )
                     } else {

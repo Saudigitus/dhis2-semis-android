@@ -10,9 +10,12 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.dhis2.commons.resources.ResourceManager
+import org.saudigitus.semis.core.data.model.SearchTeiModel
 import org.saudigitus.semis.core.designsystem.R
+import org.saudigitus.semis.core.designsystem.attendance.model.AttendanceButtonModel
 import org.saudigitus.semis.core.designsystem.components.model.ToolbarHeaders
 import org.saudigitus.semis.core.form.data.model.FormFieldState
+import org.saudigitus.semis.core.form.data.model.FormType
 import org.saudigitus.semis.core.form.data.repository.FormRepository
 import org.saudigitus.semis.core.form.ui.state.FormBuilderState
 import org.saudigitus.semis.core.form.ui.state.FormEvent
@@ -72,6 +75,26 @@ class FormViewModel @Inject constructor(
         }
     }
 
+    private fun updateAttendanceEvent(
+        tei: SearchTeiModel?,
+        buttonModel: AttendanceButtonModel
+    ) {
+        viewModelScope.launch {
+            val attendanceButtonState = formRepository.updateAttendanceEvent(
+                uiState.value.formBuilderState.date,
+                tei,
+                buttonModel
+            )
+
+            _uiState.update {
+                it.copy(
+                    hasCachedData = true,
+                    attendanceButtonState = attendanceButtonState
+                )
+            }
+        }
+    }
+
     fun handleUiEvent(uiEvent: FormEvent) {
         viewModelScope.launch {
             when (uiEvent) {
@@ -82,7 +105,22 @@ class FormViewModel @Inject constructor(
                     )
                 }
 
-                is FormEvent.UpdateField -> updateField(uiEvent.dataElementUid, uiEvent.value)
+                is FormEvent.UpdateAttendance -> {
+                    updateAttendanceEvent(uiEvent.tei, uiEvent.buttonModel)
+                }
+
+                is FormEvent.UpdateField -> {
+                    if (uiEvent.formType == FormType.ATTENDANCE) {
+                        formRepository.updateAttendanceReason(
+                            uiEvent.tei,
+                            uiEvent.dataElementUid,
+                            uiEvent.value
+                        )
+                    }
+
+                    updateField(uiEvent.dataElementUid, uiEvent.value)
+                }
+
                 else -> {}
             }
         }

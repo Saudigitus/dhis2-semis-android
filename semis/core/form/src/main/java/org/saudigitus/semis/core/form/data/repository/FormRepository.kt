@@ -14,11 +14,11 @@ interface FormRepository {
     fun allowFormEdition(enabled: Boolean)
     suspend fun updateAttendanceEvent(
         eventDate: String?,
-        reasonDataElement: String,
-        reasonOfAbsence: String,
         tei: SearchTeiModel?,
         buttonModel: AttendanceButtonModel
     ): AttendanceButtonState
+
+    fun updateAttendanceReason(tei: String, dataElement: String, value: String): AttendanceButtonState?
 
     suspend fun loadAttendanceEvents(
         teiUids: List<String>,
@@ -46,4 +46,6 @@ interface FormRepository {
         program: String,
         getSummaries: (List<BottomSheetModel>) -> Unit
     )
+
+    fun reset()
 }

@@ -6,5 +6,6 @@ import androidx.compose.runtime.Immutable
 data class FormBuilderState(
     val orgUnit: String = "",
     val program: String = "",
-    val programStage: String = ""
+    val programStage: String = "",
+    val date: String = "",
 )

@@ -10,6 +10,7 @@ import org.saudigitus.semis.core.form.data.model.FormFieldState
 data class FormUiState(
     val isLoading: Boolean = false,
     val isEditing: Boolean = false,
+    val hasCachedData: Boolean = false,
     val formBuilderState: FormBuilderState = FormBuilderState(),
     val attendanceButtonState: AttendanceButtonState = AttendanceButtonState(),
     val toolbarHeaders: ToolbarHeaders = ToolbarHeaders(""),

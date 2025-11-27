@@ -11,6 +11,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import org.hisp.dhis.mobile.ui.designsystem.component.ProgressIndicator
 import org.hisp.dhis.mobile.ui.designsystem.component.ProgressIndicatorType
+import org.saudigitus.semis.core.data.model.SearchTeiModel
+import org.saudigitus.semis.core.form.data.model.FormType
 import org.saudigitus.semis.core.form.ui.state.FormEvent
 import org.saudigitus.semis.core.form.ui.state.FormUiState
 
@@ -18,6 +20,8 @@ import org.saudigitus.semis.core.form.ui.state.FormUiState
 @Composable
 fun FormContent(
     key: String,
+    tei: SearchTeiModel? = null,
+    type: FormType,
     modifier: Modifier = Modifier,
     state: FormUiState,
     onEvent: (FormEvent) -> Unit
@@ -25,26 +29,42 @@ fun FormContent(
     Box(modifier = modifier) {
         when {
             state.isLoading -> {
-                ProgressIndicator(type = ProgressIndicatorType.CIRCULAR_SMALL,
-                    modifier = Modifier.align(Alignment.Center))
+                ProgressIndicator(
+                    type = ProgressIndicatorType.CIRCULAR_SMALL,
+                    modifier = Modifier.align(Alignment.Center)
+                )
             }
+
             state.error != null -> {
-                Text("Error: ${state.error}", color = Color.Red, modifier = Modifier.align(Alignment.Center))
+                Text(
+                    "Error: ${state.error}",
+                    color = Color.Red,
+                    modifier = Modifier.align(Alignment.Center)
+                )
             }
+
             else -> {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    for(field in state.fields) {
+                    for (field in state.fields) {
                         FormFieldItem(
                             key = key,
                             field = field,
                             enabled = state.attendanceButtonState.isEditing,
                             attendanceButtonState = state.attendanceButtonState,
+                            onAttendanceChange = { onEvent(FormEvent.UpdateAttendance(tei, it)) },
                             onValueChange = { value ->
-                                onEvent(FormEvent.UpdateField(field.dataElementUid, value))
+                                onEvent(
+                                    FormEvent.UpdateField(
+                                        type,
+                                        tei?.tei?.uid().orEmpty(),
+                                        field.dataElementUid,
+                                        value
+                                    )
+                                )
                             }
                         )
                     }

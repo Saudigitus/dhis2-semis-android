@@ -36,7 +36,8 @@ class AttendanceViewModel @Inject constructor(
 
     private var attendanceConfig: Attendance? = null
     private var studentsIds: List<String> = emptyList()
-    private var selectedDate: String? = null
+    private var selectedDate: String = DateHelper.formatDate(System.currentTimeMillis())
+        .orEmpty()
 
     private val _snackbarEvent = MutableSharedFlow<String?>()
     val snackbarEvent: SharedFlow<String?> = _snackbarEvent
@@ -96,7 +97,7 @@ class AttendanceViewModel @Inject constructor(
                     formBuilderState = currentFormState.copy(
                         orgUnit = "Shc3qNhrPAz",
                         program = program,
-                        programStage = config?.attendance?.programStage.orEmpty()
+                        programStage = config?.attendance?.programStage.orEmpty(),
                     )
                 )
             }
@@ -107,10 +108,12 @@ class AttendanceViewModel @Inject constructor(
     }
 
     private fun loadAttendanceEventsByDate(date: String? = null) {
-        selectedDate = date
+        selectedDate = date ?: DateHelper.formatDate(System.currentTimeMillis()).orEmpty()
+
         viewModelScope.launch {
             val currentToolbar = uiState.value.toolbarHeaders
             val currentBulkBottomSheet = uiState.value.genericsBottomSheetState
+            val currentFormState = uiState.value.formBuilderState
             var updatedToolbar = currentToolbar
 
             if (date != null) {
@@ -132,12 +135,14 @@ class AttendanceViewModel @Inject constructor(
             _uiState.update {
                 it.copy(
                     isLoading = false,
-                    hasDataToSave = false,
                     toolbarHeaders = updatedToolbar,
                     genericsBottomSheetState = currentBulkBottomSheet.copy(
                         imageVector = Icons.Default.Rocket,
                         title = resourceManager.getString(R.string.bulk_attendance),
                         items = currentButtonState.buttons
+                    ),
+                    formBuilderState = currentFormState.copy(
+                        date = selectedDate
                     )
                 )
             }
@@ -159,33 +164,17 @@ class AttendanceViewModel @Inject constructor(
         }
     }
 
-    private fun updateAttendanceEvent(
-        tei: SearchTeiModel?,
-        buttonModel: AttendanceButtonModel
-    ) {
-        viewModelScope.launch {
-            formRepository.updateAttendanceEvent(
-                selectedDate,
-                attendanceConfig?.absenceReason.orEmpty(),
-                "",
-                tei,
-                buttonModel
-            )
-        }
-    }
-
     private fun bulkAttendance(buttonModel: AttendanceButtonModel) {
         viewModelScope.launch {
             uiState.value.teis.forEach {
                 formRepository
                     .updateAttendanceEvent(
                         selectedDate,
-                        attendanceConfig?.absenceReason.orEmpty(),
-                        "",
                         it,
                         buttonModel
                     )
             }
+            attendanceSummary()
         }
     }
 
@@ -210,15 +199,6 @@ class AttendanceViewModel @Inject constructor(
                 formRepository.allowFormEdition(true)
             }
 
-            is AttendanceUiEvent.OnAttendanceClick -> {
-
-                updateAttendanceEvent(
-                    uiEvent.tei,
-                    uiEvent.buttonModel
-                )
-                attendanceSummary()
-            }
-
             is AttendanceUiEvent.ShowBottomSheet -> {
                 if (uiEvent.type == BottomSheetType.BULK) {
                     _uiState.update {
@@ -240,7 +220,6 @@ class AttendanceViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(displayBulk = false)
                 }
-                attendanceSummary()
             }
 
             is AttendanceUiEvent.BottomSheetAction -> {
@@ -255,5 +234,9 @@ class AttendanceViewModel @Inject constructor(
 
             else -> {}
         }
+    }
+
+    fun resetForm() {
+        formRepository.reset()
     }
 }
