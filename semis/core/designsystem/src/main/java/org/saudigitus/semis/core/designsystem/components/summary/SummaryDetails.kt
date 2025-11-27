@@ -1,4 +1,4 @@
-package org.saudigitus.semis.attendance.ui.components
+package org.saudigitus.semis.core.designsystem.components.summary
 
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -23,23 +23,14 @@ import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.unit.dp
 import org.dhis2.ui.theme.colorPrimary
 import org.saudigitus.semis.core.designsystem.components.FilterDetails
-import org.saudigitus.semis.core.designsystem.components.FilterDetailsState
 import org.saudigitus.semis.core.designsystem.components.ShowCount
-import org.saudigitus.semis.core.designsystem.components.bottomsheet.model.BottomSheetModel
 import org.saudigitus.semis.core.designsystem.utils.UiDefaults
 
 
-data class AttendanceSummaryState(
-    val filterDetailsState: FilterDetailsState = FilterDetailsState(),
-    val bottomSheetModels: List<BottomSheetModel> = emptyList(),
-    val enableBulk: Boolean = false,
-)
-
-
 @Composable
-fun AttendanceSummary(
+fun SummaryDetails(
     modifier: Modifier = Modifier,
-    state: AttendanceSummaryState,
+    state: SummaryState,
     onBulk: () -> Unit,
 ) {
     Column(
@@ -52,7 +43,9 @@ fun AttendanceSummary(
             state = state.filterDetailsState,
         )
         Row(
-            modifier = Modifier.fillMaxWidth().padding(start = 8.dp, end = 8.dp, bottom = 8.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 8.dp, end = 8.dp, bottom = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -63,7 +56,8 @@ fun AttendanceSummary(
             ) {
                 items(state.bottomSheetModels) { item ->
                     ShowCount(
-                        imageVector = item.icon ?: ImageVector.vectorResource(UiDefaults.getIconByName(item.iconName.orEmpty())),
+                        imageVector = item.icon
+                            ?: ImageVector.vectorResource(UiDefaults.getIconByName(item.iconName.orEmpty())),
                         count = item.value?.toInt() ?: 0,
                         color = item.color ?: Color.LightGray
                     )

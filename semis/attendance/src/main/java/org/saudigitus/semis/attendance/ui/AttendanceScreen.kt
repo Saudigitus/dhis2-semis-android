@@ -45,7 +45,7 @@ import org.hisp.dhis.mobile.ui.designsystem.component.state.rememberListCardStat
 import org.hisp.dhis.mobile.ui.designsystem.theme.Radius
 import org.hisp.dhis.mobile.ui.designsystem.theme.SurfaceColor
 import org.hisp.dhis.mobile.ui.designsystem.theme.dropShadow
-import org.saudigitus.semis.attendance.ui.components.AttendanceSummary
+import org.saudigitus.semis.core.designsystem.components.summary.SummaryDetails
 import org.saudigitus.semis.attendance.ui.components.BulkCard
 import org.saudigitus.semis.attendance.ui.model.BottomSheetConfirmAction
 import org.saudigitus.semis.attendance.ui.model.BottomSheetType
@@ -164,7 +164,7 @@ fun AttendanceScreen(
             )
         }
     ) {
-        AttendanceSummary(
+        SummaryDetails(
             modifier = Modifier.fillMaxWidth()
                 .padding(5.dp)
                 .dropShadow(RoundedCornerShape(Radius.S))
