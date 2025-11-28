@@ -1,4 +1,4 @@
-package org.saudigitus.semis.attendance.data
+package org.saudigitus.semis.core.form.data
 
 import androidx.compose.ui.graphics.Color
 import org.dhis2.commons.bindings.enrollment

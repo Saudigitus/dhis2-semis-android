@@ -1,6 +1,7 @@
 package org.saudigitus.semis.app.presentation.home
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -9,6 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -16,6 +18,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import org.hisp.dhis.mobile.ui.designsystem.theme.Radius
+import org.hisp.dhis.mobile.ui.designsystem.theme.SurfaceColor
+import org.hisp.dhis.mobile.ui.designsystem.theme.dropShadow
 import org.saudigitus.semis.app.presentation.navigation.AppRoutes
 import org.saudigitus.semis.core.designsystem.R
 import org.saudigitus.semis.core.designsystem.components.ConfigNotFound
@@ -53,7 +58,13 @@ fun HomeScreen(
         },
     ) {
         FilterDetails(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth()
+                .padding(5.dp)
+                .dropShadow(RoundedCornerShape(Radius.S))
+                .background(
+                    color = SurfaceColor.SurfaceBright,
+                    shape = RoundedCornerShape(Radius.S)
+                ),
             state = state.filterState.filterDetailsState,
             onClick = {
                 navTo.invoke(AppRoutes.TRACKER_LIST)

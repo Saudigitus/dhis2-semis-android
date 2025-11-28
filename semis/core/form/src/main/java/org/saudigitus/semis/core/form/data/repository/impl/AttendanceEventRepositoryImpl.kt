@@ -1,11 +1,12 @@
-package org.saudigitus.semis.attendance.data.repository
+package org.saudigitus.semis.core.form.data.repository.impl
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import org.saudigitus.semis.attendance.data.AttendanceTransformation
 import org.saudigitus.semis.core.data.repository.AppConfigRepository
 import org.saudigitus.semis.core.data.repository.EventRepository
 import org.saudigitus.semis.core.designsystem.attendance.model.AttendanceEventWithDecorator
+import org.saudigitus.semis.core.form.data.AttendanceTransformation
+import org.saudigitus.semis.core.form.data.repository.AttendanceEventRepository
 import javax.inject.Inject
 
 class AttendanceEventRepositoryImpl @Inject constructor(

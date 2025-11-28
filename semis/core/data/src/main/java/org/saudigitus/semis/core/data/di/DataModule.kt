@@ -19,6 +19,8 @@ import org.saudigitus.semis.core.data.repository.FilterRepository
 import org.saudigitus.semis.core.data.repository.FilterRepositoryImpl
 import org.saudigitus.semis.core.data.repository.OptionRepository
 import org.saudigitus.semis.core.data.repository.OptionRepositoryImpl
+import org.saudigitus.semis.core.data.repository.ProgramStageRepository
+import org.saudigitus.semis.core.data.repository.ProgramStageRepositoryImpl
 import org.saudigitus.semis.core.data.repository.TeiDownloaderRepository
 import org.saudigitus.semis.core.data.repository.TeiDownloaderRepositoryImpl
 import org.saudigitus.semis.core.data.repository.TeiRepository
@@ -83,4 +85,10 @@ object DataModule {
     fun provideEventRepository(
         d2: D2,
     ): EventRepository = EventRepositoryImpl(d2)
+
+    @Provides
+    @Singleton
+    fun provideProgramStageRepository(
+        d2: D2
+    ): ProgramStageRepository = ProgramStageRepositoryImpl(d2)
 }

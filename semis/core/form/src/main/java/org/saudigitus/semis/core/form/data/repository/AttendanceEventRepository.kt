@@ -1,4 +1,4 @@
-package org.saudigitus.semis.attendance.data.repository
+package org.saudigitus.semis.core.form.data.repository
 
 import org.saudigitus.semis.core.designsystem.attendance.model.AttendanceEventWithDecorator
 

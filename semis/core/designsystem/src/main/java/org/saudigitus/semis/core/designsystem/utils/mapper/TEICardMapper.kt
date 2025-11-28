@@ -4,41 +4,27 @@ import android.content.Context
 import android.graphics.BitmapFactory
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Check
-import androidx.compose.material.icons.outlined.Close
-import androidx.compose.material.icons.outlined.EventBusy
-import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material.icons.outlined.Sync
-import androidx.compose.material.icons.outlined.SyncDisabled
-import androidx.compose.material.icons.outlined.SyncProblem
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.painter.BitmapPainter
-import org.dhis2.bindings.hasFollowUp
 import org.dhis2.commons.bindings.isFilePathValid
 import org.dhis2.commons.date.toDateSpan
-import org.dhis2.commons.date.toOverdueOrScheduledUiText
 import org.dhis2.commons.resources.ResourceManager
 import org.dhis2.commons.ui.model.ListCardUiModel
 import org.hisp.dhis.android.core.common.State
-import org.hisp.dhis.android.core.enrollment.Enrollment
-import org.hisp.dhis.android.core.enrollment.EnrollmentStatus
-import org.hisp.dhis.android.core.program.Program
 import org.hisp.dhis.mobile.ui.designsystem.component.AdditionalInfoItem
-import org.hisp.dhis.mobile.ui.designsystem.component.AdditionalInfoItemColor
 import org.hisp.dhis.mobile.ui.designsystem.component.Avatar
 import org.hisp.dhis.mobile.ui.designsystem.component.AvatarStyleData
 import org.hisp.dhis.mobile.ui.designsystem.component.Button
 import org.hisp.dhis.mobile.ui.designsystem.component.ButtonStyle
 import org.hisp.dhis.mobile.ui.designsystem.component.MetadataAvatarSize
-import org.hisp.dhis.mobile.ui.designsystem.theme.SurfaceColor
 import org.hisp.dhis.mobile.ui.designsystem.theme.TextColor
 import org.saudigitus.semis.core.data.model.SearchTeiModel
 import org.saudigitus.semis.core.designsystem.R
 import java.io.File
-import java.util.Date
 
 class TEICardMapper(
     val context: Context,
@@ -132,149 +118,9 @@ class TEICardMapper(
         }
         attributeList.removeIf { it.value.isEmpty() || it.value == "-" }
 
-        return attributeList.also { list ->
-            if (searchTEIModel.displayOrgUnit) {
-                checkEnrolledIn(
-                    list = list,
-                    enrolledOrgUnit = searchTEIModel.enrolledOrgUnit,
-                )
-            }
-
-            checkEnrolledPrograms(
-                list = list,
-                enrolledPrograms = searchTEIModel.programInfo,
-            )
-            val programUid: String? = if (searchTEIModel.selectedEnrollment != null) {
-                searchTEIModel.selectedEnrollment.program().toString()
-            } else {
-                null
-            }
-            checkEnrollmentStatus(
-                programUid = programUid,
-                list = list,
-                status = searchTEIModel.selectedEnrollment?.status(),
-            )
-
-            checkOverdue(
-                list = list,
-                hasOverdue = searchTEIModel.isHasOverdue,
-                overdueDate = searchTEIModel.overdueDate,
-            )
-
-            checkFollowUp(
-                list = list,
-                enrollments = searchTEIModel.enrollments,
-            )
-
-            checkSyncStatus(
-                list = list,
-                state = searchTEIModel.tei.aggregatedSyncState(),
-            )
-        }
-    }
-
-    private fun checkFollowUp(
-        list: MutableList<AdditionalInfoItem>,
-        enrollments: List<Enrollment>,
-    ) {
-        if (enrollments.hasFollowUp()) {
-            list.add(
-                AdditionalInfoItem(
-                    icon = {
-                        Icon(
-                            imageVector = Icons.Outlined.Flag,
-                            contentDescription = resourceManager.getString(R.string.marked_follow_up),
-                            tint = AdditionalInfoItemColor.WARNING.color,
-                        )
-                    },
-                    value = resourceManager.getString(R.string.marked_follow_up),
-                    isConstantItem = true,
-                    color = AdditionalInfoItemColor.WARNING.color,
-                ),
-            )
-        }
-    }
-
-    private fun checkEnrollmentStatus(
-        programUid: String?,
-        list: MutableList<AdditionalInfoItem>,
-        status: EnrollmentStatus?,
-    ) {
-        val item = when (status) {
-            EnrollmentStatus.COMPLETED -> {
-                val label = resourceManager.formatWithEnrollmentLabel(
-                    programUid,
-                    R.string.enrollment_completed_V2,
-                    1,
-                )
-                AdditionalInfoItem(
-                    icon = {
-                        Icon(
-                            imageVector = Icons.Outlined.Check,
-                            contentDescription = label,
-                            tint = AdditionalInfoItemColor.SUCCESS.color,
-                        )
-                    },
-                    value = label,
-                    isConstantItem = true,
-                    color = AdditionalInfoItemColor.SUCCESS.color,
-                )
-            }
-
-            EnrollmentStatus.CANCELLED -> {
-                val label = resourceManager.formatWithEnrollmentLabel(
-                    programUid,
-                    R.string.enrollment_cancelled_V2,
-                    1,
-                )
-                AdditionalInfoItem(
-                    icon = {
-                        Icon(
-                            imageVector = Icons.Outlined.Close,
-                            contentDescription = label,
-                            tint = AdditionalInfoItemColor.DISABLED.color,
-                        )
-                    },
-                    value = label,
-                    isConstantItem = true,
-                    color = AdditionalInfoItemColor.DISABLED.color,
-                )
-            }
-
-            else -> null
-        }
-
-        item?.let { list.add(it) }
-    }
-
-    private fun checkEnrolledPrograms(
-        list: MutableList<AdditionalInfoItem>,
-        enrolledPrograms: List<Program>,
-    ) {
-        val programNames = enrolledPrograms.map { it.name() }
-
-        if (programNames.isNotEmpty()) {
-            list.add(
-                AdditionalInfoItem(
-                    key = resourceManager.getString(R.string.programs),
-                    value = programNames.joinToString(", "),
-                    isConstantItem = true,
-                ),
-            )
-        }
-    }
-
-    private fun checkEnrolledIn(
-        list: MutableList<AdditionalInfoItem>,
-        enrolledOrgUnit: String,
-    ) {
-        list.add(
-            AdditionalInfoItem(
-                key = resourceManager.getString(R.string.enrolledIn),
-                value = enrolledOrgUnit,
-                isConstantItem = true,
-            ),
-        )
+        return if (attributeList.size > 2) {
+            attributeList.subList(0,2)
+        } else attributeList
     }
 
     @Composable
@@ -309,101 +155,5 @@ class TEICardMapper(
                 modifier = Modifier.Companion.fillMaxWidth(),
             )
         }
-    }
-
-    private fun checkOverdue(
-        list: MutableList<AdditionalInfoItem>,
-        hasOverdue: Boolean,
-        overdueDate: Date?,
-    ) {
-        if (hasOverdue) {
-            val text = overdueDate.toOverdueOrScheduledUiText(resourceManager)
-            list.add(
-                AdditionalInfoItem(
-                    icon = {
-                        Icon(
-                            imageVector = Icons.Outlined.EventBusy,
-                            contentDescription = text,
-                            tint = AdditionalInfoItemColor.ERROR.color,
-                        )
-                    },
-                    value = text,
-                    isConstantItem = true,
-                    color = AdditionalInfoItemColor.ERROR.color,
-                ),
-            )
-        }
-    }
-
-    private fun checkSyncStatus(
-        list: MutableList<AdditionalInfoItem>,
-        state: State?,
-    ) {
-        val item = when (state) {
-            State.TO_POST,
-            State.TO_UPDATE,
-                -> {
-                AdditionalInfoItem(
-                    icon = {
-                        Icon(
-                            imageVector = Icons.Outlined.SyncDisabled,
-                            contentDescription = resourceManager.getString(R.string.not_synced),
-                            tint = AdditionalInfoItemColor.DISABLED.color,
-                        )
-                    },
-                    value = resourceManager.getString(R.string.not_synced),
-                    color = AdditionalInfoItemColor.DISABLED.color,
-                    isConstantItem = true,
-                )
-            }
-
-            State.UPLOADING -> {
-                AdditionalInfoItem(
-                    icon = {
-                        Icon(
-                            imageVector = Icons.Outlined.Sync,
-                            contentDescription = resourceManager.getString(R.string.syncing),
-                            tint = SurfaceColor.Primary,
-                        )
-                    },
-                    value = resourceManager.getString(R.string.syncing),
-                    color = SurfaceColor.Primary,
-                    isConstantItem = true,
-                )
-            }
-
-            State.ERROR -> {
-                AdditionalInfoItem(
-                    icon = {
-                        Icon(
-                            imageVector = Icons.Outlined.SyncProblem,
-                            contentDescription = resourceManager.getString(R.string.sync_error_title),
-                            tint = AdditionalInfoItemColor.ERROR.color,
-                        )
-                    },
-                    value = resourceManager.getString(R.string.sync_error_title),
-                    color = AdditionalInfoItemColor.ERROR.color,
-                    isConstantItem = true,
-                )
-            }
-
-            State.WARNING -> {
-                AdditionalInfoItem(
-                    icon = {
-                        Icon(
-                            imageVector = Icons.Outlined.SyncProblem,
-                            contentDescription = resourceManager.getString(R.string.sync_dialog_title_warning),
-                            tint = AdditionalInfoItemColor.WARNING.color,
-                        )
-                    },
-                    value = resourceManager.getString(R.string.sync_dialog_title_warning),
-                    color = AdditionalInfoItemColor.WARNING.color,
-                    isConstantItem = true,
-                )
-            }
-
-            else -> null
-        }
-        item?.let { list.add(it) }
     }
 }

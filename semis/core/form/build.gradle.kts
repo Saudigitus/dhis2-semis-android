@@ -19,9 +19,8 @@ repositories {
 base {
     archivesName.set("psm-v" + libs.versions.vName.get())
 }
-
 android {
-    namespace = "org.saudigitus.semis.attendance"
+    namespace = "org.saudigitus.semis.core.form"
     compileSdk = libs.versions.sdk.get().toInt()
 
     defaultConfig {
@@ -67,6 +66,7 @@ android {
     }
 }
 
+
 kotlin {
     compilerOptions {
         jvmTarget.set(JvmTarget.JVM_17)
@@ -75,9 +75,10 @@ kotlin {
 
 dependencies {
     implementation(project(":commons"))
-    implementation(project(":semis:core:data"))
-    implementation(project(":semis:core:form"))
+    implementation(project(":form"))
+    implementation(project(":compose-table"))
     implementation(project(":semis:core:designsystem"))
+    implementation(project(":semis:core:data"))
     implementation(project(":semis:core:utils"))
 
     implementation(libs.androidx.coreKtx)
@@ -85,14 +86,15 @@ dependencies {
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.viewModelKtx)
-    implementation(libs.navigationCompose)
-    implementation(libs.androidx.hilt.navigation.compose)
     implementation(libs.androidx.compose.materialIcons)
     implementation(libs.androidx.compose.material.iconsExtended)
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.uitooling)
     implementation(libs.google.material)
     implementation(libs.dagger.hilt.android)
+    implementation(libs.androidx.hilt.navigation.compose)
+    implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.compose.ui.graphics)
 
     kapt(libs.dagger.hilt.android.compiler)
     coreLibraryDesugaring(libs.desugar)
