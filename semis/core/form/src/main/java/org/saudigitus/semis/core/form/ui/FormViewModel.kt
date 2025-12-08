@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -55,7 +56,7 @@ class FormViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             formRepository.attendanceButtonStateFlow
-                .collect { newAttendanceState ->
+                .collectLatest { newAttendanceState ->
                     _uiState.update { currentState ->
                         currentState.copy(attendanceButtonState = newAttendanceState)
                     }

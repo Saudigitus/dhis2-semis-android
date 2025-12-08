@@ -32,7 +32,6 @@ import org.saudigitus.semis.core.form.data.repository.AttendanceOptionRepository
 import org.saudigitus.semis.core.form.data.repository.FormRepository
 import org.saudigitus.semis.core.utils.DateHelper
 import javax.inject.Inject
-import kotlin.text.orEmpty
 
 class FormRepositoryImpl @Inject constructor(
     private val d2: D2,
@@ -122,11 +121,15 @@ class FormRepositoryImpl @Inject constructor(
         }
 
         return attendanceButtonState.updateAndGet {
-            it.copy(attendanceEvents =  attendanceEvents)
+            it.copy(attendanceEvents = attendanceEvents)
         }
     }
 
-    override fun updateAttendanceReason(tei: String, dataElement: String, value: String): AttendanceButtonState? {
+    override fun updateAttendanceReason(
+        tei: String,
+        dataElement: String,
+        value: String
+    ): AttendanceButtonState? {
         val attendanceEvents = attendanceButtonStateFlow.value.attendanceEvents.toMutableList()
 
         val event = attendanceEvents.find {
@@ -149,11 +152,9 @@ class FormRepositoryImpl @Inject constructor(
             attendanceEvents.add(eventWithDecorator)
         }
 
-        attendanceButtonState.update {
-            it.copy(attendanceEvents =  attendanceEvents)
+        return attendanceButtonState.updateAndGet {
+            it.copy(attendanceEvents = attendanceEvents)
         }
-
-        return attendanceButtonStateFlow.value
     }
 
     override suspend fun loadAttendanceEvents(

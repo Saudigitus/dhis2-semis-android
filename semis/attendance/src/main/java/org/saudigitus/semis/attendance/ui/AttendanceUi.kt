@@ -1,5 +1,6 @@
 package org.saudigitus.semis.attendance.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
@@ -20,13 +21,13 @@ fun AttendanceUi(
     activity: FragmentActivity,
     viewModel: AttendanceViewModel,
     formViewModel: FormViewModel,
-    state: AttendanceUiState,
     teiCardMapper: TEICardMapper,
     navController: NavHostController,
     syncData: () -> Unit,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
 
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
     val formState by formViewModel.uiState.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) {
@@ -42,6 +43,33 @@ fun AttendanceUi(
 
     LaunchedEffect(state.formBuilderState) {
         formViewModel.initialize(state.formBuilderState)
+        viewModel.hasCachedValues(
+            formState.hasCachedData
+                || formState.attendanceButtonState.attendanceEvents.isNotEmpty()
+        )
+    }
+
+    fun navigationBack() {
+        if (formState.hasCachedData) {
+            launchBottomSheet(
+                activity.getString(R.string.not_saved),
+                activity.getString(R.string.attendance_not_saved),
+                supportFragmentManager = activity.supportFragmentManager,
+                onDiscard = {
+                    viewModel.resetForm()
+                    navController.navigateUp()
+                },
+                onKeepEdition = { },
+            )
+        } else {
+            viewModel.disableEditing().also {
+                navController.navigateUp()
+            }
+        }
+    }
+
+    BackHandler {
+        navigationBack()
     }
 
     AttendanceScreen(
@@ -53,21 +81,9 @@ fun AttendanceUi(
         onEvent = {
             when (it) {
                 is AttendanceUiEvent.NavBack -> {
-                    if (formState.hasCachedData) {
-                        launchBottomSheet(
-                            activity.getString(R.string.not_saved),
-                            activity.getString(R.string.attendance_not_saved),
-                            supportFragmentManager = activity.supportFragmentManager,
-                            onDiscard = {
-                                viewModel.resetForm()
-                                navController.navigateUp()
-                            },
-                            onKeepEdition = {  },
-                        )
-                    } else {
-                        navController.navigateUp()
-                    }
+                    navigationBack()
                 }
+
                 is AttendanceUiEvent.OnSyncClicked -> syncData()
                 else -> viewModel.handleUiEvent(it)
             }
