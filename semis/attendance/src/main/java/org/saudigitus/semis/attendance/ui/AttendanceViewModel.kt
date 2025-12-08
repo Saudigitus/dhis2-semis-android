@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -38,6 +39,11 @@ class AttendanceViewModel @Inject constructor(
     private var studentsIds: List<String> = emptyList()
     private var selectedDate: String = DateHelper.formatDate(System.currentTimeMillis())
         .orEmpty()
+
+    private var cachedButtonModel: AttendanceButtonModel? = null
+
+    private val _hasCachedData = MutableStateFlow(false)
+    private val hasCachedData: StateFlow<Boolean> = _hasCachedData
 
     private val _snackbarEvent = MutableSharedFlow<String?>()
     val snackbarEvent: SharedFlow<String?> = _snackbarEvent
@@ -74,6 +80,7 @@ class AttendanceViewModel @Inject constructor(
 
     fun initialize(
         program: String,
+        orgUnit: String,
         teis: List<SearchTeiModel>,
         filterDetailsState: FilterDetailsState
     ) {
@@ -95,7 +102,7 @@ class AttendanceViewModel @Inject constructor(
                         filterDetailsState = filterDetailsState
                     ),
                     formBuilderState = currentFormState.copy(
-                        orgUnit = "Shc3qNhrPAz",
+                        orgUnit = orgUnit,
                         program = program,
                         programStage = config?.attendance?.programStage.orEmpty(),
                     )
@@ -105,6 +112,10 @@ class AttendanceViewModel @Inject constructor(
             loadAttendanceEventsByDate()
             attendanceSummary()
         }
+    }
+
+    fun hasCachedValues(cached: Boolean) {
+        _hasCachedData.value = cached
     }
 
     private fun loadAttendanceEventsByDate(date: String? = null) {
@@ -188,6 +199,8 @@ class AttendanceViewModel @Inject constructor(
             is AttendanceUiEvent.OnEditClicked -> {
                 val currentAttendanceSummaryState = uiState.value.attendanceSummaryState
 
+                formRepository.allowFormEdition(true)
+
                 _uiState.update {
                     it.copy(
                         buttonStep = ButtonStep.EDITING,
@@ -196,7 +209,6 @@ class AttendanceViewModel @Inject constructor(
                         ),
                     )
                 }
-                formRepository.allowFormEdition(true)
             }
 
             is AttendanceUiEvent.ShowBottomSheet -> {
@@ -205,7 +217,9 @@ class AttendanceViewModel @Inject constructor(
                         it.copy(displayBulk = true)
                     }
                 } else {
-                    attendanceSummary()
+                    _uiState.update {
+                        it.copy(displayDialog = true)
+                    }
                 }
             }
 
@@ -216,9 +230,26 @@ class AttendanceViewModel @Inject constructor(
             }
 
             is AttendanceUiEvent.PerformBulk -> {
-                bulkAttendance(uiEvent.buttonModel)
-                _uiState.update {
-                    it.copy(displayBulk = false)
+                if (hasCachedData.value) {
+                    cachedButtonModel = uiEvent.buttonModel
+                    _uiState.update {
+                        it.copy(overrideBulk = true)
+                    }
+                } else {
+                    bulkAttendance(uiEvent.buttonModel)
+                    _uiState.update {
+                        it.copy(displayBulk = false)
+                    }
+                }
+            }
+
+            is AttendanceUiEvent.BulkOverrideAttendance -> {
+                if (cachedButtonModel != null) {
+                    bulkAttendance(cachedButtonModel!!)
+                    cachedButtonModel = null
+                    _uiState.update {
+                        it.copy(displayBulk = false, overrideBulk = false)
+                    }
                 }
             }
 
@@ -228,12 +259,18 @@ class AttendanceViewModel @Inject constructor(
                         it.copy(displayBulk = false)
                     }
                 } else {
-                    //TODO: IMPLEMENT ATTENDANCE DATA SAVE
+                    _uiState.update {
+                        it.copy(displayDialog = false)
+                    }
                 }
             }
 
             else -> {}
         }
+    }
+
+    fun disableEditing() {
+        formRepository.allowFormEdition(false)
     }
 
     fun resetForm() {

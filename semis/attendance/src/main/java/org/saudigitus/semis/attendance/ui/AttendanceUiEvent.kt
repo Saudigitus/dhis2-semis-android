@@ -10,6 +10,7 @@ sealed class AttendanceUiEvent {
     data class OnDateSelect(val date: String) : AttendanceUiEvent()
     data object OnSyncClicked : AttendanceUiEvent()
     data object OnEditClicked : AttendanceUiEvent()
+    data object BulkOverrideAttendance : AttendanceUiEvent()
     data class BottomSheetAction(val action: BottomSheetConfirmAction) : AttendanceUiEvent()
     data class DismissBottomSheet(val type: BottomSheetType): AttendanceUiEvent()
     data class ShowBottomSheet(val type: BottomSheetType): AttendanceUiEvent()

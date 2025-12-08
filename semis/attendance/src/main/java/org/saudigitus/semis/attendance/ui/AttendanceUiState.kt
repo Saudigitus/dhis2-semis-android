@@ -13,6 +13,8 @@ import org.saudigitus.semis.core.form.ui.state.FormBuilderState
 data class AttendanceUiState(
     val isLoading: Boolean = false,
     val displayBulk: Boolean = false,
+    val displayDialog: Boolean = false,
+    val overrideBulk: Boolean = false,
     val toolbarHeaders: ToolbarHeaders = ToolbarHeaders(""),
     val dateValidator: (Long) -> Boolean = { _ -> true },
     val program: String = "",

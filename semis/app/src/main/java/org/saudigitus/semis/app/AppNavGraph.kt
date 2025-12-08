@@ -63,12 +63,13 @@ fun AppNavGraph(
         composable(route = AppRoutes.ATTENDANCE) {
             val attendanceViewModel = hiltViewModel<AttendanceViewModel>()
             val formViewModel = hiltViewModel<FormViewModel>()
-            val state by attendanceViewModel.uiState.collectAsStateWithLifecycle()
+
             val homeState by viewModel.uiState.collectAsStateWithLifecycle()
 
             LaunchedEffect(key1 = Unit) {
                 attendanceViewModel.initialize(
                     homeState.program,
+                    homeState.filterState.orgUnit?.uid.orEmpty(),
                     homeState.tei,
                     homeState.filterState.filterDetailsState
                 )
@@ -78,7 +79,6 @@ fun AppNavGraph(
                 activity = activity,
                 viewModel = attendanceViewModel,
                 formViewModel = formViewModel,
-                state = state,
                 teiCardMapper = teiCardMapper,
                 navController = navController,
                 syncData = syncData

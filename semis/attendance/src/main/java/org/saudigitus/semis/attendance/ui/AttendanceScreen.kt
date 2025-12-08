@@ -45,19 +45,20 @@ import org.hisp.dhis.mobile.ui.designsystem.component.state.rememberListCardStat
 import org.hisp.dhis.mobile.ui.designsystem.theme.Radius
 import org.hisp.dhis.mobile.ui.designsystem.theme.SurfaceColor
 import org.hisp.dhis.mobile.ui.designsystem.theme.dropShadow
-import org.saudigitus.semis.core.designsystem.components.summary.SummaryDetails
 import org.saudigitus.semis.attendance.ui.components.BulkCard
 import org.saudigitus.semis.attendance.ui.model.BottomSheetConfirmAction
 import org.saudigitus.semis.attendance.ui.model.BottomSheetType
 import org.saudigitus.semis.attendance.ui.model.ButtonStep
 import org.saudigitus.semis.core.designsystem.R
 import org.saudigitus.semis.core.designsystem.attendance.model.AttendanceButtonModel
+import org.saudigitus.semis.core.designsystem.components.AlertDialog
 import org.saudigitus.semis.core.designsystem.components.ConfigNotFound
 import org.saudigitus.semis.core.designsystem.components.NoResults
 import org.saudigitus.semis.core.designsystem.components.SnackBar
 import org.saudigitus.semis.core.designsystem.components.ToolbarActionState
 import org.saudigitus.semis.core.designsystem.components.bottomsheet.ListingBottomSheet
 import org.saudigitus.semis.core.designsystem.components.bottomsheet.model.BottomSheetState
+import org.saudigitus.semis.core.designsystem.components.summary.SummaryDetails
 import org.saudigitus.semis.core.designsystem.templates.TopAppBarScaffold
 import org.saudigitus.semis.core.designsystem.utils.UiDefaults
 import org.saudigitus.semis.core.designsystem.utils.mapper.TEICardMapper
@@ -107,6 +108,24 @@ fun AttendanceScreen(
                     }
                 }
             },
+        )
+    }
+
+    if (state.displayDialog) {
+        AlertDialog(
+            message = stringResource(id = R.string.save_alert),
+            onConfirm = {
+                onEvent(AttendanceUiEvent.BottomSheetAction(BottomSheetConfirmAction.PERFORM_SAVE))
+            }
+        )
+    }
+
+    if (state.overrideBulk) {
+        AlertDialog(
+            message = stringResource(id = R.string.override_attendance),
+            onConfirm = {
+                onEvent(AttendanceUiEvent.BottomSheetAction(BottomSheetConfirmAction.PERFORM_SAVE))
+            }
         )
     }
 
@@ -165,7 +184,8 @@ fun AttendanceScreen(
         }
     ) {
         SummaryDetails(
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
                 .padding(5.dp)
                 .dropShadow(RoundedCornerShape(Radius.S))
                 .background(
@@ -199,7 +219,12 @@ fun AttendanceScreen(
 
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(start = 16.dp, top = 10.dp, end = 16.dp, bottom = 108.dp),
+                contentPadding = PaddingValues(
+                    start = 16.dp,
+                    top = 10.dp,
+                    end = 16.dp,
+                    bottom = 108.dp
+                ),
                 verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.Top),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
@@ -221,7 +246,10 @@ fun AttendanceScreen(
                                 color = SurfaceColor.SurfaceBright,
                                 shape = RoundedCornerShape(Radius.S)
                             ),
-                        verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
+                        verticalArrangement = Arrangement.spacedBy(
+                            12.dp,
+                            Alignment.CenterVertically
+                        ),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         ListCard(
@@ -258,6 +286,7 @@ fun AttendanceScreen(
                         )
                         FormContent(
                             key = tei.uid(),
+                            tei = tei,
                             type = FormType.ATTENDANCE,
                             modifier = Modifier.fillMaxWidth(),
                             state = formState,
