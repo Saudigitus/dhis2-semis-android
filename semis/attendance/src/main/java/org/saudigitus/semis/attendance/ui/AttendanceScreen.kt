@@ -124,7 +124,7 @@ fun AttendanceScreen(
         AlertDialog(
             message = stringResource(id = R.string.override_attendance),
             onConfirm = {
-                onEvent(AttendanceUiEvent.BottomSheetAction(BottomSheetConfirmAction.PERFORM_SAVE))
+                onEvent(AttendanceUiEvent.BulkOverrideAttendance)
             }
         )
     }
