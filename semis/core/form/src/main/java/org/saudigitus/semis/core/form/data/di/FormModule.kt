@@ -12,10 +12,8 @@ import org.saudigitus.semis.core.data.repository.ProgramStageRepository
 import org.saudigitus.semis.core.data.rules.RuleEngineRepository
 import org.saudigitus.semis.core.data.utils.Transformations
 import org.saudigitus.semis.core.form.data.AttendanceTransformation
-import org.saudigitus.semis.core.form.data.repository.AttendanceEventRepository
 import org.saudigitus.semis.core.form.data.repository.AttendanceOptionRepository
 import org.saudigitus.semis.core.form.data.repository.FormRepository
-import org.saudigitus.semis.core.form.data.repository.impl.AttendanceEventRepositoryImpl
 import org.saudigitus.semis.core.form.data.repository.impl.AttendanceOptionRepositoryImpl
 import org.saudigitus.semis.core.form.data.repository.impl.FormRepositoryImpl
 import javax.inject.Singleton
@@ -38,19 +36,6 @@ object FormModule {
     fun provideAttendanceTransformation(d2: D2, transformations: Transformations) =
         AttendanceTransformation(d2, transformations)
 
-    @Provides
-    @Singleton
-    fun provideAttendanceEventRepository(
-        eventRepository: EventRepository,
-        appConfigRepository: AppConfigRepository,
-        transformations: AttendanceTransformation
-    ): AttendanceEventRepository {
-        return AttendanceEventRepositoryImpl(
-            eventRepository,
-            appConfigRepository,
-            transformations
-        )
-    }
 
     @Provides
     @Singleton
@@ -60,7 +45,8 @@ object FormModule {
         programStageRepository: ProgramStageRepository,
         optionRepository: OptionRepository,
         ruleEngineRepository: RuleEngineRepository,
-        attendanceEventRepository: AttendanceEventRepository,
+        eventRepository: EventRepository,
+        transformations: AttendanceTransformation,
         attendanceOptionRepository: AttendanceOptionRepository
     ): FormRepository = FormRepositoryImpl(
         d2,
@@ -68,7 +54,8 @@ object FormModule {
         programStageRepository,
         optionRepository,
         ruleEngineRepository,
-        attendanceEventRepository,
+        eventRepository,
+        transformations,
         attendanceOptionRepository,
     )
 }

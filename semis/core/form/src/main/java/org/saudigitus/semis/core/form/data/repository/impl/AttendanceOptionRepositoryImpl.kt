@@ -10,7 +10,7 @@ import org.saudigitus.semis.core.designsystem.utils.UiDefaults.getAttendanceStat
 import org.saudigitus.semis.core.form.data.repository.AttendanceOptionRepository
 import javax.inject.Inject
 
-class AttendanceOptionRepositoryImpl @Inject constructor(
+internal class AttendanceOptionRepositoryImpl @Inject constructor(
     val optionRepository: OptionRepository,
     val appConfigRepository: AppConfigRepository
 ) : AttendanceOptionRepository {

@@ -14,6 +14,7 @@ import org.hisp.dhis.android.core.program.ProgramRuleActionType
 import org.saudigitus.semis.core.data.model.OptionModel
 import org.saudigitus.semis.core.data.model.SearchTeiModel
 import org.saudigitus.semis.core.data.repository.AppConfigRepository
+import org.saudigitus.semis.core.data.repository.EventRepository
 import org.saudigitus.semis.core.data.repository.OptionRepository
 import org.saudigitus.semis.core.data.repository.ProgramStageRepository
 import org.saudigitus.semis.core.data.rules.RuleEngineRepository
@@ -26,8 +27,8 @@ import org.saudigitus.semis.core.designsystem.components.bottomsheet.model.Botto
 import org.saudigitus.semis.core.designsystem.theme.white
 import org.saudigitus.semis.core.designsystem.utils.UiDefaults
 import org.saudigitus.semis.core.designsystem.utils.UiDefaults.getAttendanceStatusColor
+import org.saudigitus.semis.core.form.data.AttendanceTransformation
 import org.saudigitus.semis.core.form.data.model.FormFieldState
-import org.saudigitus.semis.core.form.data.repository.AttendanceEventRepository
 import org.saudigitus.semis.core.form.data.repository.AttendanceOptionRepository
 import org.saudigitus.semis.core.form.data.repository.FormRepository
 import org.saudigitus.semis.core.utils.DateHelper
@@ -39,7 +40,8 @@ class FormRepositoryImpl @Inject constructor(
     private val repository: ProgramStageRepository,
     private val optionRepository: OptionRepository,
     private val ruleEngineRepository: RuleEngineRepository,
-    private val attendanceEventRepository: AttendanceEventRepository,
+    private val eventRepository: EventRepository,
+    private val transformations: AttendanceTransformation,
     private val attendanceOptionRepository: AttendanceOptionRepository,
 ) : FormRepository {
 
@@ -168,7 +170,7 @@ class FormRepositoryImpl @Inject constructor(
         val config = appConfigRepository.getAppConfig(program)
         val attendanceConfig = config?.attendance
 
-        val attendanceEvents = attendanceEventRepository.getAttendanceEvent(
+        val attendanceEvents = getAttendanceEvent(
             teiUids = teiUids,
             program = program,
             programStage = programStage,
@@ -307,6 +309,59 @@ class FormRepositoryImpl @Inject constructor(
 
     override fun reset() {
         attendanceButtonState.value = AttendanceButtonState()
+    }
+
+    override suspend fun saveAttendance(
+        program: String,
+        programStage: String,
+        attendanceEvents: List<AttendanceEventWithDecorator>
+    ) = withContext(Dispatchers.IO) {
+        attendanceEvents.forEach { attendanceEvent ->
+            eventRepository.saveEvent(
+                event = attendanceEvent.event?.event,
+                orgUnit = attendanceEvent.tei!!.tei.organisationUnit().orEmpty(),
+                tei = attendanceEvent.tei!!,
+                program = program,
+                programStage = programStage,
+                data = mapOf(
+                    "dataElement" to Pair(
+                        attendanceEvent.event?.dataElement.orEmpty(),
+                        attendanceEvent.event?.value.orEmpty()
+                    ),
+                    "reasonDataElement" to Pair(
+                        attendanceEvent.event?.reasonDataElement.orEmpty(),
+                        attendanceEvent.event?.reasonOfAbsence.orEmpty()
+                    ),
+                ),
+                eventDate = attendanceEvent.event?.date
+            )
+        }
+    }
+
+    override suspend fun getAttendanceEvent(
+        teiUids: List<String>,
+        program: String,
+        programStage: String,
+        dataElement: String,
+        reasonDataElement: String,
+        eventDate: String?
+    ) = withContext(Dispatchers.IO) {
+        val config = appConfigRepository.getAppConfig(program)
+
+        eventRepository.getEvents(
+            teiUids = teiUids,
+            program = program,
+            programStage = programStage,
+            eventDate = eventDate,
+        ).map {
+            transformations.teiEventTransform(
+                eventUid = it.uid(),
+                program = program,
+                attendanceDataElement = dataElement,
+                reasonDataElement = reasonDataElement,
+                config = config?.attendance,
+            )
+        }
     }
 
 }
