@@ -168,7 +168,8 @@ class AttendanceViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(
                         attendanceSummaryState = attendanceSummaryState.copy(
-                            bottomSheetModels = summaries
+                            bottomSheetModels = summaries,
+                            enableBulk = it.buttonStep != ButtonStep.NONE
                         )
                     )
                 }
@@ -243,7 +244,7 @@ class AttendanceViewModel @Inject constructor(
                     it.copy(
                         buttonStep = ButtonStep.EDITING,
                         attendanceSummaryState = currentAttendanceSummaryState.copy(
-                            enableBulk = true
+                            enableBulk = it.buttonStep != ButtonStep.NONE
                         ),
                     )
                 }
