@@ -43,10 +43,10 @@ fun AttendanceUi(
 
     LaunchedEffect(state.formBuilderState) {
         formViewModel.initialize(state.formBuilderState)
-        viewModel.hasCachedValues(
-            formState.hasCachedData
-                || formState.attendanceButtonState.attendanceEvents.isNotEmpty()
-        )
+    }
+
+    if (formState.hasCachedData || formState.attendanceButtonState.hasEvent()) {
+        viewModel.hasCachedValues(true)
     }
 
     fun navigationBack() {
