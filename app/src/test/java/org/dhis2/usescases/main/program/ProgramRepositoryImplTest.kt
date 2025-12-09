@@ -36,6 +36,7 @@ import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.doReturnConsecutively
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
+import org.saudigitus.semis.core.utils.ProgramValidator
 
 class ProgramRepositoryImplTest {
     @Rule
@@ -66,6 +67,7 @@ class ProgramRepositoryImplTest {
             resourceManager,
             metadataIconProvider,
             scheduler,
+            ProgramValidator(d2)
         )
         whenever(
             resourceManager.defaultDataSetLabel(),
