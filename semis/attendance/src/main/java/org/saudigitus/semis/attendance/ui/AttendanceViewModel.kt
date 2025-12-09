@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.dhis2.commons.resources.ResourceManager
+import org.hisp.dhis.android.core.maintenance.D2Error
 import org.saudigitus.semis.attendance.R
 import org.saudigitus.semis.attendance.ui.model.BottomSheetConfirmAction
 import org.saudigitus.semis.attendance.ui.model.BottomSheetType
@@ -189,6 +190,43 @@ class AttendanceViewModel @Inject constructor(
         }
     }
 
+    private fun saveAttendanceEvents() {
+        viewModelScope.launch {
+            val current = uiState.value
+
+            runCatching {
+                formRepository.saveAttendance(
+                    program = current.program,
+                    programStage = attendanceConfig?.programStage.orEmpty(),
+                    attendanceEvents = formRepository.attendanceButtonStateFlow.value.attendanceEvents
+                )
+            }.onSuccess {
+                _uiState.update {
+                    it.copy(buttonStep = ButtonStep.NONE)
+                }
+                formRepository.allowFormEdition(false)
+                loadAttendanceEventsByDate(selectedDate)
+                _snackbarEvent.emit(resourceManager.getString(R.string.attendance_saved))
+            }.onFailure { error ->
+                val friendlyMessage = when (error) {
+                    is D2Error -> {
+                        "${error.errorCode()} – ${
+                            error.message ?: resourceManager
+                                .getString(R.string.error_unexpected)
+                        }"
+                    }
+
+                    else -> error.message ?: resourceManager
+                        .getString(R.string.error_unexpected)
+                }
+
+                _uiState.update {
+                    it.copy(errorMessage = friendlyMessage)
+                }
+            }
+        }
+    }
+
     fun handleUiEvent(uiEvent: AttendanceUiEvent) {
         when (uiEvent) {
             is AttendanceUiEvent.OnDateSelect -> {
@@ -259,6 +297,7 @@ class AttendanceViewModel @Inject constructor(
                         it.copy(displayBulk = false)
                     }
                 } else {
+                    saveAttendanceEvents()
                     _uiState.update {
                         it.copy(displayDialog = false)
                     }
