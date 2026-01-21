@@ -3,6 +3,7 @@ package org.saudigitus.semis.core.data.repository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.hisp.dhis.android.core.D2
+import org.hisp.dhis.android.core.dataelement.DataElement
 import org.hisp.dhis.android.core.program.ProgramStage
 import org.saudigitus.semis.core.data.model.app_config.ProgramStages
 import javax.inject.Inject
@@ -11,7 +12,6 @@ class ProgramStageRepositoryImpl @Inject constructor(
     val d2: D2
 ) : ProgramStageRepository {
     override suspend fun getProgramStageDataElements(
-        program: String,
         stage: String,
         dl: String?
     ) = withContext(Dispatchers.IO) {
@@ -20,9 +20,13 @@ class ProgramStageRepositoryImpl @Inject constructor(
 
         if (dl != null) {
             repository.byDataElement().eq(dl)
-                .blockingGet()
+                .blockingGet().mapNotNull {
+                    d2.dataElementModule().dataElements().uid(it.dataElement()?.uid()).blockingGet()
+                }
         } else {
-            repository.blockingGet()
+            repository.blockingGet().mapNotNull {
+                d2.dataElementModule().dataElements().uid(it.dataElement()?.uid()).blockingGet()
+            }
         }
     }
 

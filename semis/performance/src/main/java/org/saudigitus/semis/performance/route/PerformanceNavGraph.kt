@@ -14,6 +14,8 @@ import androidx.navigation.navArgument
 import org.saudigitus.semis.core.data.model.SearchTeiModel
 import org.saudigitus.semis.core.designsystem.filters.FilterComponentState
 import org.saudigitus.semis.core.designsystem.utils.mapper.TEICardMapper
+import org.saudigitus.semis.performance.ProgramStageDataElements.ProgramStageDataElementsScreen
+import org.saudigitus.semis.performance.ProgramStageDataElements.ProgramStageDataElementsViewModel
 import org.saudigitus.semis.performance.programstage.ProgramStageScreen
 import org.saudigitus.semis.performance.programstage.ProgramStageViewModel
 import org.saudigitus.semis.performance.route.Destinations.EVENT_CAPTURE
@@ -48,13 +50,25 @@ fun PerformanceNavGraph(
             )
         }
         composable(
-            route = PROGRAM_STAGE_DATA_ELEMENTS,
+            route = "${PROGRAM_STAGE_DATA_ELEMENTS}/{programStage}",
             arguments = listOf(
                 navArgument("programStage") { type = NavType.StringType }
             )
         ) { entry ->
-            val programStage = entry.arguments?.getString("programStage").orEmpty()
+            val programStageId = entry.arguments?.getString("programStage").orEmpty()
 
+            val viewModel = hiltViewModel<ProgramStageDataElementsViewModel>()
+            val state by viewModel.uiState.collectAsStateWithLifecycle()
+
+            LaunchedEffect(programStageId) {
+                viewModel.initialize(programStageId, filterState!!)
+            }
+
+            ProgramStageDataElementsScreen(
+                state = state,
+                navTo = navController::navigate,
+                navBack = { navController.navigateUp() }
+            )
         }
         composable(
             route = EVENT_CAPTURE,

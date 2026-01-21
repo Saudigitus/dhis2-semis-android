@@ -208,10 +208,10 @@ class FormRepositoryImpl @Inject constructor(
     ) = withContext(Dispatchers.IO) {
         val attendance = appConfigRepository.getAppConfig(program)?.attendance
 
-        repository.getProgramStageDataElements(program, stage, dl)
+        repository.getProgramStageDataElements(stage, dl)
             .map {
-                val options = getOptionModels(program, it.dataElement()?.uid().orEmpty())
-                val dataElementId = it.dataElement()?.uid().orEmpty()
+                val options = getOptionModels(program, it.uid().orEmpty())
+                val dataElementId = it.uid().orEmpty()
 
                 val dataElement = if (dl == null) {
                     d2.dataElementModule().dataElements()
@@ -221,11 +221,11 @@ class FormRepositoryImpl @Inject constructor(
 
                 FormFieldState(
                     dataElementUid = dataElementId,
-                    label = it.dataElement()?.displayFormName() ?: dataElement?.displayFormName()
+                    label = it.displayFormName() ?: dataElement?.displayFormName()
                         .orEmpty(),
-                    valueType = it.dataElement()?.valueType() ?: ValueType.TEXT,
+                    valueType = it.valueType() ?: ValueType.TEXT,
                     optionSet = options,
-                    mandatory = it.compulsory() == true,
+                    //mandatory = it. compulsory() == true,
                     isAttendanceType = attendance?.status == dataElementId
                 )
             }

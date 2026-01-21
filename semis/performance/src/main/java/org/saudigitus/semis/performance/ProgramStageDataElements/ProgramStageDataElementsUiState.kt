@@ -1,15 +1,14 @@
-package org.saudigitus.semis.performance.programstage
+package org.saudigitus.semis.performance.ProgramStageDataElements
 
-import androidx.compose.runtime.Immutable
+import org.hisp.dhis.android.core.dataelement.DataElement
+import org.hisp.dhis.android.core.program.ProgramStageDataElement
 import org.saudigitus.semis.core.designsystem.components.model.ToolbarHeaders
 import org.saudigitus.semis.core.designsystem.filters.FilterComponentState
 import org.saudigitus.semis.performance.models.ProgramStageModel
 
-@Immutable
-data class ProgramStageUiState (
+data class ProgramStageDataElementsUiState (
     val isLoading: Boolean = false,
     val toolbarHeaders: ToolbarHeaders = ToolbarHeaders(title = ""),
-    val program: String = "",
     val filterState: FilterComponentState = FilterComponentState(enableCounter = false),
-    val programStages: List<ProgramStageModel> = emptyList(),
+    val programStageDataElements: List<DataElement> = emptyList(),
 )

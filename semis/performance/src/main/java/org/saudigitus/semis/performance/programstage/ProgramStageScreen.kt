@@ -29,6 +29,7 @@ import org.saudigitus.semis.core.designsystem.utils.ModuleIcons
 import org.saudigitus.semis.core.utils.Constants.PERFORMANCE
 import org.saudigitus.semis.core.utils.Constants.TERMS
 import org.saudigitus.semis.performance.R
+import org.saudigitus.semis.performance.route.Destinations.PROGRAM_STAGE_DATA_ELEMENTS
 
 
 @Composable
@@ -43,7 +44,8 @@ fun ProgramStageScreen(
         toolbarActionState = ToolbarActionState(filterVisibility = false)
     ) {
         FilterDetails(
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
                 .padding(5.dp)
                 .dropShadow(RoundedCornerShape(Radius.S))
                 .background(
@@ -73,13 +75,16 @@ fun ProgramStageScreen(
                         enabled = state.filterState.filterDetailsState.count != 0,
                         icon = painterResource(ModuleIcons.getModuleIconByName(TERMS)),
                         onClick = {
+                            navTo.invoke( "${PROGRAM_STAGE_DATA_ELEMENTS}/${it.uid}" )
 
                         }
                     )
                 }
             }
         } else {
-            ConfigNotFound(Modifier.fillMaxWidth().padding(horizontal = 16.dp), message = stringResource(
+            ConfigNotFound(Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp), message = stringResource(
                 R.string.performance_config_error))
         }
     }
