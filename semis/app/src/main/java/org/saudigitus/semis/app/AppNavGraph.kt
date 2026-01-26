@@ -89,7 +89,9 @@ fun AppNavGraph(
             val homeState by viewModel.uiState.collectAsStateWithLifecycle()
 
             PerformanceNavGraph(
+                activity,
                 homeState.program,
+                homeState.filterState.orgUnit?.uid.orEmpty(),
                 homeState.tei,
                 teiCardMapper,
                 homeState.filterState,

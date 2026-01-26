@@ -3,6 +3,7 @@ package org.saudigitus.semis.performance.route
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.fragment.app.FragmentActivity
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
@@ -14,6 +15,9 @@ import androidx.navigation.navArgument
 import org.saudigitus.semis.core.data.model.SearchTeiModel
 import org.saudigitus.semis.core.designsystem.filters.FilterComponentState
 import org.saudigitus.semis.core.designsystem.utils.mapper.TEICardMapper
+import org.saudigitus.semis.core.form.ui.FormViewModel
+import org.saudigitus.semis.performance.performanceevent.PerformanceEventCaptureScreen
+import org.saudigitus.semis.performance.performanceevent.PerformanceViewModel
 import org.saudigitus.semis.performance.programstage.ProgramStageScreen
 import org.saudigitus.semis.performance.programstage.ProgramStageViewModel
 import org.saudigitus.semis.performance.programstagedataelement.ProgramStageDataElementsScreen
@@ -24,7 +28,9 @@ import org.saudigitus.semis.performance.route.Destinations.PROGRAM_STAGE_DATA_EL
 
 @Composable
 fun PerformanceNavGraph(
+    activity: FragmentActivity,
     program: String,
+    orgUnit: String,
     teiList: List<SearchTeiModel> = emptyList(),
     teiCardMapper: TEICardMapper,
     filterState: FilterComponentState? = null,
@@ -71,7 +77,7 @@ fun PerformanceNavGraph(
             )
         }
         composable(
-            route = EVENT_CAPTURE,
+            route = "${EVENT_CAPTURE}/{programStage}/{dataElement}",
             arguments = listOf(
                 navArgument("programStage") { type = NavType.StringType },
                 navArgument("dataElement") { type = NavType.StringType },
@@ -80,7 +86,29 @@ fun PerformanceNavGraph(
             val programStage = entry.arguments?.getString("programStage").orEmpty()
             val dataElement = entry.arguments?.getString("dataElement").orEmpty()
 
+            val viewModel = hiltViewModel<PerformanceViewModel>()
+            val formViewModel = hiltViewModel<FormViewModel>()
 
+            LaunchedEffect(Unit) {
+                viewModel.initialize(
+                    program = program,
+                    orgUnit = orgUnit,
+                    programStage = programStage,
+                    dataElement = dataElement,
+                    tei = teiList,
+                    filterState = filterState!!,
+                    initFormFieldData = formViewModel::collectIndividualFormEvent
+                )
+            }
+
+            PerformanceEventCaptureScreen(
+                activity = activity,
+                viewModel = viewModel,
+                formViewModel = formViewModel,
+                teiCardMapper = teiCardMapper,
+                navController = navController,
+                syncData = syncData!!,
+            )
         }
     }
 }

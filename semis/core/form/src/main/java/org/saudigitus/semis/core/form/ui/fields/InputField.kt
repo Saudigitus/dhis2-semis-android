@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.sp
 import org.dhis2.composetable.model.extensions.keyboardCapitalization
 import org.dhis2.composetable.model.extensions.toKeyboardType
 import org.saudigitus.semis.core.designsystem.utils.IntentAction
+import org.saudigitus.semis.core.form.data.model.FormFieldData
 import org.saudigitus.semis.core.form.data.model.FormFieldState
 import org.saudigitus.semis.core.form.utils.toKeyBoardInputType
 
@@ -36,6 +37,8 @@ import org.saudigitus.semis.core.form.utils.toKeyBoardInputType
 fun InputField(
     modifier: Modifier = Modifier,
     field: FormFieldState,
+    formFieldData: FormFieldData? = null,
+    enable: Boolean? = null,
     onValueChange: (String) -> Unit,
     colors: TextFieldColors = TextFieldDefaults.colors(
         focusedIndicatorColor = Color.Transparent,
@@ -51,8 +54,8 @@ fun InputField(
 
     TextField(
         modifier = modifier,
-        enabled = field.enabled,
-        value = field.value.orEmpty(),
+        enabled = enable ?: field.enabled,
+        value = field.value ?: formFieldData?.value.orEmpty(),
         onValueChange = onValueChange,
         label = { Text(text = field.label + if (field.mandatory) " *" else "") },
         placeholder = { Text(text = field.label) },
@@ -84,12 +87,16 @@ fun InputField(
         singleLine = field.valueType.toKeyBoardInputType()?.multiline == true,
         maxLines = if (field.valueType.toKeyBoardInputType()?.multiline == false) 1 else Int.MAX_VALUE,
         keyboardOptions = KeyboardOptions(
-            keyboardType = field.valueType.toKeyBoardInputType()?.toKeyboardType() ?: KeyboardType.Text,
-            capitalization = field.valueType.toKeyBoardInputType()?.keyboardCapitalization() ?: KeyboardCapitalization.None,
+            keyboardType = field.valueType.toKeyBoardInputType()?.toKeyboardType()
+                ?: KeyboardType.Text,
+            capitalization = field.valueType.toKeyBoardInputType()?.keyboardCapitalization()
+                ?: KeyboardCapitalization.None,
             imeAction = ImeAction.Done,
         ),
         colors = colors,
-        visualTransformation = if (field.valueType.toKeyBoardInputType()?.toKeyboardType() == KeyboardType.Password) {
+        visualTransformation = if (field.valueType.toKeyBoardInputType()
+                ?.toKeyboardType() == KeyboardType.Password
+        ) {
             PasswordVisualTransformation()
         } else {
             VisualTransformation.None

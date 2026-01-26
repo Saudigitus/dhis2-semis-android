@@ -7,5 +7,6 @@ data class FormBuilderState(
     val orgUnit: String = "",
     val program: String = "",
     val programStage: String = "",
+    val dataElement: String = "",
     val date: String = "",
 )

@@ -53,7 +53,10 @@ fun FormContent(
                         FormFieldItem(
                             key = key,
                             field = field,
-                            enabled = state.attendanceButtonState.isEditing,
+                            fieldsData = state.fieldsData,
+                            enabled = if (type == FormType.ATTENDANCE) {
+                                state.attendanceButtonState.isEditing
+                            } else state.isEnabled,
                             attendanceButtonState = state.attendanceButtonState,
                             onAttendanceChange = { onEvent(FormEvent.UpdateAttendance(tei, it)) },
                             onValueChange = { value ->

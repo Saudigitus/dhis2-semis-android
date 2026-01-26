@@ -31,7 +31,7 @@ import org.saudigitus.semis.core.designsystem.utils.UiDefaults
 fun SummaryDetails(
     modifier: Modifier = Modifier,
     state: SummaryState,
-    onBulk: () -> Unit,
+    onBulk: (() -> Unit)? = null,
 ) {
     Column(
         modifier = modifier,
@@ -64,22 +64,24 @@ fun SummaryDetails(
                 }
             }
 
-            IconButton(
-                onClick = onBulk,
-                enabled = state.enableBulk,
-                modifier = Modifier
-                    .border(
-                        width = (0.15).dp,
-                        color = Color.LightGray,
-                        shape = RoundedCornerShape(100.dp)
+            if (onBulk != null) {
+                IconButton(
+                    onClick = onBulk,
+                    enabled = state.enableBulk,
+                    modifier = Modifier
+                        .border(
+                            width = (0.15).dp,
+                            color = Color.LightGray,
+                            shape = RoundedCornerShape(100.dp)
+                        )
+                        .size(45.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Rocket,
+                        contentDescription = null,
+                        tint = colorPrimary
                     )
-                    .size(45.dp),
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Rocket,
-                    contentDescription = null,
-                    tint = colorPrimary
-                )
+                }
             }
         }
     }

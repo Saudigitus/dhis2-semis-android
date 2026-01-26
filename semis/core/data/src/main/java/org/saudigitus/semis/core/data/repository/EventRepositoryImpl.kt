@@ -15,7 +15,7 @@ import javax.inject.Inject
 
 class EventRepositoryImpl @Inject constructor(
     val d2: D2
-): EventRepository {
+) : EventRepository {
 
     private fun getAttributeOptionCombo() =
         d2.categoryModule().categoryOptionCombos()
@@ -116,6 +116,22 @@ class EventRepositoryImpl @Inject constructor(
             .byProgramStageUid().eq(programStage)
             .byDeleted().isFalse
             .byEventDate().eq(date)
+            .withTrackedEntityDataValues()
+            .blockingGet()
+    }
+
+    override suspend fun getEvents(
+        ou: String,
+        program: String,
+        programStage: String,
+        dataElement: String,
+        teis: List<String>
+    ) = withContext(Dispatchers.IO) {
+        d2.eventModule().events()
+            .byTrackedEntityInstanceUids(teis)
+            .byOrganisationUnitUid().eq(ou)
+            .byProgramUid().eq(program)
+            .byProgramStageUid().eq(programStage)
             .withTrackedEntityDataValues()
             .blockingGet()
     }

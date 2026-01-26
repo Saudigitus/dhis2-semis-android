@@ -45,4 +45,12 @@ interface EventRepository {
         programStage: String,
         eventDate: String?
     ): List<Event>
+
+    suspend fun getEvents(
+        ou: String,
+        program: String,
+        programStage: String,
+        dataElement: String,
+        teis: List<String>,
+    ): List<Event>
 }
