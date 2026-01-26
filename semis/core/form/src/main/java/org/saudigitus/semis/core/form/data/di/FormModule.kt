@@ -40,7 +40,6 @@ object FormModule {
     @Provides
     @Singleton
     fun provideFormRepository(
-        d2: D2,
         appConfigRepository: AppConfigRepository,
         programStageRepository: ProgramStageRepository,
         optionRepository: OptionRepository,
@@ -49,7 +48,6 @@ object FormModule {
         transformations: AttendanceTransformation,
         attendanceOptionRepository: AttendanceOptionRepository
     ): FormRepository = FormRepositoryImpl(
-        d2,
         appConfigRepository,
         programStageRepository,
         optionRepository,

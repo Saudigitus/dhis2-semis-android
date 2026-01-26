@@ -1,6 +1,10 @@
 package org.saudigitus.semis.performance.route
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -10,6 +14,10 @@ import androidx.navigation.navArgument
 import org.saudigitus.semis.core.data.model.SearchTeiModel
 import org.saudigitus.semis.core.designsystem.filters.FilterComponentState
 import org.saudigitus.semis.core.designsystem.utils.mapper.TEICardMapper
+import org.saudigitus.semis.performance.programstage.ProgramStageScreen
+import org.saudigitus.semis.performance.programstage.ProgramStageViewModel
+import org.saudigitus.semis.performance.programstagedataelement.ProgramStageDataElementsScreen
+import org.saudigitus.semis.performance.programstagedataelement.ProgramStageDataElementsViewModel
 import org.saudigitus.semis.performance.route.Destinations.EVENT_CAPTURE
 import org.saudigitus.semis.performance.route.Destinations.PROGRAM_STAGE
 import org.saudigitus.semis.performance.route.Destinations.PROGRAM_STAGE_DATA_ELEMENTS
@@ -27,16 +35,40 @@ fun PerformanceNavGraph(
 
     NavHost(navController, startDestination = PROGRAM_STAGE) {
         composable(PROGRAM_STAGE) {
+            val viewModel = hiltViewModel<ProgramStageViewModel>()
+            val state by viewModel.uiState.collectAsStateWithLifecycle()
 
+            LaunchedEffect(Unit) {
+                viewModel.initialize(program, filterState!!)
+            }
+            ProgramStageScreen(
+                state = state,
+                navTo = navController::navigate,
+                navBack = {
+                    parentNavController?.navigateUp()
+                }
+            )
         }
         composable(
-            route = PROGRAM_STAGE_DATA_ELEMENTS,
+            route = "${PROGRAM_STAGE_DATA_ELEMENTS}/{programStage}",
             arguments = listOf(
                 navArgument("programStage") { type = NavType.StringType }
             )
         ) { entry ->
-            val programStage = entry.arguments?.getString("programStage").orEmpty()
+            val programStageId = entry.arguments?.getString("programStage").orEmpty()
 
+            val viewModel = hiltViewModel<ProgramStageDataElementsViewModel>()
+            val state by viewModel.uiState.collectAsStateWithLifecycle()
+
+            LaunchedEffect(programStageId) {
+                viewModel.initialize(programStageId, filterState!!)
+            }
+
+            ProgramStageDataElementsScreen(
+                state = state,
+                navTo = navController::navigate,
+                navBack = { navController.navigateUp() }
+            )
         }
         composable(
             route = EVENT_CAPTURE,
