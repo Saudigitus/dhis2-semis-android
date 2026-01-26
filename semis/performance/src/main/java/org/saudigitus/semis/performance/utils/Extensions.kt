@@ -1,7 +1,7 @@
 package org.saudigitus.semis.performance.utils
 
 import org.hisp.dhis.android.core.program.ProgramStage
-import org.saudigitus.semis.performance.models.ProgramStageModel
+import org.saudigitus.semis.performance.data.models.ProgramStageModel
 
 fun List<ProgramStage>.toProgramStageModel(): List<ProgramStageModel> {
     return this.map {

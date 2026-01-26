@@ -26,7 +26,6 @@ import org.saudigitus.semis.core.designsystem.components.ToolbarActionState
 import org.saudigitus.semis.core.designsystem.components.cards.ActionCard
 import org.saudigitus.semis.core.designsystem.templates.TopAppBarScaffold
 import org.saudigitus.semis.core.designsystem.utils.ModuleIcons
-import org.saudigitus.semis.core.utils.Constants.PERFORMANCE
 import org.saudigitus.semis.core.utils.Constants.TERMS
 import org.saudigitus.semis.performance.R
 import org.saudigitus.semis.performance.route.Destinations.PROGRAM_STAGE_DATA_ELEMENTS
@@ -37,7 +36,7 @@ fun ProgramStageScreen(
     state: ProgramStageUiState,
     navTo: (route: String) -> Unit = {},
     navBack: () -> Unit = {},
-){
+) {
     TopAppBarScaffold(
         toolbarHeaders = state.toolbarHeaders,
         navigationAction = navBack,
@@ -54,7 +53,7 @@ fun ProgramStageScreen(
                 ),
             state = state.filterState.filterDetailsState,
 
-        )
+            )
 
         if (state.programStages.isNotEmpty()) {
             LazyVerticalGrid(
@@ -75,17 +74,20 @@ fun ProgramStageScreen(
                         enabled = state.filterState.filterDetailsState.count != 0,
                         icon = painterResource(ModuleIcons.getModuleIconByName(TERMS)),
                         onClick = {
-                            navTo.invoke( "${PROGRAM_STAGE_DATA_ELEMENTS}/${it.uid}" )
+                            navTo.invoke("${PROGRAM_STAGE_DATA_ELEMENTS}/${it.uid}")
 
                         }
                     )
                 }
             }
         } else {
-            ConfigNotFound(Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp), message = stringResource(
-                R.string.performance_config_error))
+            ConfigNotFound(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp), message = stringResource(
+                    R.string.performance_config_error
+                )
+            )
         }
     }
 }

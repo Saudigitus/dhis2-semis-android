@@ -1,4 +1,4 @@
-package org.saudigitus.semis.performance.models
+package org.saudigitus.semis.performance.data.models
 
 data class ProgramStageModel (
     val displayName: String?,

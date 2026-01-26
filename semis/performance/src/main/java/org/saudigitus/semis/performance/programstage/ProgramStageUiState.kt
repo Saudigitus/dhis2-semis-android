@@ -3,7 +3,7 @@ package org.saudigitus.semis.performance.programstage
 import androidx.compose.runtime.Immutable
 import org.saudigitus.semis.core.designsystem.components.model.ToolbarHeaders
 import org.saudigitus.semis.core.designsystem.filters.FilterComponentState
-import org.saudigitus.semis.performance.models.ProgramStageModel
+import org.saudigitus.semis.performance.data.models.ProgramStageModel
 
 @Immutable
 data class ProgramStageUiState (

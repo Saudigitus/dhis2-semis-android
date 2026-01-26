@@ -1,4 +1,4 @@
-package org.saudigitus.semis.performance.ProgramStageDataElements
+package org.saudigitus.semis.performance.programstagedataelement
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -10,22 +10,17 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.dhis2.commons.resources.ResourceManager
-import org.saudigitus.semis.core.data.repository.AppConfigRepository
 import org.saudigitus.semis.core.data.repository.ProgramStageRepository
 import org.saudigitus.semis.core.designsystem.R
 import org.saudigitus.semis.core.designsystem.components.model.ToolbarHeaders
 import org.saudigitus.semis.core.designsystem.filters.FilterComponentState
-import org.saudigitus.semis.performance.programstage.ProgramStageUiState
-import org.saudigitus.semis.performance.utils.toProgramStageModel
-import timber.log.Timber
 import javax.inject.Inject
 
 
 @HiltViewModel
 class ProgramStageDataElementsViewModel @Inject constructor(
     private val programStageRepository: ProgramStageRepository,
-    private val appConfigRepository: AppConfigRepository,
-    private val resourceManager: ResourceManager,
+    resourceManager: ResourceManager,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(
         ProgramStageDataElementsUiState(
@@ -38,7 +33,7 @@ class ProgramStageDataElementsViewModel @Inject constructor(
         initialValue = _uiState.value
     )
 
-    fun initialize(programStageId: String, filterState: FilterComponentState,) {
+    fun initialize(programStageId: String, filterState: FilterComponentState) {
         _uiState.update {
             it.copy(
                 filterState = filterState
@@ -49,9 +44,9 @@ class ProgramStageDataElementsViewModel @Inject constructor(
 
     private fun loadProgramStagesDataElements(programStage: String) {
         viewModelScope.launch {
-            val programStageDataElements = programStageRepository.getProgramStageDataElements(programStage);
+            val programStageDataElements =
+                programStageRepository.getProgramStageDataElements(programStage)
 
-            programStageDataElements.map { "DATA_ELEMENR"+ it.displayName() }
             _uiState.update {
                 it.copy(
                     programStageDataElements = programStageDataElements

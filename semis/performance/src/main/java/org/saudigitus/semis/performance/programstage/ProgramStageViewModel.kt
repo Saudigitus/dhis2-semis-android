@@ -6,7 +6,6 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -23,7 +22,7 @@ import javax.inject.Inject
 class ProgramStageViewModel @Inject constructor(
     private val programStageRepository: ProgramStageRepository,
     private val appConfigRepository: AppConfigRepository,
-    private val resourceManager: ResourceManager,
+    resourceManager: ResourceManager,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(
         ProgramStageUiState(
@@ -39,7 +38,7 @@ class ProgramStageViewModel @Inject constructor(
     fun initialize(
         program: String,
         filterState: FilterComponentState,
-        ) {
+    ) {
         _uiState.update {
             it.copy(
                 program = program,
@@ -52,9 +51,12 @@ class ProgramStageViewModel @Inject constructor(
     private fun loadProgramStages(program: String) {
         viewModelScope.launch {
             val ps =
-                appConfigRepository.getAppConfig(program)?.performance?.programStages?.filterNotNull()
+                appConfigRepository.getAppConfig(program)?.performance?.programStages
+                    ?.filterNotNull()
                     ?: emptyList()
-            val programStages = programStageRepository.getProgramStagesByIds(ps).toProgramStageModel()
+            val programStages =
+                programStageRepository.getProgramStagesByIds(ps)
+                    .toProgramStageModel()
             _uiState.update {
                 it.copy(
                     programStages = programStages

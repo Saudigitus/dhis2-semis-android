@@ -3,8 +3,7 @@ package org.saudigitus.semis.core.data.repository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.hisp.dhis.android.core.D2
-import org.hisp.dhis.android.core.dataelement.DataElement
-import org.hisp.dhis.android.core.program.ProgramStage
+import org.saudigitus.semis.core.data.model.ProgramStageDataElementModel
 import org.saudigitus.semis.core.data.model.app_config.ProgramStages
 import javax.inject.Inject
 
@@ -20,12 +19,38 @@ class ProgramStageRepositoryImpl @Inject constructor(
 
         if (dl != null) {
             repository.byDataElement().eq(dl)
-                .blockingGet().mapNotNull {
-                    d2.dataElementModule().dataElements().uid(it.dataElement()?.uid()).blockingGet()
+                .blockingGet().map {
+                    val dataElement =
+                        d2.dataElementModule().dataElements().uid(it.dataElement()?.uid())
+                            .blockingGet()
+
+                    ProgramStageDataElementModel(
+                        programStageUid = it.programStage()?.uid(),
+                        code = it.code(),
+                        displayName = it.displayName(),
+                        dataElement = dataElement,
+                        compulsory = it.compulsory(),
+                        renderType = it.renderType(),
+                        allowFutureDate = it.allowFutureDate(),
+                        sortOrder = it.sortOrder()
+                    )
                 }
         } else {
-            repository.blockingGet().mapNotNull {
-                d2.dataElementModule().dataElements().uid(it.dataElement()?.uid()).blockingGet()
+            repository.blockingGet().map {
+                val dataElement =
+                    d2.dataElementModule().dataElements().uid(it.dataElement()?.uid())
+                        .blockingGet()
+
+                ProgramStageDataElementModel(
+                    programStageUid = it.programStage()?.uid(),
+                    code = it.code(),
+                    displayName = it.displayName(),
+                    dataElement = dataElement,
+                    compulsory = it.compulsory(),
+                    renderType = it.renderType(),
+                    allowFutureDate = it.allowFutureDate(),
+                    sortOrder = it.sortOrder()
+                )
             }
         }
     }

@@ -14,10 +14,10 @@ import androidx.navigation.navArgument
 import org.saudigitus.semis.core.data.model.SearchTeiModel
 import org.saudigitus.semis.core.designsystem.filters.FilterComponentState
 import org.saudigitus.semis.core.designsystem.utils.mapper.TEICardMapper
-import org.saudigitus.semis.performance.ProgramStageDataElements.ProgramStageDataElementsScreen
-import org.saudigitus.semis.performance.ProgramStageDataElements.ProgramStageDataElementsViewModel
 import org.saudigitus.semis.performance.programstage.ProgramStageScreen
 import org.saudigitus.semis.performance.programstage.ProgramStageViewModel
+import org.saudigitus.semis.performance.programstagedataelement.ProgramStageDataElementsScreen
+import org.saudigitus.semis.performance.programstagedataelement.ProgramStageDataElementsViewModel
 import org.saudigitus.semis.performance.route.Destinations.EVENT_CAPTURE
 import org.saudigitus.semis.performance.route.Destinations.PROGRAM_STAGE
 import org.saudigitus.semis.performance.route.Destinations.PROGRAM_STAGE_DATA_ELEMENTS
