@@ -1,4 +1,4 @@
-package org.saudigitus.semis.attendance.ui.model
+package org.saudigitus.semis.core.utils
 
 enum class ButtonStep {
     NONE,

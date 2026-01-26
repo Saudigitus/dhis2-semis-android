@@ -14,7 +14,9 @@ import org.dhis2.commons.resources.ResourceManager
 import org.saudigitus.semis.core.data.model.SearchTeiModel
 import org.saudigitus.semis.core.designsystem.R
 import org.saudigitus.semis.core.designsystem.attendance.model.AttendanceButtonModel
+import org.saudigitus.semis.core.designsystem.components.bottomsheet.model.BottomSheetModel
 import org.saudigitus.semis.core.designsystem.components.model.ToolbarHeaders
+import org.saudigitus.semis.core.form.data.model.FormFieldData
 import org.saudigitus.semis.core.form.data.model.FormFieldState
 import org.saudigitus.semis.core.form.data.model.FormType
 import org.saudigitus.semis.core.form.data.repository.FormRepository
@@ -66,13 +68,15 @@ class FormViewModel @Inject constructor(
 
     fun initialize(formBuilderState: FormBuilderState) {
         viewModelScope.launch {
+            val dl = formBuilderState.dataElement.ifEmpty { null }
+
             _uiState.update {
                 it.copy(
                     formBuilderState = formBuilderState,
                     attendanceButtonState = attendanceState.value
                 )
             }
-            loadForm(formBuilderState.program, formBuilderState.programStage)
+            loadForm(formBuilderState.program, formBuilderState.programStage, dl)
         }
     }
 
@@ -96,13 +100,54 @@ class FormViewModel @Inject constructor(
         }
     }
 
+    fun collectIndividualFormEvent(formFieldData: List<FormFieldData>) {
+        _uiState.update {
+            it.copy(fieldsData = formFieldData)
+        }
+    }
+
+    fun collectIndividualSummary(getSummaries: (List<BottomSheetModel>) -> Unit) {
+        viewModelScope.launch {
+            uiState.collectLatest {
+                val summary = formRepository.individualFormSummary(it.fieldsData)
+                getSummaries(summary)
+            }
+        }
+    }
+
+    private fun collectIndividual(tei: String, dataElement: String, value: String) {
+        val currentFormData = uiState.value.fieldsData.toMutableList()
+        val index = currentFormData.indexOfFirst { it.tei == tei && it.dataElement == dataElement }
+
+        if (index != -1) {
+            val removedFormField = currentFormData.removeAt(index)
+            val updatedField = removedFormField.copy(value = value, isUpdated = true)
+            currentFormData.add(index, updatedField)
+
+            _uiState.update {
+                it.copy(hasCachedData = true, fieldsData = currentFormData)
+            }
+        }
+    }
+
+    fun enableForm(enable: Boolean = true) {
+        _uiState.update { it.copy(isEnabled = enable) }
+    }
+
+    fun resetCacheStatus() {
+        _uiState.update { it.copy(hasCachedData = false) }
+    }
+
     fun handleUiEvent(uiEvent: FormEvent) {
         viewModelScope.launch {
             when (uiEvent) {
                 is FormEvent.LoadForm -> {
+                    val dl = uiState.value.formBuilderState.dataElement.ifEmpty { null }
+
                     loadForm(
                         uiState.value.formBuilderState.program,
-                        uiState.value.formBuilderState.programStage
+                        uiState.value.formBuilderState.programStage,
+                        dl,
                     )
                 }
 
@@ -111,15 +156,26 @@ class FormViewModel @Inject constructor(
                 }
 
                 is FormEvent.UpdateField -> {
-                    if (uiEvent.formType == FormType.ATTENDANCE) {
-                        formRepository.updateAttendanceReason(
-                            uiEvent.tei,
-                            uiEvent.dataElementUid,
-                            uiEvent.value
-                        )
-                    }
+                    when (uiEvent.formType) {
+                        FormType.ATTENDANCE -> {
+                            formRepository.updateAttendanceReason(
+                                uiEvent.tei,
+                                uiEvent.dataElementUid,
+                                uiEvent.value
+                            )
+                        }
 
-                    updateField(uiEvent.dataElementUid, uiEvent.value)
+                        FormType.INDIVIDUAL -> {
+                            collectIndividual(uiEvent.tei, uiEvent.dataElementUid, uiEvent.value)
+                        }
+
+                        else -> {
+                            updateField(
+                                uiEvent.dataElementUid,
+                                uiEvent.value
+                            )
+                        }
+                    }
                 }
 
                 else -> {}
@@ -127,11 +183,11 @@ class FormViewModel @Inject constructor(
         }
     }
 
-    private suspend fun loadForm(program: String, programStage: String) {
+    private suspend fun loadForm(program: String, programStage: String, dl: String? = null) {
         _uiState.update {
             it.copy(isLoading = true)
         }
-        val fields = formRepository.getFormFields(program, programStage)
+        val fields = formRepository.getFormFields(program, programStage, dl)
         val updatedFields = formRepository.applyProgramRules(
             uiState.value.formBuilderState.orgUnit,
             uiState.value.formBuilderState.program,

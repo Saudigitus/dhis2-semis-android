@@ -1,5 +1,8 @@
 package org.saudigitus.semis.core.form.data.repository.impl
 
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Block
+import androidx.compose.material.icons.filled.Circle
 import androidx.compose.ui.graphics.Color
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,10 +27,13 @@ import org.saudigitus.semis.core.designsystem.attendance.model.AttendanceButtonM
 import org.saudigitus.semis.core.designsystem.attendance.model.AttendanceEvent
 import org.saudigitus.semis.core.designsystem.attendance.model.AttendanceEventWithDecorator
 import org.saudigitus.semis.core.designsystem.components.bottomsheet.model.BottomSheetModel
+import org.saudigitus.semis.core.designsystem.theme.light_error
+import org.saudigitus.semis.core.designsystem.theme.light_success
 import org.saudigitus.semis.core.designsystem.theme.white
 import org.saudigitus.semis.core.designsystem.utils.UiDefaults
 import org.saudigitus.semis.core.designsystem.utils.UiDefaults.getAttendanceStatusColor
 import org.saudigitus.semis.core.form.data.AttendanceTransformation
+import org.saudigitus.semis.core.form.data.model.FormFieldData
 import org.saudigitus.semis.core.form.data.model.FormFieldState
 import org.saudigitus.semis.core.form.data.repository.AttendanceOptionRepository
 import org.saudigitus.semis.core.form.data.repository.FormRepository
@@ -213,17 +219,15 @@ class FormRepositoryImpl @Inject constructor(
                 val options = getOptionModels(program, it.dataElement()?.uid().orEmpty())
                 val dataElementId = it.dataElement()?.uid().orEmpty()
 
-                val dataElement = if (dl == null) {
-                    d2.dataElementModule().dataElements()
-                        .uid(dataElementId)
-                        .blockingGet()
-                } else null
+                val dataElement = d2.dataElementModule().dataElements()
+                    .uid(dataElementId)
+                    .blockingGet()
 
                 FormFieldState(
                     dataElementUid = dataElementId,
                     label = it.dataElement()?.displayFormName() ?: dataElement?.displayFormName()
                         .orEmpty(),
-                    valueType = it.dataElement()?.valueType() ?: ValueType.TEXT,
+                    valueType = it.dataElement()?.valueType() ?: dataElement?.valueType() ?: ValueType.TEXT,
                     optionSet = options,
                     mandatory = it.compulsory() == true,
                     isAttendanceType = attendance?.status == dataElementId
@@ -281,6 +285,27 @@ class FormRepositoryImpl @Inject constructor(
         }
 
         return@withContext currentFields
+    }
+
+    override fun individualFormSummary(
+        formFieldsData: List<FormFieldData>,
+    ): List<BottomSheetModel> {
+        val countUpdatedFields = formFieldsData.count { it.isUpdated }
+        val countNotUpdatedFields = formFieldsData.count { !it.isUpdated }
+
+        return listOf(
+            BottomSheetModel(
+                icon = Icons.Filled.Circle,
+                value = "$countUpdatedFields",
+                color = light_success
+            ),
+            BottomSheetModel(
+                icon = Icons.Default.Block,
+                value = "$countNotUpdatedFields",
+                color = light_error
+            )
+        )
+
     }
 
     override suspend fun attendanceSummary(

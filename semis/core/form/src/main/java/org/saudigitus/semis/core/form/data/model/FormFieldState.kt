@@ -16,4 +16,8 @@ data class FormFieldState(
     val isAttendanceType: Boolean = false,
     val hasError: Boolean = false,
     val errorMessage: String? = null
-)
+) {
+    override fun toString(): String {
+        return "FormFieldState(eventUid=$eventUid, dataElementUid='$dataElementUid', label='$label', valueType=$valueType, value=$value, optionSet=$optionSet, mandatory=$mandatory, rendered=$rendered, enabled=$enabled, isAttendanceType=$isAttendanceType, hasError=$hasError, errorMessage=$errorMessage)"
+    }
+}

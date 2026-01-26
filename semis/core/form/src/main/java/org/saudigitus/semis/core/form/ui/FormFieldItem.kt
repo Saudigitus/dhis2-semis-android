@@ -15,6 +15,7 @@ import org.hisp.dhis.mobile.ui.designsystem.component.InputShellState
 import org.saudigitus.semis.core.designsystem.attendance.AttendanceButton
 import org.saudigitus.semis.core.designsystem.attendance.AttendanceButtonState
 import org.saudigitus.semis.core.designsystem.attendance.model.AttendanceButtonModel
+import org.saudigitus.semis.core.form.data.model.FormFieldData
 import org.saudigitus.semis.core.form.data.model.FormFieldState
 import org.saudigitus.semis.core.form.ui.fields.InputField
 import org.saudigitus.semis.core.form.ui.fields.NumericField
@@ -28,6 +29,7 @@ fun FormFieldItem(
     key: String,
     field: FormFieldState,
     enabled: Boolean? = null,
+    fieldsData: List<FormFieldData> = emptyList(),
     attendanceButtonState: AttendanceButtonState = AttendanceButtonState(),
     colors: TextFieldColors = TextFieldDefaults.colors(
         focusedIndicatorColor = InputShellState.FOCUSED.color,
@@ -37,13 +39,15 @@ fun FormFieldItem(
     onAttendanceChange: (AttendanceButtonModel) -> Unit = {},
     onValueChange: (String) -> Unit
 ) {
+    val fieldData = fieldsData.find { it.tei == key }
+
     Column(
         modifier = Modifier.padding(horizontal = 16.dp, vertical = 5.dp),
         verticalArrangement = Arrangement.spacedBy(5.dp, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         when {
-            field.optionSet != null -> {
+            !field.optionSet.isNullOrEmpty() -> {
                 if (field.isAttendanceType) {
                     AttendanceButton(
                         key = key,
@@ -54,6 +58,7 @@ fun FormFieldItem(
                 } else {
                     OptionSetField(
                         field,
+                        formFieldData = fieldData,
                         enabled = enabled,
                         colors =
                             TextFieldDefaults.colors(
@@ -65,6 +70,7 @@ fun FormFieldItem(
                     )
                 }
             }
+
             field.valueType == ValueType.BOOLEAN -> YesNoField(
                 field = field,
                 onValueChange = onValueChange
@@ -73,10 +79,19 @@ fun FormFieldItem(
             field.valueType == ValueType.TRUE_ONLY -> TrueOnlyField(field, onValueChange)
             FactoryData.NUMERIC_TYPES.contains(field.valueType) -> NumericField(
                 field,
+                formFieldData = fieldData,
+                enabled = enabled,
                 colors,
                 onValueChange
             )
-            else -> InputField(field = field, colors = colors, onValueChange = onValueChange)
+
+            else -> InputField(
+                field = field,
+                formFieldData = fieldData,
+                enable = enabled,
+                colors = colors,
+                onValueChange = onValueChange
+            )
         }
     }
 }

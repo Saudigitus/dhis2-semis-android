@@ -77,6 +77,7 @@ kotlin {
 dependencies {
     implementation(project(":commons"))
     implementation(project(":semis:core:data"))
+    implementation(project(":semis:core:form"))
     implementation(project(":semis:core:designsystem"))
     implementation(project(":semis:core:utils"))
 
