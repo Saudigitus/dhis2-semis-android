@@ -36,6 +36,8 @@
     <string name="form">Form</string>
     <string name="save_alert">Are you sure? If you continue, your changes will be saved and stored permanently.</string>
     <string name="override_attendance">If you continue, the existing attendance data will be replaced.</string>
+    <string name="program_stages">Program Stages</string>
+    <string name="program_stage">Program Stage</string>
     <string name="performance">Performance</string>
     <string name="performance_not_saved">You have unsaved performance changes. If you go back now, your data will be discarded.</string>
     <string name="performance_saved">Performance saved successfully</string>

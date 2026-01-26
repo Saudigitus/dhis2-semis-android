@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="performance_config_error">Performance configuration not found.</string>
+</resources>

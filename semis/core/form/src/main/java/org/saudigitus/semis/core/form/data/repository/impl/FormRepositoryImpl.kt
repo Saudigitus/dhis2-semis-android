@@ -11,7 +11,6 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.updateAndGet
 import kotlinx.coroutines.withContext
-import org.hisp.dhis.android.core.D2
 import org.hisp.dhis.android.core.common.ValueType
 import org.hisp.dhis.android.core.program.ProgramRuleActionType
 import org.saudigitus.semis.core.data.model.OptionModel
@@ -41,7 +40,6 @@ import org.saudigitus.semis.core.utils.DateHelper
 import javax.inject.Inject
 
 class FormRepositoryImpl @Inject constructor(
-    private val d2: D2,
     private val appConfigRepository: AppConfigRepository,
     private val repository: ProgramStageRepository,
     private val optionRepository: OptionRepository,
@@ -214,23 +212,18 @@ class FormRepositoryImpl @Inject constructor(
     ) = withContext(Dispatchers.IO) {
         val attendance = appConfigRepository.getAppConfig(program)?.attendance
 
-        repository.getProgramStageDataElements(program, stage, dl)
+        repository.getProgramStageDataElements(stage, dl)
             .map {
-                val options = getOptionModels(program, it.dataElement()?.uid().orEmpty())
-                val dataElementId = it.dataElement()?.uid().orEmpty()
-
-                val dataElement = d2.dataElementModule().dataElements()
-                    .uid(dataElementId)
-                    .blockingGet()
+                val options = getOptionModels(program, it.dataElement?.uid().orEmpty())
 
                 FormFieldState(
-                    dataElementUid = dataElementId,
-                    label = it.dataElement()?.displayFormName() ?: dataElement?.displayFormName()
+                    dataElementUid = it.dataElement?.uid().orEmpty(),
+                    label = it.dataElement?.displayFormName()
                         .orEmpty(),
-                    valueType = it.dataElement()?.valueType() ?: dataElement?.valueType() ?: ValueType.TEXT,
+                    valueType = it.dataElement?.valueType() ?: ValueType.TEXT,
                     optionSet = options,
-                    mandatory = it.compulsory() == true,
-                    isAttendanceType = attendance?.status == dataElementId
+                    mandatory = it.compulsory == true,
+                    isAttendanceType = attendance?.status == it.dataElement?.uid()
                 )
             }
 

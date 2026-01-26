@@ -11,7 +11,8 @@ data class FilterComponentState(
     val orgUnit: OrgUnit? = null,
     val filters: List<DropdownState> = emptyList(),
     val selectedFilters: Map<FilterType, DropdownItem> = emptyMap(),
-    val filterDetailsState: FilterDetailsState = FilterDetailsState()
+    val enableCounter: Boolean = true,
+    val filterDetailsState: FilterDetailsState = FilterDetailsState(enableCounter = enableCounter)
 ) {
 
     fun getAcademicYearSelection() = selectedFilters
