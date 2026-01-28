@@ -5,6 +5,8 @@ import timber.log.Timber
 import java.text.SimpleDateFormat
 import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.util.Date
 import java.util.Locale
 
@@ -55,5 +57,15 @@ object DateHelper {
     fun stringToLocalDate(date: String): LocalDate {
         return LocalDate.parse(date)
     }
+
+    fun convertDateToMilliseconds(dateString: String): Long {
+        val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+
+        val localDate = LocalDate.parse(dateString, formatter)
+
+        val zonedDateTime = localDate.atStartOfDay(ZoneId.systemDefault())
+        return zonedDateTime.toInstant().toEpochMilli()
+    }
+
 
 }

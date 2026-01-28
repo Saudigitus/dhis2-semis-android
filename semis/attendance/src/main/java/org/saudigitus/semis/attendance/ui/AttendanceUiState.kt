@@ -19,6 +19,7 @@ data class AttendanceUiState(
     val dateValidator: (Long) -> Boolean = { _ -> true },
     val program: String = "",
     val buttonStep: ButtonStep = ButtonStep.NONE,
+    val canTakeAttendance: Boolean = true,
     val teis: List<SearchTeiModel> = emptyList(),
     val formBuilderState: FormBuilderState = FormBuilderState(),
     val attendanceSummaryState: SummaryState = SummaryState(),

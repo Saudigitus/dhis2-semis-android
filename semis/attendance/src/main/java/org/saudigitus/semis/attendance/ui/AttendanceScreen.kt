@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExtendedFloatingActionButton
@@ -37,6 +38,8 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import org.dhis2.ui.theme.colorPrimary
 import org.hisp.dhis.mobile.ui.designsystem.component.AdditionalInfoItem
+import org.hisp.dhis.mobile.ui.designsystem.component.InfoBar
+import org.hisp.dhis.mobile.ui.designsystem.component.InfoBarData
 import org.hisp.dhis.mobile.ui.designsystem.component.ListCard
 import org.hisp.dhis.mobile.ui.designsystem.component.ListCardDescriptionModel
 import org.hisp.dhis.mobile.ui.designsystem.component.ListCardTitleModel
@@ -59,6 +62,7 @@ import org.saudigitus.semis.core.designsystem.components.bottomsheet.ListingBott
 import org.saudigitus.semis.core.designsystem.components.bottomsheet.model.BottomSheetState
 import org.saudigitus.semis.core.designsystem.components.summary.SummaryDetails
 import org.saudigitus.semis.core.designsystem.templates.TopAppBarScaffold
+import org.saudigitus.semis.core.designsystem.theme.dark_warning
 import org.saudigitus.semis.core.designsystem.utils.UiDefaults
 import org.saudigitus.semis.core.designsystem.utils.mapper.TEICardMapper
 import org.saudigitus.semis.core.designsystem.utils.mapper.searchTeiMapper
@@ -174,9 +178,9 @@ fun AttendanceScreen(
                     )
                 },
                 onClick = {
-                    if (state.buttonStep == ButtonStep.NONE) {
+                    if (state.buttonStep == ButtonStep.NONE && state.canTakeAttendance) {
                         onEvent(AttendanceUiEvent.OnEditClicked)
-                    } else {
+                    } else if (state.canTakeAttendance) {
                         onEvent(AttendanceUiEvent.ShowBottomSheet(BottomSheetType.SUMMARY))
                     }
                 },
@@ -206,15 +210,36 @@ fun AttendanceScreen(
         } else if (state.teis.isEmpty()) {
             NoResults(message = stringResource(id = R.string.no_records_found))
         } else {
-            if (formState.attendanceButtonState.buttons.isEmpty() && !formState.isLoading) {
-                ConfigNotFound(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .wrapContentHeight()
-                        .padding(horizontal = 16.dp),
-                    iconSize = 32.dp,
-                    message = stringResource(id = R.string.app_not_properly_config)
-                )
+            when {
+                formState.attendanceButtonState.buttons.isEmpty() && !formState.isLoading -> {
+                    ConfigNotFound(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .wrapContentHeight()
+                            .padding(horizontal = 16.dp),
+                        iconSize = 32.dp,
+                        message = stringResource(id = R.string.app_not_properly_config)
+                    )
+                }
+
+                !state.canTakeAttendance -> {
+                    InfoBar(
+                        modifier = Modifier.fillMaxWidth()
+                            .padding(horizontal = 16.dp),
+                        infoBarData = InfoBarData(
+                            icon = {
+                                Icon(
+                                    imageVector = Icons.Default.Warning,
+                                    contentDescription = stringResource(R.string.cannot_take_attendance),
+                                    tint = dark_warning
+                                )
+                            },
+                            text = stringResource(R.string.cannot_take_attendance),
+                            color = dark_warning,
+                            backgroundColor = Color.LightGray.copy(.25f)
+                        ),
+                    )
+                }
             }
 
             LazyColumn(
