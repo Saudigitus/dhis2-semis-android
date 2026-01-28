@@ -73,9 +73,15 @@ class AttendanceViewModel @Inject constructor(
                 it.copy(
                     dateValidator = { date ->
                         appConfigRepository.allowedCalenderYearDates(date, schoolCalendar)
-                    }
+                    },
+                    canTakeAttendance = appConfigRepository.allowedCalenderYearDates(
+                        DateHelper.convertDateToMilliseconds(selectedDate),
+                        schoolCalendar
+                    )
                 )
             }
+
+
         }
     }
 
@@ -128,6 +134,8 @@ class AttendanceViewModel @Inject constructor(
             val currentFormState = uiState.value.formBuilderState
             var updatedToolbar = currentToolbar
 
+            val schoolCalendar = appConfigRepository.getSchoolCalendar()
+
             if (date != null) {
                 updatedToolbar = currentToolbar.copy(
                     subtitle = DateHelper.formatDateWithWeekDay(date)
@@ -155,6 +163,10 @@ class AttendanceViewModel @Inject constructor(
                     ),
                     formBuilderState = currentFormState.copy(
                         date = selectedDate
+                    ),
+                    canTakeAttendance = appConfigRepository.allowedCalenderYearDates(
+                        DateHelper.convertDateToMilliseconds(selectedDate),
+                        schoolCalendar
                     )
                 )
             }
