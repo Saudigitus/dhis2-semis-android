@@ -62,7 +62,7 @@ class SyncPresenter internal constructor(
                     .observeOn(schedulerProvider.ui())
                     .subscribe(
                         { (first, second) ->
-                            view.setFlag(first)
+                            //view.setFlag(first)
                             view.setServerTheme(second)
                             view.goToMain()
                         },

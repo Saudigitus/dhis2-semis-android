@@ -15,9 +15,17 @@ fun aboutRobot(aboutBody: AboutRobot.() -> Unit) {
 
 class AboutRobot : BaseRobot() {
 
-    fun checkVersionNames(appName: String, sdkName: String) {
+    fun checkVersionNames(
+        appName: String,
+        sdkName: String,
+        semisName: String,
+        datastoreName: String
+    ) {
         val appNameText = "App Version: $appName"
         onView(withId(R.id.aboutApp)).check(matches(withText(appNameText)))
         onView(withId(R.id.appSDK)).check(matches(withText(sdkName)))
+        onView(withId(R.id.aboutSemis)).check(matches(withText(semisName)))
+        onView(withId(R.id.aboutSemisDatastore)).check(matches(withText(datastoreName)))
+
     }
 }
