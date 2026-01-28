@@ -1,6 +1,6 @@
 <resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
     <!--GENERAL-->
-    <string name="app_name">Dhis2</string>
+    <string name="app_name">SEMIS</string>
     <string name="logo_text">dhis</string>
     <string name="logo_number">2</string>
     <string name="tab" translatable="false">\u0009</string>
@@ -995,4 +995,6 @@
     <string name="complete_enrollment_label">Complete %s</string>
     <string name="deactivate_enrollment_label">Deactivate %s</string>
     <string name="reopen_enrollment_label">Re-open %s</string>
+    <string name="about_datastore">Datastore Version: %s</string>
+    <string name="about_semis">SEMIS Version: %s</string>
 </resources>

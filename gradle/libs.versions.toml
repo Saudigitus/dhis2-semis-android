@@ -97,6 +97,7 @@ atomicfu = "0.27.0"
 
 #SEMIS
 semis = "2.0.0"
+semisDatastore = "2.0"
 materialIcons = "1.7.8"
 androidxHiltNavigation = "1.0.0"
 composeNavigation = "2.9.5"

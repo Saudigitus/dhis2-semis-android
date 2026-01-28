@@ -83,8 +83,8 @@ class SplashActivity : ActivityGlobalAbstract(), SplashView {
         }
         if (resource != -1) {
             binding.flag.setImageResource(resource)
-            binding.logo.visibility = View.GONE
-            binding.flag.visibility = View.VISIBLE
+            binding.logo.visibility = View.VISIBLE
+            binding.flag.visibility = View.GONE
         }
     }
 

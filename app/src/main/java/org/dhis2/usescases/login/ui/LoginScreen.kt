@@ -77,7 +77,7 @@ fun LoginTopBar(
                 modifier = Modifier
                     .weight(1f)
                     .height(48.dp),
-                painter = painterResource(id = R.drawable.ic_dhis_white),
+                painter = painterResource(id = R.drawable.semis_logo_white),
                 contentDescription = "dhis2 logo",
             )
 
