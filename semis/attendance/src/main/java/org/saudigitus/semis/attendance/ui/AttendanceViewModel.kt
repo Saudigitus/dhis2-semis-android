@@ -18,6 +18,7 @@ import org.hisp.dhis.android.core.maintenance.D2Error
 import org.saudigitus.semis.attendance.R
 import org.saudigitus.semis.attendance.ui.model.BottomSheetConfirmAction
 import org.saudigitus.semis.attendance.ui.model.BottomSheetType
+import org.saudigitus.semis.attendance.ui.repository.AttendanceRepository
 import org.saudigitus.semis.core.data.model.SearchTeiModel
 import org.saudigitus.semis.core.data.model.app_config.Attendance
 import org.saudigitus.semis.core.data.repository.AppConfigRepository
@@ -32,6 +33,7 @@ import javax.inject.Inject
 @HiltViewModel
 class AttendanceViewModel @Inject constructor(
     private val formRepository: FormRepository,
+    private val attendanceRepository: AttendanceRepository,
     private val appConfigRepository: AppConfigRepository,
     private val resourceManager: ResourceManager
 ) : ViewModel() {
@@ -135,6 +137,10 @@ class AttendanceViewModel @Inject constructor(
             var updatedToolbar = currentToolbar
 
             val schoolCalendar = appConfigRepository.getSchoolCalendar()
+            val attendanceStatus = attendanceRepository.getAttendanceStatus(
+                uiState.value.program,
+                selectedDate
+            )
 
             if (date != null) {
                 updatedToolbar = currentToolbar.copy(
@@ -156,6 +162,7 @@ class AttendanceViewModel @Inject constructor(
                 it.copy(
                     isLoading = false,
                     toolbarHeaders = updatedToolbar,
+                    attendanceStatus = attendanceStatus,
                     genericsBottomSheetState = currentBulkBottomSheet.copy(
                         imageVector = Icons.Default.Rocket,
                         title = resourceManager.getString(R.string.bulk_attendance),
@@ -200,6 +207,24 @@ class AttendanceViewModel @Inject constructor(
                     )
             }
             attendanceSummary()
+        }
+    }
+
+    private fun save() {
+        viewModelScope.launch {
+            if (uiState.value.attendanceStatus != null
+                && uiState.value.attendanceStatus?.value.toBoolean()
+            ) {
+                attendanceRepository.saveAttendanceStatus(
+                    orgUnit = uiState.value.formBuilderState.orgUnit,
+                    program = uiState.value.program,
+                    date = selectedDate,
+                    filterDetailsState = uiState.value.attendanceSummaryState.filterDetailsState,
+                    attendanceStatus = uiState.value.attendanceStatus!!
+                )
+            } else {
+                saveAttendanceEvents()
+            }
         }
     }
 
@@ -294,6 +319,16 @@ class AttendanceViewModel @Inject constructor(
                 }
             }
 
+            is AttendanceUiEvent.AddAttendanceStatus -> {
+                val currentAttendanceStatus = uiState.value.attendanceStatus
+                _hasCachedData.value = true
+                _uiState.update {
+                    it.copy(
+                        attendanceStatus = currentAttendanceStatus?.copy(value = "${!uiEvent.status}")
+                    )
+                }
+            }
+
             is AttendanceUiEvent.BulkOverrideAttendance -> {
                 if (cachedButtonModel != null) {
                     bulkAttendance(cachedButtonModel!!)
@@ -310,7 +345,7 @@ class AttendanceViewModel @Inject constructor(
                         it.copy(displayBulk = false)
                     }
                 } else {
-                    saveAttendanceEvents()
+                    save()
                     _uiState.update {
                         it.copy(displayDialog = false)
                     }

@@ -6,6 +6,8 @@ import org.hisp.dhis.android.core.event.Event
 import org.hisp.dhis.android.core.option.Option
 import org.saudigitus.semis.core.data.model.Module
 import org.saudigitus.semis.core.data.model.OptionModel
+import org.saudigitus.semis.core.utils.DateHelper
+import java.sql.Date
 
 fun D2.eventsWithTrackedDataValues(
     ou: String,
@@ -17,6 +19,19 @@ fun D2.eventsWithTrackedDataValues(
     .byProgramStageUid().eq(stage)
     .byDeleted().isFalse
     .withTrackedEntityDataValues()
+    .blockingGet()
+
+fun D2.eventsWithTrackedDataValuesByDate(
+    program: String,
+    stage: String,
+    date: String? = DateHelper.formatDate(System.currentTimeMillis())
+): Event? = eventModule().events()
+    .byProgramUid().eq(program)
+    .byProgramStageUid().eq(stage)
+    .byEventDate().eq(Date.valueOf(date))
+    .byDeleted().isFalse
+    .withTrackedEntityDataValues()
+    .one()
     .blockingGet()
 
 fun D2.optionByOptionSet(
