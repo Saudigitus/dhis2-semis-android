@@ -22,33 +22,50 @@ class EventRepositoryImpl @Inject constructor(
             .byDisplayName().eq(Constants.DEFAULT).one().blockingGet()?.uid()
 
     private fun createEventProjection(
-        enrollment: String,
+        enrollment: String? = null,
         ou: String,
         program: String,
         programStage: String,
     ): String {
+        val projection = EventCreateProjection.builder()
+            .organisationUnit(ou)
+            .program(program).programStage(programStage)
+            .attributeOptionCombo(getAttributeOptionCombo())
+
         return d2.eventModule().events()
             .blockingAdd(
-                EventCreateProjection.builder()
-                    .organisationUnit(ou)
-                    .program(program).programStage(programStage)
-                    .attributeOptionCombo(getAttributeOptionCombo())
-                    .enrollment(enrollment).build(),
+                if (!enrollment.isNullOrEmpty()) {
+                    projection.enrollment(enrollment).build()
+                } else {
+                    projection.build()
+                }
             )
     }
 
     private fun eventUid(
-        tei: String,
+        tei: String?,
         program: String,
         programStage: String,
         date: String?,
     ): String? {
-        return d2.eventModule().events()
+        val eventsRepo = d2.eventModule().events()
+
+        return if (!tei.isNullOrEmpty()) {
+            eventsRepo
             .byTrackedEntityInstanceUids(listOf(tei))
-            .byProgramUid().eq(program)
-            .byProgramStageUid().eq(programStage)
-            .byEventDate().eq(Date.valueOf(date))
-            .one().blockingGet()?.uid()
+                .byProgramUid().eq(program)
+                .byProgramStageUid().eq(programStage)
+                .byDeleted().isFalse
+                .byEventDate().eq(Date.valueOf(date))
+                .one().blockingGet()?.uid()
+        } else {
+            eventsRepo
+                .byProgramUid().eq(program)
+                .byProgramStageUid().eq(programStage)
+                .byDeleted().isFalse
+                .byEventDate().eq(Date.valueOf(date))
+                .one().blockingGet()?.uid()
+        }
     }
 
     override suspend fun saveEvent(
@@ -56,7 +73,7 @@ class EventRepositoryImpl @Inject constructor(
         orgUnit: String,
         program: String,
         programStage: String,
-        tei: SearchTeiModel,
+        tei: SearchTeiModel?,
         data: Map<String, Pair<String, String>>,
         eventDate: String?
     ) {
@@ -65,12 +82,12 @@ class EventRepositoryImpl @Inject constructor(
 
             try {
                 val uid = event ?: eventUid(
-                    tei.uid(),
+                    tei?.uid(),
                     program,
                     programStage,
                     date
                 ) ?: createEventProjection(
-                    tei.selectedEnrollment?.uid().orEmpty(),
+                    tei?.selectedEnrollment?.uid(),
                     orgUnit,
                     program,
                     programStage,
@@ -87,6 +104,46 @@ class EventRepositoryImpl @Inject constructor(
                     d2.trackedEntityModule().trackedEntityDataValues()
                         .value(uid, secondaryDataValue.first)
                         .blockingSet(secondaryDataValue.second)
+                }
+
+                val repository = d2.eventModule().events().uid(uid)
+                repository.setEventDate(Date.valueOf(date))
+                repository.setStatus(EventStatus.COMPLETED)
+            } catch (e: Exception) {
+                Timber.tag("SAVE_EVENT").e(e)
+            }
+        }
+    }
+
+    override suspend fun saveEvent(
+        event: String?,
+        orgUnit: String,
+        program: String,
+        programStage: String,
+        tei: SearchTeiModel?,
+        data: List<Pair<String, String?>>,
+        eventDate: String?
+    ) {
+        withContext(Dispatchers.IO) {
+            val date = eventDate ?: DateHelper.formatDate(System.currentTimeMillis())!!
+
+            try {
+                val uid = event ?: eventUid(
+                    tei?.uid(),
+                    program,
+                    programStage,
+                    date
+                ) ?: createEventProjection(
+                    tei?.selectedEnrollment?.uid(),
+                    orgUnit,
+                    program,
+                    programStage,
+                )
+
+                for (item in data) {
+                    d2.trackedEntityModule().trackedEntityDataValues()
+                        .value(uid, item.first)
+                        .blockingSet(item.second)
                 }
 
                 val repository = d2.eventModule().events().uid(uid)

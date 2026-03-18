@@ -17,6 +17,15 @@ interface AttendanceEventRepository {
         attendanceEvents: List<AttendanceEventWithDecorator>
     )
 
+    suspend fun saveAttendanceStatus(
+        event: String? = null,
+        orgUnit: String,
+        program: String,
+        programStage: String,
+        data: List<Pair<String, String?>>,
+        eventDate: String
+    )
+
     suspend fun getAttendanceEvent(
         teiUids: List<String>,
         program: String,

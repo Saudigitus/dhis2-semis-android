@@ -19,6 +19,12 @@ object UiDefaults {
         Constants.CLASS to FilterType.SECTION
     )
 
+    val sectionWritingType = listOf(
+        Constants.SECTION,
+        Constants.SECTION_CLASS,
+        Constants.CLASS
+    )
+
     fun getIconByName(name: String) = when (name) {
         "correct_blue_fill" -> R.drawable.present
         "wrong_red_fill" -> R.drawable.absent

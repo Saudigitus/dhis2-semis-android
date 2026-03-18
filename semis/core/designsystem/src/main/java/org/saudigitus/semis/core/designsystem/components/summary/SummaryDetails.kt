@@ -1,5 +1,6 @@
 package org.saudigitus.semis.core.designsystem.components.summary
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -32,6 +33,7 @@ fun SummaryDetails(
     modifier: Modifier = Modifier,
     state: SummaryState,
     onBulk: (() -> Unit)? = null,
+    content: (@Composable () -> Unit)? = null,
 ) {
     Column(
         modifier = modifier,
@@ -83,6 +85,10 @@ fun SummaryDetails(
                     )
                 }
             }
+        }
+
+        AnimatedVisibility(visible = content != null) {
+            content?.invoke()
         }
     }
 }
