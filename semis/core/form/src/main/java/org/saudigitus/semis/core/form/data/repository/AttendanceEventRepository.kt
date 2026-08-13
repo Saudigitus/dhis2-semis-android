@@ -54,6 +54,7 @@ interface AttendanceEventRepository {
 
     suspend fun attendanceSummary(
         program: String,
+        totalLearners: Int,
         getSummaries: (List<BottomSheetModel>) -> Unit
     )
 }

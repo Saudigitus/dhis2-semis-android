@@ -1,10 +1,10 @@
 package org.saudigitus.semis.attendance.ui.model
 
+import org.hisp.dhis.android.core.event.EventStatus
+
 data class AttendanceStatus(
-    val event: String? = null,
+    val event: String,
     val program: String?,
     val programStage: String?,
-    val dataElement: String?,
-    val displayName: String?,
-    val value: String? = null,
+    val status: EventStatus?,
 )

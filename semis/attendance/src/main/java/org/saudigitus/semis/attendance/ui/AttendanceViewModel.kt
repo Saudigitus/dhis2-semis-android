@@ -21,6 +21,7 @@ import org.saudigitus.semis.attendance.ui.model.BottomSheetType
 import org.saudigitus.semis.attendance.ui.repository.AttendanceRepository
 import org.saudigitus.semis.core.data.model.SearchTeiModel
 import org.saudigitus.semis.core.data.model.app_config.Attendance
+import org.saudigitus.semis.core.data.model.app_config.isEnabledAndConfigured
 import org.saudigitus.semis.core.data.repository.AppConfigRepository
 import org.saudigitus.semis.core.designsystem.attendance.model.AttendanceButtonModel
 import org.saudigitus.semis.core.designsystem.components.FilterDetailsState
@@ -50,6 +51,12 @@ class AttendanceViewModel @Inject constructor(
 
     private val _snackbarEvent = MutableSharedFlow<String?>()
     val snackbarEvent: SharedFlow<String?> = _snackbarEvent
+
+    private val _syncEvent = MutableSharedFlow<Unit>()
+    val syncEvent: SharedFlow<Unit> = _syncEvent
+
+    private val _errorEvent = MutableSharedFlow<String>()
+    val errorEvent: SharedFlow<String> = _errorEvent
 
     private val _uiState = MutableStateFlow(
         AttendanceUiState(
@@ -107,6 +114,8 @@ class AttendanceViewModel @Inject constructor(
                     isLoading = false,
                     program = program,
                     teis = teis,
+                    allowAttendanceStatus = config?.attendance?.attendanceStatus
+                        .isEnabledAndConfigured(),
                     attendanceSummaryState = currentAttendanceSummaryState.copy(
                         filterDetailsState = filterDetailsState
                     ),
@@ -127,63 +136,74 @@ class AttendanceViewModel @Inject constructor(
         _hasCachedData.value = cached
     }
 
-    private fun loadAttendanceEventsByDate(date: String? = null) {
+    private suspend fun loadAttendanceEventsByDate(date: String? = null) {
         selectedDate = date ?: DateHelper.formatDate(System.currentTimeMillis()).orEmpty()
 
-        viewModelScope.launch {
-            val currentToolbar = uiState.value.toolbarHeaders
-            val currentBulkBottomSheet = uiState.value.genericsBottomSheetState
-            val currentFormState = uiState.value.formBuilderState
-            var updatedToolbar = currentToolbar
+        val currentToolbar = uiState.value.toolbarHeaders
+        val currentBulkBottomSheet = uiState.value.genericsBottomSheetState
+        val currentFormState = uiState.value.formBuilderState
+        var updatedToolbar = currentToolbar
 
-            val schoolCalendar = appConfigRepository.getSchoolCalendar()
-            val attendanceStatus = attendanceRepository.getAttendanceStatus(
-                uiState.value.program,
-                selectedDate
-            )
-
-            if (date != null) {
-                updatedToolbar = currentToolbar.copy(
-                    subtitle = DateHelper.formatDateWithWeekDay(date)
-                )
-            }
-
-            val currentButtonState = formRepository.loadAttendanceEvents(
-                teiUids = studentsIds,
+        val schoolCalendar = appConfigRepository.getSchoolCalendar()
+        val attendanceStatus = attendanceRepository.getAttendanceStatus(
+            orgUnit = uiState.value.formBuilderState.orgUnit,
+            program = uiState.value.program,
+            date = selectedDate,
+            filterDetailsState = uiState.value.attendanceSummaryState.filterDetailsState,
+        ) ?: if (uiState.value.buttonStep != ButtonStep.NONE) {
+            attendanceRepository.createAttendanceStatus(
+                orgUnit = uiState.value.formBuilderState.orgUnit,
                 program = uiState.value.program,
-                programStage = attendanceConfig?.programStage.orEmpty(),
-                dataElement = attendanceConfig?.status.orEmpty(),
-                reasonDataElement = attendanceConfig?.absenceReason.orEmpty(),
-                eventDate = date ?: DateHelper.formatDate(System.currentTimeMillis())
-                    .orEmpty()
+                date = selectedDate,
+                filterDetailsState = uiState.value.attendanceSummaryState.filterDetailsState,
             )
+        } else {
+            null
+        }
 
-            _uiState.update {
-                it.copy(
-                    isLoading = false,
-                    toolbarHeaders = updatedToolbar,
-                    attendanceStatus = attendanceStatus,
-                    genericsBottomSheetState = currentBulkBottomSheet.copy(
-                        imageVector = Icons.Default.Rocket,
-                        title = resourceManager.getString(R.string.bulk_attendance),
-                        items = currentButtonState.buttons
-                    ),
-                    formBuilderState = currentFormState.copy(
-                        date = selectedDate
-                    ),
-                    canTakeAttendance = appConfigRepository.allowedCalenderYearDates(
-                        DateHelper.convertDateToMilliseconds(selectedDate),
-                        schoolCalendar
-                    )
+        if (date != null) {
+            updatedToolbar = currentToolbar.copy(
+                subtitle = DateHelper.formatDateWithWeekDay(date)
+            )
+        }
+
+        val currentButtonState = formRepository.loadAttendanceEvents(
+            teiUids = studentsIds,
+            program = uiState.value.program,
+            programStage = attendanceConfig?.programStage.orEmpty(),
+            dataElement = attendanceConfig?.status.orEmpty(),
+            reasonDataElement = attendanceConfig?.absenceReason.orEmpty(),
+            eventDate = selectedDate,
+        )
+
+        _uiState.update {
+            it.copy(
+                isLoading = false,
+                toolbarHeaders = updatedToolbar,
+                attendanceStatus = attendanceStatus,
+                genericsBottomSheetState = currentBulkBottomSheet.copy(
+                    imageVector = Icons.Default.Rocket,
+                    title = resourceManager.getString(R.string.bulk_attendance),
+                    items = currentButtonState.buttons
+                ),
+                formBuilderState = currentFormState.copy(
+                    date = selectedDate
+                ),
+                canTakeAttendance = appConfigRepository.allowedCalenderYearDates(
+                    DateHelper.convertDateToMilliseconds(selectedDate),
+                    schoolCalendar
                 )
-            }
+            )
         }
     }
 
     private fun attendanceSummary() {
         viewModelScope.launch {
             val attendanceSummaryState = uiState.value.attendanceSummaryState
-            formRepository.attendanceSummary(uiState.value.program) { summaries ->
+            formRepository.attendanceSummary(
+                program = uiState.value.program,
+                totalLearners = studentsIds.size,
+            ) { summaries ->
                 _uiState.update {
                     it.copy(
                         attendanceSummaryState = attendanceSummaryState.copy(
@@ -211,19 +231,41 @@ class AttendanceViewModel @Inject constructor(
     }
 
     private fun save() {
+        saveAttendanceEvents()
+    }
+
+    private fun startAttendance() {
         viewModelScope.launch {
-            if (uiState.value.attendanceStatus != null
-                && uiState.value.attendanceStatus?.value.toBoolean()
-            ) {
-                attendanceRepository.saveAttendanceStatus(
-                    orgUnit = uiState.value.formBuilderState.orgUnit,
-                    program = uiState.value.program,
-                    date = selectedDate,
-                    filterDetailsState = uiState.value.attendanceSummaryState.filterDetailsState,
-                    attendanceStatus = uiState.value.attendanceStatus!!
-                )
-            } else {
-                saveAttendanceEvents()
+            val current = uiState.value
+
+            runCatching {
+                if (current.allowAttendanceStatus) {
+                    attendanceRepository.createAttendanceStatus(
+                        orgUnit = current.formBuilderState.orgUnit,
+                        program = current.program,
+                        date = selectedDate,
+                        filterDetailsState = current.attendanceSummaryState.filterDetailsState,
+                    ) ?: error("Attendance status event could not be created")
+                } else {
+                    null
+                }
+            }.onSuccess { attendanceStatus ->
+                formRepository.allowFormEdition(true)
+                _uiState.update {
+                    it.copy(
+                        buttonStep = ButtonStep.EDITING,
+                        attendanceStatus = attendanceStatus,
+                        attendanceSummaryState = it.attendanceSummaryState.copy(
+                            enableBulk = true,
+                        ),
+                    )
+                }
+            }.onFailure { error ->
+                val message = friendlyErrorMessage(error)
+                _uiState.update {
+                    it.copy(errorMessage = message)
+                }
+                _errorEvent.emit(message)
             }
         }
     }
@@ -238,52 +280,77 @@ class AttendanceViewModel @Inject constructor(
                     programStage = attendanceConfig?.programStage.orEmpty(),
                     attendanceEvents = formRepository.attendanceButtonStateFlow.value.attendanceEvents
                 )
-            }.onSuccess {
-                _uiState.update {
-                    it.copy(buttonStep = ButtonStep.NONE)
+                if (current.allowAttendanceStatus) {
+                    attendanceRepository.completeAttendanceStatus(
+                        orgUnit = current.formBuilderState.orgUnit,
+                        program = current.program,
+                        date = selectedDate,
+                        filterDetailsState = current.attendanceSummaryState.filterDetailsState,
+                        totalLearners = studentsIds.size,
+                        attendanceEvents = formRepository.attendanceButtonStateFlow.value.attendanceEvents,
+                    ) ?: error("Attendance status event could not be completed")
+                } else {
+                    null
                 }
+            }.onSuccess { completedAttendanceStatus ->
                 formRepository.allowFormEdition(false)
-                loadAttendanceEventsByDate(selectedDate)
-                _snackbarEvent.emit(resourceManager.getString(R.string.attendance_saved))
-            }.onFailure { error ->
-                val friendlyMessage = when (error) {
-                    is D2Error -> {
-                        "${error.errorCode()} – ${
-                            error.message ?: resourceManager
-                                .getString(R.string.error_unexpected)
-                        }"
-                    }
-
-                    else -> error.message ?: resourceManager
-                        .getString(R.string.error_unexpected)
-                }
-
                 _uiState.update {
-                    it.copy(errorMessage = friendlyMessage)
+                    it.copy(
+                        buttonStep = ButtonStep.NONE,
+                        attendanceStatus = completedAttendanceStatus ?: it.attendanceStatus,
+                        attendanceSummaryState = it.attendanceSummaryState.copy(
+                            enableBulk = false,
+                        ),
+                    )
                 }
+                loadAttendanceEventsByDate(selectedDate)
+                _hasCachedData.value = false
+                _snackbarEvent.emit(resourceManager.getString(R.string.attendance_saved))
+                _syncEvent.emit(Unit)
+            }.onFailure { error ->
+                val message = friendlyErrorMessage(error)
+                _uiState.update {
+                    it.copy(errorMessage = message)
+                }
+                _errorEvent.emit(message)
             }
         }
+    }
+
+    private fun friendlyErrorMessage(error: Throwable) = when (error) {
+        is D2Error -> {
+            "${error.errorCode()} – ${
+                error.message ?: resourceManager.getString(R.string.error_unexpected)
+            }"
+        }
+
+        else -> error.message ?: resourceManager.getString(R.string.error_unexpected)
     }
 
     fun handleUiEvent(uiEvent: AttendanceUiEvent) {
         when (uiEvent) {
             is AttendanceUiEvent.OnDateSelect -> {
-                loadAttendanceEventsByDate(uiEvent.date)
-                attendanceSummary()
+                viewModelScope.launch {
+                    loadAttendanceEventsByDate(uiEvent.date)
+                    attendanceSummary()
+                }
             }
 
             is AttendanceUiEvent.OnEditClicked -> {
-                val currentAttendanceSummaryState = uiState.value.attendanceSummaryState
+                startAttendance()
+            }
 
-                formRepository.allowFormEdition(true)
-
-                _uiState.update {
-                    it.copy(
-                        buttonStep = ButtonStep.EDITING,
-                        attendanceSummaryState = currentAttendanceSummaryState.copy(
-                            enableBulk = it.buttonStep != ButtonStep.NONE
-                        ),
-                    )
+            is AttendanceUiEvent.OnAttendanceClick -> {
+                if (!uiState.value.allowAttendanceStatus) {
+                    viewModelScope.launch {
+                        formRepository.updateAttendanceEvent(
+                            eventDate = selectedDate,
+                            tei = uiEvent.tei,
+                            buttonModel = uiEvent.buttonModel,
+                        )
+                        _hasCachedData.value = true
+                        attendanceSummary()
+                    }
                 }
             }
 
@@ -316,16 +383,6 @@ class AttendanceViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(displayBulk = false)
                     }
-                }
-            }
-
-            is AttendanceUiEvent.AddAttendanceStatus -> {
-                val currentAttendanceStatus = uiState.value.attendanceStatus
-                _hasCachedData.value = true
-                _uiState.update {
-                    it.copy(
-                        attendanceStatus = currentAttendanceStatus?.copy(value = "${!uiEvent.status}")
-                    )
                 }
             }
 

@@ -14,6 +14,7 @@ data class AttendanceButtonModel(
     val enabled: Boolean = true,
     val color: Color? = null,
     val order: Int? = null,
+    val isAbsence: Boolean = false,
 ) {
     override fun toString(): String {
         return "AttendanceButtonModel(key='$key')"

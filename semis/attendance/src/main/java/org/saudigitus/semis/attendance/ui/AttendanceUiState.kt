@@ -21,6 +21,7 @@ data class AttendanceUiState(
     val program: String = "",
     val buttonStep: ButtonStep = ButtonStep.NONE,
     val canTakeAttendance: Boolean = true,
+    val allowAttendanceStatus: Boolean = false,
     val teis: List<SearchTeiModel> = emptyList(),
     val attendanceStatus: AttendanceStatus? = null,
     val formBuilderState: FormBuilderState = FormBuilderState(),

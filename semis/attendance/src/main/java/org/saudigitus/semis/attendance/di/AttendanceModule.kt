@@ -8,7 +8,6 @@ import org.hisp.dhis.android.core.D2
 import org.saudigitus.semis.attendance.ui.repository.AttendanceRepository
 import org.saudigitus.semis.attendance.ui.repository.AttendanceRepositoryImpl
 import org.saudigitus.semis.core.data.repository.AppConfigRepository
-import org.saudigitus.semis.core.form.data.repository.FormRepository
 import javax.inject.Singleton
 
 @Module
@@ -19,6 +18,5 @@ object AttendanceModule {
     fun provideAttendanceRepository(
         d2: D2,
         appConfigRepository: AppConfigRepository,
-        formRepository: FormRepository
-    ): AttendanceRepository = AttendanceRepositoryImpl(d2, appConfigRepository, formRepository)
+    ): AttendanceRepository = AttendanceRepositoryImpl(d2, appConfigRepository)
 }

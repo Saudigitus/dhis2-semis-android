@@ -50,5 +50,6 @@ fun AttendanceButtonModel.withProps(
     enabled = this.enabled,
     icon = icon,
     iconName = iconName,
-    color = iconColor
+    color = iconColor,
+    isAbsence = this.isAbsence,
 )

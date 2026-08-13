@@ -33,11 +33,27 @@ fun AttendanceUi(
     LaunchedEffect(Unit) {
         viewModel.snackbarEvent.collectLatest { message ->
             if (message != null) {
+                formViewModel.resetCacheStatus()
                 snackbarHostState.showSnackbar(
                     message = message,
                     duration = SnackbarDuration.Short
                 )
             }
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.syncEvent.collectLatest {
+            syncData()
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.errorEvent.collectLatest { message ->
+            snackbarHostState.showSnackbar(
+                message = message,
+                duration = SnackbarDuration.Long,
+            )
         }
     }
 
@@ -85,6 +101,10 @@ fun AttendanceUi(
                 }
 
                 is AttendanceUiEvent.OnSyncClicked -> syncData()
+                is AttendanceUiEvent.OnAttendanceClick -> {
+                    formViewModel.markAttendanceChanged()
+                    viewModel.handleUiEvent(it)
+                }
                 else -> viewModel.handleUiEvent(it)
             }
         }

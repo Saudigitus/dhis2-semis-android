@@ -138,6 +138,10 @@ class FormViewModel @Inject constructor(
         _uiState.update { it.copy(hasCachedData = false) }
     }
 
+    fun markAttendanceChanged() {
+        _uiState.update { it.copy(hasCachedData = true) }
+    }
+
     fun handleUiEvent(uiEvent: FormEvent) {
         viewModelScope.launch {
             when (uiEvent) {

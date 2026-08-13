@@ -81,8 +81,22 @@ class FormRepositoryImpl @Inject constructor(
             it.event?.tei == tei?.uid()
         }
 
+        if (buttonModel.code == null) {
+            event?.event?.event?.let { eventRepository.deleteEvent(it) }
+            attendanceEvents.removeIf { it.event?.tei == tei?.uid() }
+
+            return attendanceButtonState.updateAndGet {
+                it.copy(attendanceEvents = attendanceEvents)
+            }
+        }
+
         if (event != null) {
-            val updatedEvent = event.event?.copy(value = buttonModel.code.orEmpty())
+            val currentEvent = event.event
+            val updatedEvent = currentEvent?.copy(
+                value = buttonModel.code.orEmpty(),
+                reasonDataElement = currentEvent.reasonDataElement,
+                reasonOfAbsence = currentEvent.reasonOfAbsence.takeIf { buttonModel.isAbsence },
+            )
             val eventWithDecorator = event.copy(
                 event = updatedEvent,
                 decorator = AttendanceButtonDecorator(
@@ -223,7 +237,8 @@ class FormRepositoryImpl @Inject constructor(
                     valueType = it.dataElement?.valueType() ?: ValueType.TEXT,
                     optionSet = options,
                     mandatory = it.compulsory == true,
-                    isAttendanceType = attendance?.status == it.dataElement?.uid()
+                    isAttendanceType = attendance?.status == it.dataElement?.uid(),
+                    isAttendanceReason = attendance?.absenceReason == it.dataElement?.uid(),
                 )
             }
 
@@ -303,14 +318,25 @@ class FormRepositoryImpl @Inject constructor(
 
     override suspend fun attendanceSummary(
         program: String,
+        totalLearners: Int,
         getSummaries: (List<BottomSheetModel>) -> Unit
     ) = withContext(Dispatchers.IO) {
         attendanceButtonStateFlow.collectLatest { current ->
             val options =
                 attendanceOptionRepository.getAttendanceStatusOptions(program)
 
+            val nonPresentCount = options
+                .filter { it.code != null }
+                .sumOf { option ->
+                    current.attendanceEvents.count { option.code == it.event?.value }
+                }
+
             val summaries = options.map { option ->
-                val count = current.attendanceEvents.count { option.code == it.event?.value }
+                val count = if (option.code == null) {
+                    (totalLearners - nonPresentCount).coerceAtLeast(0)
+                } else {
+                    current.attendanceEvents.count { option.code == it.event?.value }
+                }
 
                 BottomSheetModel(
                     icon = option.icon,

@@ -100,10 +100,10 @@ class EventRepositoryImpl @Inject constructor(
                     .value(uid, primaryDataValue.first)
                     .blockingSet(primaryDataValue.second)
 
-                if (secondaryDataValue != null && secondaryDataValue.second.isNotEmpty()) {
+                if (secondaryDataValue != null && secondaryDataValue.first.isNotEmpty()) {
                     d2.trackedEntityModule().trackedEntityDataValues()
                         .value(uid, secondaryDataValue.first)
-                        .blockingSet(secondaryDataValue.second)
+                        .blockingSet(secondaryDataValue.second.takeIf { it.isNotEmpty() })
                 }
 
                 val repository = d2.eventModule().events().uid(uid)
@@ -191,5 +191,9 @@ class EventRepositoryImpl @Inject constructor(
             .byProgramStageUid().eq(programStage)
             .withTrackedEntityDataValues()
             .blockingGet()
+    }
+
+    override suspend fun deleteEvent(event: String) = withContext(Dispatchers.IO) {
+        d2.eventModule().events().uid(event).delete().blockingAwait()
     }
 }
