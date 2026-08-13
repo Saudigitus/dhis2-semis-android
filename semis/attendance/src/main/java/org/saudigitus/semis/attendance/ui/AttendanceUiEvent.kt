@@ -17,4 +17,6 @@ sealed class AttendanceUiEvent {
     data class PerformBulk(val buttonModel: AttendanceButtonModel): AttendanceUiEvent()
     data class OnAttendanceClick(val tei: SearchTeiModel?, val buttonModel: AttendanceButtonModel) :
         AttendanceUiEvent()
+
+    data class AddAttendanceStatus(val status: Boolean): AttendanceUiEvent()
 }

@@ -356,6 +356,24 @@ class FormRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun saveAttendanceStatus(
+        event: String?,
+        orgUnit: String,
+        program: String,
+        programStage: String,
+        data: List<Pair<String, String?>>,
+        eventDate: String
+    ) = withContext(Dispatchers.IO) {
+        eventRepository.saveEvent(
+            event = event,
+            orgUnit = orgUnit,
+            program = program,
+            programStage = programStage,
+            data = data,
+            eventDate = eventDate
+        )
+    }
+
     override suspend fun getAttendanceEvent(
         teiUids: List<String>,
         program: String,

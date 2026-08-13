@@ -8,6 +8,8 @@ import kotlinx.serialization.Serializable
 data class Attendance(
     @SerialName("absenceReason")
     val absenceReason: String?,
+    @SerialName("attendanceStatus")
+    val attendanceStatus: AttendanceStatus?,
     @SerialName("enabled")
     val enabled: Boolean?,
     @SerialName("lastUpdate")
