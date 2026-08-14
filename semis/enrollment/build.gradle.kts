@@ -45,6 +45,10 @@ dependencies {
     implementation(project(":commons"))
     implementation(project(":semis:core:data"))
     implementation(project(":semis:core:designsystem"))
+    implementation(project(":semis-core:data"))
+    implementation(project(":semis-core:form"))
+    implementation(project(":semis-core:navigation"))
+    implementation(project(":semis-core:utils"))
 
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.coreKtx)
@@ -52,7 +56,10 @@ dependencies {
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.materialIcons)
     implementation(libs.androidx.compose.material.iconsExtended)
+    implementation(libs.androidx.compose.material3)
+    implementation(libs.navigation.compose)
     implementation(libs.google.material)
+    implementation(libs.koin.core)
     coreLibraryDesugaring(libs.desugar)
 
     testImplementation(libs.test.junit)

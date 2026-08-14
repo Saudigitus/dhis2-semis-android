@@ -17,7 +17,6 @@ import kotlinx.coroutines.withContext
 import org.dhis2.commons.resources.ResourceManager
 import org.hisp.dhis.android.core.common.ValueType
 import org.saudigitus.campaign.core.data.models.OrgUnit
-import org.saudigitus.campaign.core.data.repository.DatastoreRepository
 import org.saudigitus.campaign.core.form.R
 import org.saudigitus.campaign.core.form.data.models.FormFieldModel
 import org.saudigitus.campaign.core.form.data.models.FormResult
@@ -41,8 +40,6 @@ import kotlin.time.Duration.Companion.milliseconds
 @OptIn(FlowPreview::class)
 class FormViewModel @Inject constructor(
     private val formRepository: FormRepository,
-    private val datastoreRepository: DatastoreRepository,
-
     private val resourceManager: ResourceManager
 ) : ViewModel() {
     private val _uiState = MutableStateFlow<FormSectionUiState>(FormSectionUiState.Loading)
@@ -411,9 +408,7 @@ class FormViewModel @Inject constructor(
     ) {
         when (formType.value) {
             FormSectionType.NEW_ENROLLMENT -> {
-                _navigationEvent.tryEmit(
-                    resolvePostEnrollmentRoute(result, state)
-                )
+                _navigationEvent.tryEmit(null)
             }
 
             FormSectionType.EDIT_ENROLLMENT -> {
@@ -502,70 +497,4 @@ class FormViewModel @Inject constructor(
         ruleJob = null
     }
 
-    private suspend fun resolvePostEnrollmentRoute(
-        result: FormResult,
-        state: FormSectionUiState.HasFormSection
-    ): AppRoute {
-        val navigateTo = datastoreRepository.getCustomNavigation(state.program.orEmpty())
-
-        return when (normalizeDestination(navigateTo)) {
-            TEI_DASHBOARD_DESTINATION -> {
-                AppRoute.TrackerDetailRoute(
-                    programUid = state.program.orEmpty(),
-                    trackedEntityUid = result.tei.orEmpty(),
-                    enrollmentUid = result.enrollment.orEmpty(),
-                )
-            }
-
-            TEI_LIST_DESTINATION -> {
-                AppRoute.TrackerListingRoute(
-                    programUid = state.program.orEmpty()
-                )
-            }
-
-            else -> {
-                val stage = formRepository.programStagesToHide().find {
-                    it == state.programStage
-                }
-
-                _uiState.value = FormSectionUiState.Loading
-
-                if (stage.isNullOrEmpty() && !state.programStage.isNullOrEmpty()) {
-                    AppRoute.FormRoute(
-                        formType = FormType.NEW_EVENT_WITH_REGISTRATION,
-                        programUid = state.program.orEmpty(),
-                        orgUnitUid = state.orgUnit?.uid.orEmpty(),
-                        enrollmentUid = result.enrollment,
-                        trackedEntityUid = result.tei,
-                        programStageUid = state.programStage,
-                    )
-                } else {
-                    AppRoute.TrackerDetailRoute(
-                        programUid = state.program.orEmpty(),
-                        trackedEntityUid = result.tei.orEmpty(),
-                        enrollmentUid = result.enrollment.orEmpty(),
-                    )
-                }
-            }
-        }
-    }
-
-    private fun normalizeDestination(destination: String?): String? {
-        return destination
-            ?.trim()
-            ?.replace("-", "_")
-            ?.replace(" ", "_")
-            ?.let { value ->
-                when {
-                    value.equals("teiList", ignoreCase = true) -> TEI_LIST_DESTINATION
-                    value.equals("teiDashboard", ignoreCase = true) -> TEI_DASHBOARD_DESTINATION
-                    else -> value.uppercase()
-                }
-            }
-    }
-
-    private companion object {
-        const val TEI_DASHBOARD_DESTINATION = "TEI_DASHBOARD"
-        const val TEI_LIST_DESTINATION = "TEI_LIST"
-    }
 }

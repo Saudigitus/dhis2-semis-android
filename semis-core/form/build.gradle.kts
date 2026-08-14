@@ -49,6 +49,7 @@ android {
         dataBinding = true
     }
 
+
     packaging {
         resources {
             excludes.addAll(
@@ -77,7 +78,6 @@ dependencies {
     implementation(project(":commonskmm"))
     implementation(project(":form"))
     implementation(project(":compose-table"))
-    implementation(project(":semis-core:designsystems"))
     implementation(project(":semis-core:navigation"))
     implementation(project(":semis-core:data"))
     implementation(project(":semis-core:utils"))

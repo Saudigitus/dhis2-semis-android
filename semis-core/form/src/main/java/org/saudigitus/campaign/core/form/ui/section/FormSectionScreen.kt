@@ -29,6 +29,7 @@ fun FormSectionScreen(
     viewModel: FormViewModel = koinViewModel(),
     navController: NavController,
     formNav: AppRoute.FormRoute? = null,
+    onNewEnrollmentSaved: (() -> Unit)? = null,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
@@ -41,11 +42,18 @@ fun FormSectionScreen(
 
     LaunchedEffect(Unit) {
         viewModel.navigationEvent.collect {
+            val formSection = state as? FormSectionUiState.HasFormSection
+
+            if (formSection?.formType == FormSectionType.NEW_ENROLLMENT &&
+                onNewEnrollmentSaved != null
+            ) {
+                onNewEnrollmentSaved()
+                return@collect
+            }
+
             if (it != null) {
                 navController.navigate(it)
             } else {
-                val formSection = state as? FormSectionUiState.HasFormSection
-
                 when(formSection?.formType) {
                     FormSectionType.NEW_ENROLLMENT -> {
                         navController.popBackStack<AppRoute.TrackerListingRoute>(false)

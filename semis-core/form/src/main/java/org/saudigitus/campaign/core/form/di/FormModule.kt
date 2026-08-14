@@ -1,29 +1,26 @@
 package org.saudigitus.campaign.core.form.di
 
-import com.formrules.dhis2.di.dhis2RuleEngineModule
-import com.formrules.di.ruleEngineModule
-import org.koin.core.module.dsl.bind
-import org.koin.core.module.dsl.singleOf
-import org.koin.core.module.dsl.viewModelOf
+import org.dhis2.commons.resources.ResourceManager
+import org.koin.android.ext.koin.androidContext
+import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 import org.saudigitus.campaign.core.form.data.repository.FormRepository
-import org.saudigitus.campaign.core.form.data.repository.FormRepositoryImpl
-import org.saudigitus.campaign.core.form.rules.FormValidationRulesHelper
-import org.saudigitus.campaign.core.form.rules.FormValidationRulesRepository
+import org.saudigitus.campaign.core.form.data.repository.SemisEnrollmentFormRepository
 import org.saudigitus.campaign.core.form.ui.FormViewModel
 
-internal val internalCampaignFormModule = module {
-    singleOf(::FormRepositoryImpl) { bind<FormRepository>() }
-    singleOf(::FormValidationRulesHelper) { bind<FormValidationRulesRepository>() }
-    viewModelOf(::FormViewModel)
-}
-
-
-val campaignFormModule =
-    module {
-        includes(
-            internalCampaignFormModule,
-            ruleEngineModule,
-            dhis2RuleEngineModule
+val campaignFormModule = module {
+    single<FormRepository> {
+        SemisEnrollmentFormRepository(
+            d2 = get(),
+            optionRepository = get(),
+            programRepository = get(),
+            enrollmentRepository = get(),
         )
     }
+    viewModel {
+        FormViewModel(
+            formRepository = get(),
+            resourceManager = ResourceManager(androidContext(), get()),
+        )
+    }
+}

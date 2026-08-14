@@ -94,7 +94,7 @@ androidx-navigation = "2.7.0"
 junitJupiter = "5.8.1"
 ktxml = "0.3.2"
 atomicfu = "0.26.0"
-playServicesLocation = "21.4.0"
+playServicesLocation = "21.3.0"
 ktor = "2.3.12"
 
 #SEMIS

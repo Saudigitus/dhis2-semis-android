@@ -56,6 +56,13 @@ android {
         buildConfig = true
     }
 
+    // The enrollment form uses an isolated adapter source set. The original
+    // Campaign sources are retained in the repository but depend on Campaign-
+    // only modules that are not part of SEMIS.
+    sourceSets {
+        getByName("main").java.setSrcDirs(listOf("src/semisEnrollment/java"))
+    }
+
     packaging {
         resources {
             excludes.addAll(

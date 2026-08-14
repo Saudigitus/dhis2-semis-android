@@ -42,4 +42,7 @@
     <string name="performance_not_saved">You have unsaved performance changes. If you go back now, your data will be discarded.</string>
     <string name="performance_saved">Performance saved successfully</string>
     <string name="cannot_take_attendance">Attendance cannot be taken on non-school days</string>
+    <string name="semis_new_enrollment">New enrollment</string>
+    <string name="save_enrollment">Save enrollment</string>
+    <string name="enrollment_saved">Enrollment saved successfully</string>
 </resources>
