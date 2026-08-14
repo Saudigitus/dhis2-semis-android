@@ -81,12 +81,29 @@ class SemisEnrollmentProgramRepository(private val d2: D2) : ProgramRepository {
     override suspend fun getTrackedEntityAttribute(program: String, searchable: Boolean): List<TrackedEntityAttributeModel> = withContext(Dispatchers.IO) {
         var query = d2.programModule().programTrackedEntityAttributes().byProgram().eq(program)
         if (searchable) query = query.bySearchable().isTrue
-        query.blockingGet().mapNotNull { programAttribute ->
-            d2.trackedEntityModule().trackedEntityAttributes().uid(programAttribute.trackedEntityAttribute()?.uid()).blockingGet()
-                ?.let { attribute ->
-                    TrackedEntityAttributeModel(attribute.uid(), attribute.displayFormName(), attribute.code(),
-                        attribute.optionSet()?.uid(), attribute.valueType(), programAttribute.mandatory() ?: false)
-                }
+        val programAttributes = query.blockingGet()
+        val attributeUids = programAttributes.mapNotNull { it.trackedEntityAttribute()?.uid() }
+        val attributesByUid = if (attributeUids.isEmpty()) {
+            emptyMap()
+        } else {
+            d2.trackedEntityModule().trackedEntityAttributes()
+                .byUid().`in`(attributeUids)
+                .blockingGet()
+                .associateBy { it.uid() }
+        }
+
+        programAttributes.mapNotNull { programAttribute ->
+            val attributeUid = programAttribute.trackedEntityAttribute()?.uid()
+                ?: return@mapNotNull null
+            val attribute = attributesByUid[attributeUid] ?: return@mapNotNull null
+            TrackedEntityAttributeModel(
+                attribute.uid(),
+                attribute.displayFormName(),
+                attribute.code(),
+                attribute.optionSet()?.uid(),
+                attribute.valueType(),
+                programAttribute.mandatory() ?: false,
+            )
         }
     }
 
@@ -97,13 +114,18 @@ class SemisEnrollmentProgramRepository(private val d2: D2) : ProgramRepository {
                 uid = UUID.randomUUID().toString(), displayName = "Enrollment", attributes = getTrackedEntityAttribute(program),
             ))
         }
+        val programAttributesByAttribute = d2.programModule().programTrackedEntityAttributes()
+            .byProgram().eq(program)
+            .blockingGet()
+            .associateBy { it.trackedEntityAttribute()?.uid() }
+
         sections.map { section ->
             TrackedEntityAttributeSectionModel(
                 uid = section.uid(), code = section.code(), displayName = section.displayName(),
                 description = section.description(), sortOrder = section.sortOrder(),
                 attributes = section.attributes().orEmpty().mapNotNull { attribute ->
-                    val programAttribute = d2.programModule().programTrackedEntityAttributes().byProgram().eq(program)
-                        .byTrackedEntityAttribute().eq(attribute.uid()).one().blockingGet() ?: return@mapNotNull null
+                    val programAttribute = programAttributesByAttribute[attribute.uid()]
+                        ?: return@mapNotNull null
                     TrackedEntityAttributeModel(attribute.uid(), attribute.displayFormName(), attribute.code(),
                         attribute.optionSet()?.uid(), attribute.valueType(), programAttribute.mandatory() ?: false)
                 },
