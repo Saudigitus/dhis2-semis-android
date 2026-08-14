@@ -21,8 +21,9 @@ fun OptionSetField(
         supportingText =field.errorMessage,
         isError = field.hasError,
         data = field.optionSet ?: emptyList(),
-        selectedItem = formFieldData?.optionModel,
-        enabled = enabled ?: field.enabled,
+        selectedItem = formFieldData?.optionModel
+            ?: field.optionSet?.find { it.code == field.value },
+        enabled = (enabled ?: true) && field.enabled,
         colors = colors,
         onClick = {
             onItemClick.invoke(it.code.orEmpty())

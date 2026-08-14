@@ -9,4 +9,6 @@ data class FormBuilderState(
     val programStage: String = "",
     val dataElement: String = "",
     val date: String = "",
+    val presetValues: Map<String, String> = emptyMap(),
+    val lockedDataElements: Set<String> = emptySet(),
 )

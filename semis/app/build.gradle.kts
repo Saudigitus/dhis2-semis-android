@@ -82,6 +82,7 @@ dependencies {
     implementation(project(":semis:core:designsystem"))
     implementation(project(":semis:core:utils"))
     implementation(project(":semis:performance"))
+    implementation(project(":semis:transfer"))
 
     implementation(libs.androidx.coreKtx)
     implementation(libs.androidx.appcompat)

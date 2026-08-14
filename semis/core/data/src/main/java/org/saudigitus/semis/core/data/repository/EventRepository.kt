@@ -1,9 +1,22 @@
 package org.saudigitus.semis.core.data.repository
 
 import org.hisp.dhis.android.core.event.Event
+import org.hisp.dhis.android.core.event.EventStatus
 import org.saudigitus.semis.core.data.model.SearchTeiModel
 
 interface EventRepository {
+
+    suspend fun createEvent(
+        orgUnit: String,
+        program: String,
+        programStage: String,
+        enrollmentUid: String? = null,
+        data: List<Pair<String, String?>>,
+        eventDate: String? = null,
+        status: EventStatus = EventStatus.ACTIVE,
+    ): String
+
+    suspend fun setEventStatus(eventUid: String, status: EventStatus)
 
     /**
      * Saves an event to the database.

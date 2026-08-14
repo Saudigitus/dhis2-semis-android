@@ -1,6 +1,7 @@
 package org.saudigitus.semis.core.form.data.model
 
 import org.hisp.dhis.android.core.common.ValueType
+import org.saudigitus.semis.core.data.model.OrgUnit
 import org.saudigitus.semis.core.data.model.OptionModel
 
 data class FormFieldState(
@@ -9,6 +10,7 @@ data class FormFieldState(
     val label: String,
     val valueType: ValueType,
     val value: String? = null,
+    val selectedOrgUnit: OrgUnit? = null,
     val optionSet: List<OptionModel>? = null,
     val mandatory: Boolean = false,
     val rendered: Boolean = true,
@@ -19,6 +21,6 @@ data class FormFieldState(
     val errorMessage: String? = null
 ) {
     override fun toString(): String {
-        return "FormFieldState(eventUid=$eventUid, dataElementUid='$dataElementUid', label='$label', valueType=$valueType, value=$value, optionSet=$optionSet, mandatory=$mandatory, rendered=$rendered, enabled=$enabled, isAttendanceType=$isAttendanceType, isAttendanceReason=$isAttendanceReason, hasError=$hasError, errorMessage=$errorMessage)"
+        return "FormFieldState(eventUid=$eventUid, dataElementUid='$dataElementUid', label='$label', valueType=$valueType, value=$value, selectedOrgUnit=$selectedOrgUnit, optionSet=$optionSet, mandatory=$mandatory, rendered=$rendered, enabled=$enabled, isAttendanceType=$isAttendanceType, isAttendanceReason=$isAttendanceReason, hasError=$hasError, errorMessage=$errorMessage)"
     }
 }

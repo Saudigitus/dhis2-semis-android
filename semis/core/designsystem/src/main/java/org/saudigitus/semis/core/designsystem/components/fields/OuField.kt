@@ -1,5 +1,7 @@
 package org.saudigitus.semis.core.designsystem.components.fields
 
+import android.content.Context
+import android.content.ContextWrapper
 import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -15,7 +17,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldColors
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
@@ -28,6 +35,7 @@ import androidx.fragment.app.FragmentManager
 import org.dhis2.commons.orgunitselector.OUTreeFragment
 import org.dhis2.commons.orgunitselector.OrgUnitSelectorScope
 import org.dhis2.ui.theme.colorPrimary
+import org.hisp.dhis.mobile.ui.designsystem.theme.SurfaceColor
 import org.saudigitus.semis.core.data.model.OrgUnit
 
 @Composable
@@ -37,72 +45,112 @@ fun OuField(
     leadingIcon: ImageVector,
     selectedOrgUnit: OrgUnit? = null,
     program: String,
+    enabled: Boolean = true,
+    style: OuFieldStyle = OuFieldStyle.FILTER,
+    label: String = placeholder,
+    supportingText: String? = null,
+    isError: Boolean = false,
+    colors: TextFieldColors = TextFieldDefaults.colors(
+        focusedContainerColor = SurfaceColor.Surface,
+        unfocusedContainerColor = SurfaceColor.SurfaceDim,
+        disabledContainerColor = SurfaceColor.DisabledSurface,
+    ),
     onItemClick: (OrgUnit) -> Unit,
 ) {
-    val context = LocalContext.current
-    val fragmentManager = (context as? FragmentActivity)?.supportFragmentManager
+    val fragmentManager = LocalContext.current
+        .findFragmentActivity()
+        ?.supportFragmentManager
+    val selectionEnabled = enabled && fragmentManager != null
 
     val interactionSource = remember { MutableInteractionSource() }
-    if (interactionSource.collectIsPressedAsState().value) {
-        launchOuTreeSelector(
-            supportFragmentManager = fragmentManager!!,
-            selectedOrgUnit = selectedOrgUnit,
-            program = program,
-            onOrgUnitSelected = {
-                onItemClick.invoke(it)
-            },
-        )
+    val isPressed by interactionSource.collectIsPressedAsState()
+    fun openSelector() {
+        fragmentManager?.let {
+            launchOuTreeSelector(
+                supportFragmentManager = it,
+                selectedOrgUnit = selectedOrgUnit,
+                program = program,
+                onOrgUnitSelected = onItemClick,
+            )
+        }
+    }
+    LaunchedEffect(isPressed) {
+        if (selectionEnabled && isPressed) openSelector()
     }
 
-    Column(modifier = modifier.padding(horizontal = 16.dp)) {
-        OutlinedTextField(
-            modifier = Modifier
-                .fillMaxWidth()
-                .shadow(
-                    elevation = 2.dp,
-                    ambientColor = Color.Black.copy(alpha = 0.1f),
-                    shape = RoundedCornerShape(30.dp),
-                    clip = false,
-                )
-                .background(color = Color.White, shape = RoundedCornerShape(30.dp)),
-            shape = RoundedCornerShape(30.dp),
-            value = selectedOrgUnit?.displayName ?: "",
-            onValueChange = {},
-            singleLine = true,
-            readOnly = true,
-            placeholder = { Text(text = placeholder) },
-            leadingIcon = {
+    Column(
+        modifier = if (style == OuFieldStyle.FORM) {
+            modifier
+        } else modifier.padding(horizontal = 16.dp)
+    ) {
+        val trailingIcon: @Composable () -> Unit = {
+            IconButton(
+                enabled = selectionEnabled,
+                onClick = ::openSelector,
+            ) {
                 Icon(
-                    imageVector = leadingIcon,
+                    imageVector = Icons.Default.ArrowDropDown,
                     contentDescription = null,
-                    tint = colorPrimary,
+                    tint = MaterialTheme.colorScheme.primary,
                 )
-            },
-            trailingIcon = {
-                IconButton(onClick = {
-                    launchOuTreeSelector(
-                        supportFragmentManager = fragmentManager!!,
-                        selectedOrgUnit = selectedOrgUnit,
-                        program = program,
-                        onOrgUnitSelected = {
-                            onItemClick.invoke(it)
-                        },
+            }
+        }
+        if (style == OuFieldStyle.FORM) {
+            TextField(
+                modifier = Modifier.fillMaxWidth(),
+                value = selectedOrgUnit?.displayName.orEmpty(),
+                onValueChange = {},
+                enabled = selectionEnabled,
+                singleLine = true,
+                readOnly = true,
+                label = { Text(text = label) },
+                placeholder = { Text(text = placeholder) },
+                trailingIcon = trailingIcon,
+                interactionSource = interactionSource,
+                colors = colors,
+                supportingText = { supportingText?.let { Text(text = it) } },
+                isError = isError,
+            )
+        } else {
+            OutlinedTextField(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .shadow(
+                        elevation = 2.dp,
+                        ambientColor = Color.Black.copy(alpha = 0.1f),
+                        shape = RoundedCornerShape(30.dp),
+                        clip = false,
                     )
-                }) {
+                    .background(color = Color.White, shape = RoundedCornerShape(30.dp)),
+                shape = RoundedCornerShape(30.dp),
+                value = selectedOrgUnit?.displayName.orEmpty(),
+                onValueChange = {},
+                enabled = selectionEnabled,
+                singleLine = true,
+                readOnly = true,
+                placeholder = { Text(text = placeholder) },
+                leadingIcon = {
                     Icon(
-                        imageVector = Icons.Default.ArrowDropDown,
+                        imageVector = leadingIcon,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
+                        tint = colorPrimary,
                     )
-                }
-            },
-            interactionSource = interactionSource,
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = Color.White,
-                unfocusedBorderColor = Color.White,
-            ),
-        )
+                },
+                trailingIcon = trailingIcon,
+                interactionSource = interactionSource,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = Color.White,
+                    unfocusedBorderColor = Color.White,
+                ),
+            )
+        }
     }
+}
+
+private tailrec fun Context.findFragmentActivity(): FragmentActivity? = when (this) {
+    is FragmentActivity -> this
+    is ContextWrapper -> baseContext.findFragmentActivity()
+    else -> null
 }
 
 private fun launchOuTreeSelector(

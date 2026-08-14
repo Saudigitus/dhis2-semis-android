@@ -1,6 +1,7 @@
 package org.saudigitus.semis.core.form.ui.state
 
 import org.saudigitus.semis.core.data.model.SearchTeiModel
+import org.saudigitus.semis.core.data.model.OrgUnit
 import org.saudigitus.semis.core.designsystem.attendance.model.AttendanceButtonModel
 import org.saudigitus.semis.core.form.data.model.FormType
 
@@ -14,6 +15,11 @@ sealed interface FormEvent {
         val tei: String,
         val dataElementUid: String,
         val value: String
+    ) : FormEvent
+
+    data class UpdateOrganisationUnit(
+        val dataElementUid: String,
+        val orgUnit: OrgUnit,
     ) : FormEvent
 
     data object SaveEvent : FormEvent

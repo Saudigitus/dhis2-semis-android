@@ -59,12 +59,16 @@ fun FormContent(
                         FormFieldItem(
                             key = key,
                             field = field,
+                            program = state.formBuilderState.program,
                             fieldsData = state.fieldsData,
                             enabled = if (type == FormType.ATTENDANCE) {
                                 state.attendanceButtonState.isEditing
                             } else state.isEnabled,
                             attendanceButtonState = state.attendanceButtonState,
                             onAttendanceChange = { onEvent(FormEvent.UpdateAttendance(tei, it)) },
+                            onOrganisationUnitChange = {
+                                onEvent(FormEvent.UpdateOrganisationUnit(field.dataElementUid, it))
+                            },
                             onValueChange = { value ->
                                 onEvent(
                                     FormEvent.UpdateField(

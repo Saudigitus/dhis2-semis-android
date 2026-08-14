@@ -16,6 +16,7 @@ dependencyResolutionManagement {
 include(":semis")
 include(":semis:attendance")
 include(":semis:performance")
+include(":semis:transfer")
 include(":semis:core")
 include(":semis:core:data")
 include(":semis:core:form")
