@@ -24,6 +24,7 @@ object Constants {
     const val APP_MODULES = "appmodules.json"
 
     const val ATTENDANCE = "attendance"
+    const val ENROLLMENT = "enrollment"
     const val ABSENTEEISM = "absenteeism"
     const val PERFORMANCE = "performance"
     const val TERMS = "terms"

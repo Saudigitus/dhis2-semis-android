@@ -77,6 +77,7 @@ kotlin {
 dependencies {
     implementation(project(":commons"))
     implementation(project(":semis:attendance"))
+    implementation(project(":semis:enrollment"))
     implementation(project(":semis:core:data"))
     implementation(project(":semis:core:form"))
     implementation(project(":semis:core:designsystem"))
@@ -88,7 +89,7 @@ dependencies {
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.viewModelKtx)
-    implementation(libs.navigationCompose)
+    implementation(libs.navigation.compose)
     implementation(libs.androidx.hilt.navigation.compose)
     implementation(libs.androidx.compose.materialIcons)
     implementation(libs.androidx.compose.material.iconsExtended)

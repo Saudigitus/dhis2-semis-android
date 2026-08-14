@@ -7,6 +7,13 @@
     "route": "attendance"
   },
   {
+    "key": "enrollment",
+    "title": "Enrollment",
+    "enabled": true,
+    "icon": "enrollment",
+    "route": "enrollment"
+  },
+  {
     "key": "absenteeism",
     "title": "Absenteeism",
     "enabled": false,

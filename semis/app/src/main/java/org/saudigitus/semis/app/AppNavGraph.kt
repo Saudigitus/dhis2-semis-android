@@ -16,6 +16,7 @@ import org.saudigitus.semis.app.presentation.tei.TeiListEvent
 import org.saudigitus.semis.app.presentation.tei.TeiListScreen
 import org.saudigitus.semis.attendance.ui.AttendanceUi
 import org.saudigitus.semis.attendance.ui.AttendanceViewModel
+import org.saudigitus.semis.enrollment.ui.EnrollmentScreen
 import org.saudigitus.semis.core.designsystem.utils.mapper.TEICardMapper
 import org.saudigitus.semis.core.form.ui.FormViewModel
 import org.saudigitus.semis.performance.route.PerformanceNavGraph
@@ -83,6 +84,19 @@ fun AppNavGraph(
                 teiCardMapper = teiCardMapper,
                 navController = navController,
                 syncData = syncData
+            )
+        }
+        composable(route = AppRoutes.ENROLLMENT) {
+            val homeState by viewModel.uiState.collectAsStateWithLifecycle()
+
+            EnrollmentScreen(
+                programName = homeState.programName,
+                tei = homeState.tei,
+                filterState = homeState.filterState,
+                teiCardMapper = teiCardMapper,
+                onBack = navController::navigateUp,
+                onSync = syncData,
+                onDisplayImage = displayImageDetail,
             )
         }
         composable(route = AppRoutes.PERFORMANCE) {
