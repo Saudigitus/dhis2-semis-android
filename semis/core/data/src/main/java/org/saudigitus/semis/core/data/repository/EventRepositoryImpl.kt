@@ -37,6 +37,37 @@ class EventRepositoryImpl @Inject constructor(
             )
     }
 
+    override suspend fun createEmptyEvent(
+        orgUnit: String,
+        program: String,
+        programStage: String,
+        enrollment: String,
+    ): String = withContext(Dispatchers.IO) {
+        require(programStage.isNotBlank()) { "Program stage must not be blank" }
+        require(enrollment.isNotBlank()) { "Enrollment must not be blank" }
+
+        val existing = d2.eventModule().events()
+            .byEnrollmentUid().eq(enrollment)
+            .byProgramUid().eq(program)
+            .byProgramStageUid().eq(programStage)
+            .byDeleted().isFalse
+            .one()
+            .blockingGet()
+
+        if (existing != null) return@withContext existing.uid()
+
+        val uid = createEventProjection(
+            enrollment = enrollment,
+            ou = orgUnit,
+            program = program,
+            programStage = programStage,
+        )
+        val repository = d2.eventModule().events().uid(uid)
+        repository.setEventDate(Date(DateUtils.getInstance().today.time))
+        repository.setStatus(EventStatus.ACTIVE)
+        uid
+    }
+
     private fun eventUid(
         tei: String,
         program: String,

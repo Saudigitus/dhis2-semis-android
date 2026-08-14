@@ -3,6 +3,8 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 plugins {
     id("com.android.library")
     kotlin("android")
+    kotlin("kapt")
+    id("dagger.hilt.android.plugin")
     alias(libs.plugins.kotlin.compose.compiler)
 }
 
@@ -58,11 +60,20 @@ dependencies {
     implementation(libs.androidx.compose.material.iconsExtended)
     implementation(libs.androidx.compose.material3)
     implementation(libs.navigation.compose)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.viewModelKtx)
+    implementation(libs.androidx.hilt.navigation.compose)
+    implementation(libs.dagger.hilt.android)
     implementation(libs.google.material)
     implementation(libs.koin.core)
+    kapt(libs.dagger.hilt.android.compiler)
     coreLibraryDesugaring(libs.desugar)
 
     testImplementation(libs.test.junit)
     androidTestImplementation(libs.test.espresso)
     androidTestImplementation(libs.test.junit.ext)
+}
+
+kapt {
+    correctErrorTypes = true
 }

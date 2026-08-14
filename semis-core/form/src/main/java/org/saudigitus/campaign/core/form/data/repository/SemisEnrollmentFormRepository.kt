@@ -3,6 +3,8 @@ package org.saudigitus.campaign.core.form.data.repository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.hisp.dhis.android.core.D2
+import org.hisp.dhis.android.core.event.EventCreateProjection
+import org.hisp.dhis.android.core.event.EventStatus
 import org.saudigitus.campaign.core.data.models.OptionModel
 import org.saudigitus.campaign.core.data.models.OrgUnit
 import org.saudigitus.campaign.core.data.models.OuHideStrategy
@@ -14,6 +16,9 @@ import org.saudigitus.campaign.core.form.data.models.FormResult
 import org.saudigitus.campaign.core.form.data.models.FormSectionModel
 import org.saudigitus.campaign.core.form.ui.state.FormSectionType
 import org.saudigitus.campaign.core.form.utils.toEntities
+import org.saudigitus.campaign.core.utils.Constants
+import java.sql.Date
+import java.util.UUID
 import javax.inject.Inject
 
 /**
@@ -58,7 +63,49 @@ class SemisEnrollmentFormRepository @Inject constructor(
                 FormResult(enrollment = enrollmentUid, tei = teiUid)
             }
 
-            else -> FormResult(isEventSaved = false)
+            FormSectionType.NEW_EVENT_WITH_REGISTRATION,
+            FormSectionType.NEW_EVENT_WITHOUT_REGISTRATION -> {
+                val programStage = formSections.firstNotNullOfOrNull { it.programStage }
+                    ?: throw IllegalStateException("Program stage not found in event form")
+                val existingEvent = enrollment?.takeIf(String::isNotBlank)?.let { enrollmentUid ->
+                    d2.eventModule().events()
+                        .byEnrollmentUid().eq(enrollmentUid)
+                        .byProgramUid().eq(program)
+                        .byProgramStageUid().eq(programStage)
+                        .byDeleted().isFalse
+                        .one()
+                        .blockingGet()
+                        ?.uid()
+                }
+                val eventUid = formSections.firstNotNullOfOrNull { it.eventUid }
+                    ?: existingEvent
+                    ?: d2.eventModule().events().blockingAdd(
+                        EventCreateProjection.builder()
+                            .organisationUnit(orgUnit)
+                            .program(program)
+                            .programStage(programStage)
+                            .attributeOptionCombo(defaultAttributeOptionCombo())
+                            .apply {
+                                if (!enrollment.isNullOrBlank()) enrollment(enrollment)
+                            }
+                            .build(),
+                    )
+
+                fields.forEach { field ->
+                    d2.trackedEntityModule().trackedEntityDataValues()
+                        .value(eventUid, field.uid)
+                        .blockingSet(field.value)
+                }
+                d2.eventModule().events().uid(eventUid).apply {
+                    setEventDate(Date.valueOf(date))
+                    setStatus(EventStatus.COMPLETED)
+                }
+                FormResult(
+                    enrollment = enrollment,
+                    tei = tei,
+                    isEventSaved = eventUid.isNotBlank(),
+                )
+            }
         }
     }
 
@@ -68,7 +115,85 @@ class SemisEnrollmentFormRepository @Inject constructor(
         tei: String?,
         enrollment: String?,
         vararg programStages: String?,
-    ): List<FormSectionModel> = emptyList()
+    ): List<FormSectionModel> = withContext(Dispatchers.IO) {
+        programStages.mapNotNull { it?.trim()?.takeIf(String::isNotEmpty) }
+            .distinct()
+            .flatMap { stage -> eventSections(stage) }
+    }
+
+    private suspend fun eventSections(stage: String): List<FormSectionModel> {
+        val sections = d2.programModule().programStageSections()
+            .byProgramStageUid().eq(stage)
+            .withDataElements()
+            .blockingGet()
+
+        if (sections.isEmpty()) {
+            val stageMetadata = d2.programModule().programStages().uid(stage).blockingGet()
+            return listOf(
+                FormSectionModel(
+                    uid = UUID.randomUUID().toString(),
+                    programStage = stage,
+                    code = stageMetadata?.code(),
+                    name = stageMetadata?.displayName() ?: "Event",
+                    formFields = eventFields(stage, null),
+                ),
+            )
+        }
+
+        return sections.sortedBy { it.sortOrder() }.map { section ->
+            FormSectionModel(
+                uid = section.uid(),
+                programStage = stage,
+                code = section.code(),
+                name = section.displayName(),
+                description = section.displayDescription(),
+                sortOrder = section.sortOrder(),
+                formFields = eventFields(
+                    stage = stage,
+                    includedDataElements = section.dataElements().orEmpty().map { it.uid() }.toSet(),
+                ),
+            )
+        }
+    }
+
+    private fun defaultAttributeOptionCombo(): String? =
+        d2.categoryModule().categoryOptionCombos()
+            .byDisplayName().eq(Constants.DEFAULT)
+            .one()
+            .blockingGet()
+            ?.uid()
+
+    private suspend fun eventFields(
+        stage: String,
+        includedDataElements: Set<String>?,
+    ): List<FormFieldModel> = d2.programModule().programStageDataElements()
+        .byProgramStage().eq(stage)
+        .blockingGet()
+        .filter { includedDataElements == null || it.dataElement()?.uid() in includedDataElements }
+        .sortedBy { it.sortOrder() }
+        .mapNotNull { stageDataElement ->
+            val dataElementUid = stageDataElement.dataElement()?.uid() ?: return@mapNotNull null
+            val dataElement = d2.dataElementModule().dataElements().uid(dataElementUid).blockingGet()
+                ?: return@mapNotNull null
+            val optionSetUid = dataElement.optionSet()?.uid()
+            FormFieldModel(
+                uid = dataElementUid,
+                label = dataElement.displayFormName().orEmpty(),
+                valueType = dataElement.valueType(),
+                mandatory = stageDataElement.compulsory() == true,
+                baseMandatory = stageDataElement.compulsory() == true,
+                optionSet = optionSetUid?.let { uid ->
+                    optionRepository.getOptions(uid).map { option ->
+                        OptionModel(
+                            uid = option.uid(),
+                            code = option.code(),
+                            displayName = option.displayName(),
+                            sortOrder = option.sortOrder(),
+                        )
+                    }
+                }.orEmpty(),
+            )
+        }
 
     override suspend fun getFormSections(
         orgUnit: String,
@@ -152,5 +277,7 @@ class SemisEnrollmentFormRepository @Inject constructor(
             ?.displayName()
     }
 
-    override suspend fun deleteEvent(event: String) = Unit
+    override suspend fun deleteEvent(event: String) = withContext(Dispatchers.IO) {
+        d2.eventModule().events().uid(event).blockingDeleteIfExist()
+    }
 }

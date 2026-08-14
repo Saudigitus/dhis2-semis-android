@@ -12,6 +12,7 @@ import org.koin.compose.viewmodel.koinViewModel
 import org.saudigitus.campaign.core.designsystem.components.bottomsheets.launchDhis2BottomSheet
 import org.saudigitus.campaign.core.designsystem.components.bottomsheets.launchDiscardBottomSheet
 import org.saudigitus.campaign.core.form.R
+import org.saudigitus.campaign.core.form.data.models.FormResult
 import org.saudigitus.campaign.core.form.ui.FormViewModel
 import org.saudigitus.campaign.core.form.ui.screens.FormLoadErrorScreen
 import org.saudigitus.campaign.core.form.ui.screens.FormShimmerScreen
@@ -30,19 +31,26 @@ fun FormSectionScreen(
     navController: NavController,
     formNav: AppRoute.FormRoute? = null,
     onNewEnrollmentSaved: (() -> Unit)? = null,
+    onFormSaved: ((FormSectionType, FormResult) -> Unit)? = null,
+    onNavigateBack: (() -> Unit)? = null,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(formNav) {
         viewModel.initialize(
             formSection = formNav?.toFormSection(),
             ouName = formNav?.orgUnitName,
         )
     }
 
-    LaunchedEffect(Unit) {
-        viewModel.navigationEvent.collect {
+    LaunchedEffect(onFormSaved, onNewEnrollmentSaved) {
+        viewModel.navigationEvent.collect { event ->
             val formSection = state as? FormSectionUiState.HasFormSection
+
+            if (onFormSaved != null) {
+                onFormSaved(event.formType, event.result)
+                return@collect
+            }
 
             if (formSection?.formType == FormSectionType.NEW_ENROLLMENT &&
                 onNewEnrollmentSaved != null
@@ -51,8 +59,8 @@ fun FormSectionScreen(
                 return@collect
             }
 
-            if (it != null) {
-                navController.navigate(it)
+            if (event.route != null) {
+                navController.navigate(event.route)
             } else {
                 when(formSection?.formType) {
                     FormSectionType.NEW_ENROLLMENT -> {
@@ -98,7 +106,9 @@ fun FormSectionScreen(
                 supportFragmentManager = activity.supportFragmentManager,
                 onDiscard = {
                     viewModel.reset()
-                    if (newState?.formType == FormSectionType.NEW_EVENT_WITH_REGISTRATION) {
+                    if (onNavigateBack != null) {
+                        onNavigateBack()
+                    } else if (newState?.formType == FormSectionType.NEW_EVENT_WITH_REGISTRATION) {
                         navController.popBackStack<AppRoute.TrackerDetailRoute>(false)
                     } else {
                         navController.navigateUp()
@@ -108,7 +118,9 @@ fun FormSectionScreen(
             )
         } else {
             viewModel.reset()
-            if (newState?.formType == FormSectionType.NEW_EVENT_WITH_REGISTRATION) {
+            if (onNavigateBack != null) {
+                onNavigateBack()
+            } else if (newState?.formType == FormSectionType.NEW_EVENT_WITH_REGISTRATION) {
                 navController.popBackStack<AppRoute.TrackerDetailRoute>(false)
             } else {
                 navController.navigateUp()

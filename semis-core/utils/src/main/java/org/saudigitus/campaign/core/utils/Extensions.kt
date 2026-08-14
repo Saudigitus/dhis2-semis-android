@@ -10,3 +10,9 @@ fun String.formatTrueOnly(): String = when (this) {
     "1", "true" -> true.toString()
     else -> ""
 }
+
+fun String.formatBoolean(): String = when (trim().lowercase()) {
+    "1", "true" -> true.toString()
+    "0", "false" -> false.toString()
+    else -> ""
+}

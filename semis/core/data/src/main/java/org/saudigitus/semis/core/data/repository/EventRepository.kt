@@ -6,6 +6,19 @@ import org.saudigitus.semis.core.data.model.SearchTeiModel
 interface EventRepository {
 
     /**
+     * Creates an ACTIVE event without data values when this enrollment does not
+     * already have an event for the same program stage.
+     *
+     * @return the UID of the existing or newly-created event.
+     */
+    suspend fun createEmptyEvent(
+        orgUnit: String,
+        program: String,
+        programStage: String,
+        enrollment: String,
+    ): String
+
+    /**
      * Saves an event to the database.
      *
      * This function is responsible for creating or updating an event in the database

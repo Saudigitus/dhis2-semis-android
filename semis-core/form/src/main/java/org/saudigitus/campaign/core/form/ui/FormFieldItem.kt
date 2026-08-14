@@ -45,6 +45,12 @@ fun FormFieldItem(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         when {
+            field.valueType == ValueType.BOOLEAN && field.rendered == true -> YesNoField(
+                field = field,
+                enabled = enabled ?: field.enabled ?: true,
+                onValueChange = onValueChange
+            )
+
             !field.optionSet.isNullOrEmpty()
                 && field.customValueType != CustomValueType.SCANNABLE_DROPDOWN_FIELD
                 && field.rendered == true -> {
@@ -55,11 +61,6 @@ fun FormFieldItem(
                     onValueChange
                 )
             }
-
-            field.valueType == ValueType.BOOLEAN && field.rendered == true -> YesNoField(
-                field = field,
-                onValueChange = onValueChange
-            )
 
             field.valueType == ValueType.TRUE_ONLY && field.rendered == true -> TrueOnlyField(
                 modifier,

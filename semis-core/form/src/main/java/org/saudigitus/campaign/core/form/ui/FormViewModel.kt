@@ -32,10 +32,16 @@ import org.saudigitus.campaign.core.form.utils.phone.MozambiquePhoneValidator
 import org.saudigitus.campaign.core.navigation.AppRoute
 import org.saudigitus.campaign.core.navigation.FormType
 import org.saudigitus.campaign.core.utils.DateHelper
+import org.saudigitus.campaign.core.utils.formatBoolean
 import org.saudigitus.campaign.core.utils.formatTrueOnly
 import javax.inject.Inject
 import kotlin.time.Duration.Companion.milliseconds
 
+data class FormNavigationEvent(
+    val route: AppRoute?,
+    val formType: FormSectionType,
+    val result: FormResult,
+)
 
 @OptIn(FlowPreview::class)
 class FormViewModel @Inject constructor(
@@ -54,7 +60,7 @@ class FormViewModel @Inject constructor(
     private val formType = MutableStateFlow(FormSectionType.NEW_ENROLLMENT)
     private val formResult = MutableStateFlow<FormResult?>(null)
 
-    private val _navigationEvent = MutableSharedFlow<AppRoute?>(
+    private val _navigationEvent = MutableSharedFlow<FormNavigationEvent>(
         replay = 0,
         extraBufferCapacity = 1
     )
@@ -94,6 +100,10 @@ class FormViewModel @Inject constructor(
         viewModelScope.launch {
             formType.value = eventForm.formType
             enrollmentUid.value = eventForm.enrollment
+            formResult.value = FormResult(
+                enrollment = eventForm.enrollment,
+                tei = eventForm.trackerUid,
+            )
             val programStage = eventForm.programStage ?: formRepository.getDefaultProgramStage(
                 program = eventForm.program
             )
@@ -271,6 +281,7 @@ class FormViewModel @Inject constructor(
                 val updatedFields = currentSection.formFields.map { field ->
                     val cleanedValue = when (field.valueType) {
                         ValueType.PHONE_NUMBER -> MozambiquePhoneValidator.clean(value)
+                        ValueType.BOOLEAN -> value.formatBoolean()
                         ValueType.TRUE_ONLY -> value.formatTrueOnly()
                         else -> value
                     }
@@ -408,31 +419,31 @@ class FormViewModel @Inject constructor(
     ) {
         when (formType.value) {
             FormSectionType.NEW_ENROLLMENT -> {
-                _navigationEvent.tryEmit(null)
+                _navigationEvent.tryEmit(FormNavigationEvent(null, formType.value, result))
             }
 
             FormSectionType.EDIT_ENROLLMENT -> {
-                _navigationEvent.tryEmit(
+                _navigationEvent.tryEmit(FormNavigationEvent(
                     AppRoute.TrackerDetailRoute(
                         programUid = state.program.orEmpty(),
                         trackedEntityUid = result.tei.orEmpty(),
                         enrollmentUid = result.enrollment.orEmpty(),
-                    )
-                )
+                    ), formType.value, result
+                ))
             }
 
             FormSectionType.NEW_EVENT_WITH_REGISTRATION -> {
-                _navigationEvent.tryEmit(
+                _navigationEvent.tryEmit(FormNavigationEvent(
                     AppRoute.TrackerDetailRoute(
                         programUid = state.program.orEmpty(),
                         trackedEntityUid = formResult.value?.tei ?: state.trackerId.orEmpty(),
                         enrollmentUid = formResult.value?.enrollment ?: state.enrollmentId.orEmpty()
-                    )
-                )
+                    ), formType.value, result
+                ))
             }
 
             FormSectionType.NEW_EVENT_WITHOUT_REGISTRATION -> {
-                _navigationEvent.tryEmit(null)
+                _navigationEvent.tryEmit(FormNavigationEvent(null, formType.value, result))
             }
         }
     }

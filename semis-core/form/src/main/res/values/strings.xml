@@ -16,4 +16,6 @@
     <string name="save_changes_form">Are you sure you want to save these changes?</string>
     <string name="num_of_mandatory_field">Mandatory field(s): %s field(s)</string>
     <string name="separator">|</string>
+    <string name="semis_form_yes">Yes</string>
+    <string name="semis_form_no">No</string>
 </resources>
