@@ -1,0 +1,141 @@
+package org.saudigitus.campaign.core.form.ui.section
+
+import androidx.activity.compose.BackHandler
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
+import androidx.fragment.app.FragmentActivity
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavController
+import org.koin.compose.viewmodel.koinViewModel
+import org.saudigitus.campaign.core.designsystem.components.bottomsheets.launchDhis2BottomSheet
+import org.saudigitus.campaign.core.designsystem.components.bottomsheets.launchDiscardBottomSheet
+import org.saudigitus.campaign.core.form.R
+import org.saudigitus.campaign.core.form.ui.FormViewModel
+import org.saudigitus.campaign.core.form.ui.screens.FormLoadErrorScreen
+import org.saudigitus.campaign.core.form.ui.screens.FormShimmerScreen
+import org.saudigitus.campaign.core.form.ui.state.FormEvent
+import org.saudigitus.campaign.core.form.ui.state.FormSectionType
+import org.saudigitus.campaign.core.form.ui.state.FormSectionUiState
+import org.saudigitus.campaign.core.form.utils.completionPercentage
+import org.saudigitus.campaign.core.form.utils.toFormSection
+import org.saudigitus.campaign.core.navigation.AppRoute
+
+@Composable
+fun FormSectionScreen(
+    modifier: Modifier = Modifier,
+    activity: FragmentActivity,
+    viewModel: FormViewModel = koinViewModel(),
+    navController: NavController,
+    formNav: AppRoute.FormRoute? = null,
+) {
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+
+    LaunchedEffect(Unit) {
+        viewModel.initialize(
+            formSection = formNav?.toFormSection(),
+            ouName = formNav?.orgUnitName,
+        )
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.navigationEvent.collect {
+            if (it != null) {
+                navController.navigate(it)
+            } else {
+                val formSection = state as? FormSectionUiState.HasFormSection
+
+                when(formSection?.formType) {
+                    FormSectionType.NEW_ENROLLMENT -> {
+                        navController.popBackStack<AppRoute.TrackerListingRoute>(false)
+                    }
+                    FormSectionType.NEW_EVENT_WITH_REGISTRATION -> {
+                        if (formSection.previousType == FormSectionType.NEW_ENROLLMENT) {
+                            navController.popBackStack<AppRoute.TrackerListingRoute>(false)
+                        } else {
+                            navController.navigateUp()
+                        }
+                    }
+                    else -> {
+                        navController.popBackStack<AppRoute.EventRoute>(false)
+                    }
+                }
+            }
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.handleSave.collect { status ->
+            if (status) {
+                launchDhis2BottomSheet(
+                    title = activity.getString(R.string.save),
+                    subtitle = activity.getString(R.string.save_changes_form),
+                    supportFragmentManager = activity.supportFragmentManager,
+                    onCancel = { viewModel.handleUiEvent(FormEvent.CancelSave) },
+                    onSave = { viewModel.handleUiEvent(FormEvent.SaveEvent) }
+                )
+            }
+        }
+    }
+
+    fun backAction() {
+        val newState = state as? FormSectionUiState.HasFormSection
+        val hasData = (newState?.formSections?.completionPercentage() ?: 0f) > 0f
+
+        if (hasData) {
+            launchDiscardBottomSheet(
+                activity.getString(R.string.not_saved),
+                activity.getString(R.string.unsaved_changes_form),
+                supportFragmentManager = activity.supportFragmentManager,
+                onDiscard = {
+                    viewModel.reset()
+                    if (newState?.formType == FormSectionType.NEW_EVENT_WITH_REGISTRATION) {
+                        navController.popBackStack<AppRoute.TrackerDetailRoute>(false)
+                    } else {
+                        navController.navigateUp()
+                    }
+                },
+                onKeepEdition = { },
+            )
+        } else {
+            viewModel.reset()
+            if (newState?.formType == FormSectionType.NEW_EVENT_WITH_REGISTRATION) {
+                navController.popBackStack<AppRoute.TrackerDetailRoute>(false)
+            } else {
+                navController.navigateUp()
+            }
+        }
+    }
+
+    BackHandler {
+        backAction()
+    }
+
+    when (state) {
+        is FormSectionUiState.Idle -> {
+            FormLoadErrorScreen { backAction() }
+        }
+
+        is FormSectionUiState.Loading -> {
+            FormShimmerScreen()
+        }
+
+        is FormSectionUiState.HasFormSection -> {
+            val formSection = state as FormSectionUiState.HasFormSection
+
+            FormSectionUi(
+                modifier = modifier,
+                state = formSection,
+            ) { event ->
+                when (event) {
+                    is FormEvent.NavigateBack -> {
+                        backAction()
+                    }
+
+                    else -> viewModel.handleUiEvent(event)
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="form_title">Registration Form</string>
+    <string name="unable_load_form">Unable to load form</string>
+    <string name="something_went_wrong_loading_form">Something went wrong while loading the form. Please try again.</string>
+    <string name="retry">Retry</string>
+    <string name="administrative_area">Administrative area</string>
+    <string name="registration_date">Registration date</string>
+    <string name="current_precision">Precision: %s meters</string>
+    <string name="location" translatable="false">Lat: %s, Long: %s</string>
+    <string name="phone_prefix" translatable="false">+258</string>
+    <string name="invalide_phone_num">Invalid Phone Number</string>
+    <string name="previous">Previous</string>
+    <string name="unsaved_changes_form">You have unsaved changes. If you discard them, your collected data will be lost. Tap ‘Keep Editing’ to continue.</string>
+    <string name="events_not_found">There are no event records yet. Press ‘Add New’ to create one.</string>
+    <string name="save_changes_form">Are you sure you want to save these changes?</string>
+    <string name="num_of_mandatory_field">Mandatory field(s): %s field(s)</string>
+    <string name="separator">|</string>
+</resources>
