@@ -1,6 +1,15 @@
 package org.dhis2.usescases.datasets
 
+import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotDisplayed
+import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.isDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.printToLog
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.test.runTest
 import org.dhis2.lazyActivityScenarioRule
@@ -15,8 +24,11 @@ import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
 
+@OptIn(ExperimentalTestApi::class)
 @RunWith(AndroidJUnit4::class)
 class DataSetTest : BaseTest() {
 
@@ -46,7 +58,7 @@ class DataSetTest : BaseTest() {
         )
 
         tableIsVisible()
-
+        checkImmunizationTableIsDisplayed()
         syncButtonIsAvailableStep()
         checkIndicatorsStep()
         checkTotals()
@@ -98,49 +110,8 @@ class DataSetTest : BaseTest() {
             }
     }
 
-    private fun checkCustomTitleIsDisplayed() {
-        dataSetDetailRobot(composeTestRule) {
-            assertItemWithTextIsDisplayed("Line end: Custom Title", true)
-            assertItemWithTextIsDisplayed(
-                "Line end: Custom Subtitle test a very long subtitle",
-                true
-            )
-        }
-    }
 
-    private suspend fun waitForTableToBeVisible() {
-        composeTestRule.awaitIdle()
-        dataSetRobot {
-            clickOnDataSetAtPosition(0)
-        }
-        tableIsVisible()
-    }
 
-    private suspend fun checkContentBoxesAreDisplayed() {
-        tableIsVisible()
-        // Check top and bottom content is displayed in initial section
-        dataSetDetailRobot(composeTestRule) {
-            assertItemWithTextIsDisplayed("CONTENT BEFORE 1:", true)
-        }
-        dataSetTableRobot(composeTestRule) {
-            scrollToItemWithText("CONTENT AFTER 1:")
-            assertItemWithTextIsDisplayed("CONTENT AFTER 1:", true)
-        }
-        // Check top and bottom content is displayed when changing sections
-        dataSetDetailRobot(composeTestRule) {
-            clickOnSection("SCROLLABLE_TAB_1")
-        }
-        tableIsVisible()
-        // Check top and bottom content is displayed when changing sections
-        dataSetDetailRobot(composeTestRule) {
-            assertItemWithTextIsDisplayed("CONTENT BEFORE 2:", true)
-        }
-        dataSetTableRobot(composeTestRule) {
-            scrollToItemWithText("CONTENT AFTER 2:")
-            assertItemWithTextIsDisplayed("CONTENT AFTER 2:", true)
-            scrollToTop()
-        }
-    }
 
     @Test
     fun saveAndCompleteMandatoryFieldMandatoryValidationRule() = runTest {
@@ -193,6 +164,75 @@ class DataSetTest : BaseTest() {
         checkCompleteDialogIsDisplayedAndAttemptToCompleteStep()
 
         checkDataSetInstanceHasBeenCreatedAndIsCompleted(orgUnit)
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun testPeriodScrollBehaviorWithFuturePeriods() = runTest {
+        val dataSetUid = "BfMAe6Itzgt"
+        val dataSetName = "Child Health"
+        val orgUnit = "Ngelehun CHC"
+        val openFuturePeriods = 10
+
+        enterDataSetStep(
+            uid = dataSetUid,
+            name = dataSetName,
+        )
+
+        dataSetDetailRobot(composeTestRule) {
+            clickOnAddDataSet()
+        }
+
+        dataSetInitialRobot(composeTestRule) {
+            clickOnInputOrgUnit()
+        }
+
+        orgUnitSelectorRobot(composeTestRule) {
+            selectTreeOrgUnit(orgUnit)
+        }
+
+        // open the period input
+        dataSetInitialRobot(composeTestRule) {
+            clickOnInputPeriod()
+        }
+
+        reportPeriodSelectorRobot(composeTestRule) {
+
+            val today = LocalDate.now()
+            val latest = today.plusMonths(openFuturePeriods - 1L)
+
+            val df = DateTimeFormatter.ofPattern("MMMM yyyy")
+
+            // wait until the period selector is on the screen
+            composeTestRule.waitUntil {
+                composeTestRule
+                    .onNodeWithTag("period_selector")
+                    .isDisplayed()
+            }
+
+            // assert the item corresponding to "today" is the first item being displayed
+            composeTestRule
+                .onNodeWithTag("period_item_${openFuturePeriods - 1}")
+                .assertIsDisplayed()
+                .assertTextEquals(today.format(df))
+
+            // assert the next period after "today", which is in the future, is not being displayed
+            composeTestRule
+                .onNodeWithTag("period_item_${openFuturePeriods - 2}")
+                .assertIsNotDisplayed()
+
+            // scroll the the latest future date in the selector and check it is the month/year
+            // we expect based on the number of future periods
+
+            composeTestRule
+                .onNodeWithTag("period_selector")
+                .performScrollToNode(hasTestTag("period_item_0"))
+
+            composeTestRule
+                .onNodeWithTag("period_item_0")
+                .assertIsDisplayed()
+                .assertTextEquals(df.format(latest))
+        }
     }
 
     @Test
@@ -253,6 +293,124 @@ class DataSetTest : BaseTest() {
 
     }
 
+    @Test
+    fun completeExpiryAndFutureDays() = runTest {
+        val dataSetUid = "TuL8IOPzpHh"
+        val dataSetName = "EPI Stock"
+        val catCombo = "Improve access to clean water"
+        val orgUnit = "Ngelehun CHC"
+        val formatter = DateTimeFormatter.ofPattern("MMddyyyy")
+        val today = LocalDate.now()
+        val threeDaysFromNow = today.plusDays(3)
+        val fiveDaysAgo = today.minusDays(5)
+        val tableId = "bjDvmb4bfuf"
+        val cellId = "PGRlPlhOcmpYcVpySEQ4Ojxjb2M+SGxsdlg1MGNYQzA="
+        val threeDaysFromNowStr = threeDaysFromNow.format(formatter)
+        val fiveDaysAgoStr = fiveDaysAgo.format(formatter)
+
+        enterDataSetStep(
+            uid = dataSetUid,
+            name = dataSetName,
+        )
+        createDailyPeriodDataSetInstanceStep(
+            date = fiveDaysAgoStr,
+            orgUnit = orgUnit,
+            catCombo = catCombo
+        )
+
+        checkTableIsNotEditable()
+
+        createDailyPeriodDataSetInstanceStep(
+            date = threeDaysFromNowStr,
+            orgUnit = orgUnit,
+            catCombo = catCombo
+        )
+        tableIsVisible()
+        enterDataStep(
+            tableId = tableId,
+            cellId = cellId,
+            value = "10",
+            inputTestTag = "INPUT_NUMBER_FIELD"
+        )
+        tapOnSaveButtonStep()
+        dataSetTableRobot(composeTestRule) {
+            checkCompleteDialogIsDisplayed()
+            tapOnCompleteButton()
+        }
+
+        dataSetDetailRobot(composeTestRule){
+            clickOnDataSetAtPosition(0)
+        }
+        tableIsVisible()
+        dataSetTableRobot(composeTestRule) {
+            checkItemWithTextIsDisplayed("Re-open form to edit")
+            tapOnReopenButton()
+            checkItemWithTextIsNotDisplayed("Re-open form to edit")
+            tapOnSaveButton()
+            tapOnNotNowButton()
+        }
+
+        dataSetDetailRobot(composeTestRule){
+            checkDataSetIsNotCompletedAndModified(catCombo, orgUnit)
+        }
+
+
+    }
+
+    private fun checkCustomTitleIsDisplayed() {
+        dataSetDetailRobot(composeTestRule) {
+            assertItemWithTextIsDisplayed("Line end: Custom Title", true)
+            assertItemWithTextIsDisplayed(
+                "Line end: Custom Subtitle test a very long subtitle",
+                true
+            )
+        }
+    }
+
+    private fun waitForTableToBeVisible() {
+        composeTestRule.waitForIdle()
+        dataSetRobot {
+            clickOnDataSetAtPosition(0)
+        }
+        tableIsVisible()
+    }
+
+    private fun checkTableIsNotEditable() {
+        tableIsVisible()
+        composeTestRule.onNodeWithTag("TABLE_SCROLLABLE_COLUMN").printToLog("TABLE_LOG")
+        dataSetTableRobot(composeTestRule) {
+            checkItemWithTextIsDisplayed("This data is not editable")
+            tapOnSaveButton()
+            composeTestRule.waitForIdle()
+        }
+    }
+
+    private fun checkContentBoxesAreDisplayed() {
+        tableIsVisible()
+        // Check top and bottom content is displayed in initial section
+        dataSetDetailRobot(composeTestRule) {
+            assertItemWithTextIsDisplayed("CONTENT BEFORE 1:", true)
+        }
+        dataSetTableRobot(composeTestRule) {
+            scrollToItemWithText("CONTENT AFTER 1:")
+            assertItemWithTextIsDisplayed("CONTENT AFTER 1:", true)
+        }
+        // Check top and bottom content is displayed when changing sections
+        dataSetDetailRobot(composeTestRule) {
+            clickOnSection("SCROLLABLE_TAB_1")
+        }
+        tableIsVisible()
+        // Check top and bottom content is displayed when changing sections
+        dataSetDetailRobot(composeTestRule) {
+            assertItemWithTextIsDisplayed("CONTENT BEFORE 2:", true)
+        }
+        dataSetTableRobot(composeTestRule) {
+            scrollToItemWithText("CONTENT AFTER 2:")
+            assertItemWithTextIsDisplayed("CONTENT AFTER 2:", true)
+            scrollToTop()
+        }
+    }
+
     private fun checkLegendsStep(
         tableId: String,
         cellId: String,
@@ -285,7 +443,7 @@ class DataSetTest : BaseTest() {
         }
     }
 
-    private suspend fun checkCategoryIsMovedToRow() {
+    private fun checkCategoryIsMovedToRow() {
         val cellIdSection8 = "PGRlPlAzakpINVR1NVZDLCA8Y28+RmJMWlMzdWVXYlE6PGNvPg=="
         val cellId2Section8 = "PGRlPkZRMm84VUJsY3JTLCA8Y28+RmJMWlMzdWVXYlE6PGNvPg=="
         val cellIdSection16 = "PGRlPkFyUzdWeXVMOTVmLCA8Y28+RmJMWlMzdWVXYlE6PGNvPg=="
@@ -396,7 +554,7 @@ class DataSetTest : BaseTest() {
         }
     }
 
-    private suspend fun checkAutomaticGroupingDisabled() {
+    private fun checkAutomaticGroupingDisabled() {
         val table19 = "t3aNCvHsoSn_0"
         val table219 = "aN8uN5b15YG_1"
         val table20 = "ck7mRNwGDjP_1"
@@ -473,7 +631,7 @@ class DataSetTest : BaseTest() {
         }
     }
 
-    private suspend fun checkPivotOptions() {
+    private fun checkPivotOptions() {
         val table5 = "aN8uN5b15YG"
         val table23 = "aN8uN5b15YG_1"
         val cellIdSection5 = "PGNvYz5ET0M3ZW1MenlSaTo8ZGU+TFNKNW1LcHlFdjE="
@@ -542,22 +700,29 @@ class DataSetTest : BaseTest() {
         }
     }
 
-    private suspend fun tableIsVisible() {
-        composeTestRule.awaitIdle()
+    private fun tableIsVisible() {
+        composeTestRule.waitForIdle()
         dataSetTableRobot(composeTestRule) {
             assertTableIsDisplayed()
         }
     }
 
-    private suspend fun syncButtonIsAvailableStep() {
-        composeTestRule.awaitIdle()
+    private fun checkImmunizationTableIsDisplayed() {
+        composeTestRule.waitForIdle()
+        dataSetTableRobot(composeTestRule) {
+            assertImmunizationTableIsDisplayed()
+        }
+    }
+
+    private fun syncButtonIsAvailableStep() {
+        composeTestRule.waitForIdle()
         dataSetTableRobot(composeTestRule) {
             syncIsAvailable()
         }
     }
 
-    private suspend fun checkTotals() {
-        composeTestRule.awaitIdle()
+    private fun checkTotals() {
+        composeTestRule.waitForIdle()
         dataSetTableRobot(composeTestRule) {
             totalsAreDisplayed(
                 tableId = "dzjKKQq0cSO",
@@ -622,14 +787,14 @@ class DataSetTest : BaseTest() {
         }
     }
 
-    private suspend fun checkIndicatorsStep() {
-        composeTestRule.awaitIdle()
+    private fun checkIndicatorsStep() {
+        composeTestRule.waitForIdle()
         dataSetTableRobot(composeTestRule) {
             indicatorTableIsDisplayed()
         }
     }
 
-    private suspend fun reenterDataSetToCheckValueSavedStep() {
+    private fun reenterDataSetToCheckValueSavedStep() {
         val cell00Id = "PGRlPnM0Nm01TVMwaHh1Ojxjb2M+UHJsdDBDMVJGMHM="
 
         dataSetTableRobot(composeTestRule) {
@@ -638,7 +803,7 @@ class DataSetTest : BaseTest() {
         dataSetDetailRobot(composeTestRule) {
             clickOnDataSetAtPosition(0)
         }
-        tableIsVisible()
+        checkImmunizationTableIsDisplayed()
 
         dataSetTableRobot(composeTestRule) {
             assertCellHasValue("dzjKKQq0cSO", cell00Id, "12")
@@ -667,11 +832,11 @@ class DataSetTest : BaseTest() {
         }
 
         filterRobot(composeTestRule) {
-            //Filter by peiod
+            //Filter by period
             clickOnFilterBy(filter = "Period")
             clickOnFromToDate()
             chooseDate("08082024")
-            chooseDate("09092026")
+            chooseDate("09092027")
             checkFilterCounter("2")
         }
 
@@ -721,7 +886,7 @@ class DataSetTest : BaseTest() {
         dataSetDetailRobot(composeTestRule) {
             clickOnAddDataSet()
         }
-        dataSetInitialRobot {
+        dataSetInitialRobot(composeTestRule) {
             checkActionInputIsNotDisplayed()
             clickOnInputOrgUnit()
         }
@@ -730,24 +895,60 @@ class DataSetTest : BaseTest() {
             selectTreeOrgUnit(orgUnit)
         }
 
-        dataSetInitialRobot {
+        dataSetInitialRobot(composeTestRule) {
             checkActionInputIsNotDisplayed()
             clickOnInputPeriod()
         }
 
-        reportPeriodSelectorRobot(composeTestRule) {
-            openFuturePeriods?.let { checkFuturePeriodAvailable(it) }
-            selectFirstPeriod()
+        // wait until the period selector is on the screen
+        composeTestRule.waitUntil {
+            composeTestRule
+                .onNodeWithTag("period_selector")
+                .isDisplayed()
         }
 
-        dataSetInitialRobot {
+        reportPeriodSelectorRobot(composeTestRule) {
+            openFuturePeriods
+                ?.let { checkFuturePeriodAvailable(it) }
+
+            selectPeriod(openFuturePeriods?: 0)
+        }
+
+        dataSetInitialRobot(composeTestRule) {
             catCombo?.let {
                 clickOnInputCatCombo()
                 selectCatCombo(catCombo)
             }
         }
 
-        dataSetInitialRobot {
+        dataSetInitialRobot(composeTestRule) {
+            checkActionInputIsDisplayed()
+            clickOnActionButton()
+        }
+    }
+
+    private fun createDailyPeriodDataSetInstanceStep(
+        orgUnit: String,
+        date: String,
+        catCombo: String? = null,
+    ) {
+        dataSetDetailRobot(composeTestRule) {
+            clickOnAddDataSet()
+        }
+
+        dataSetInitialRobot(composeTestRule) {
+            catCombo?.let {
+                clickOnInputCatCombo()
+                selectCatCombo(catCombo)
+            }
+            checkActionInputIsNotDisplayed()
+            clickOnInputOrgUnit()
+            orgUnitSelectorRobot(composeTestRule) {
+                selectTreeOrgUnit(orgUnit)
+            }
+            checkActionInputIsNotDisplayed()
+            clickOnInputPeriod()
+            chooseDate(date)
             checkActionInputIsDisplayed()
             clickOnActionButton()
         }

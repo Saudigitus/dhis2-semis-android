@@ -1,10 +1,16 @@
-# Release notes - Android App for DHIS2 - 3.2.1.1
+# Release notes - Android App for DHIS2 - 3.4.2
 
-### Translations
+### Bug
 
-A translations-only patch. This version does not introduce any new features,
-UI changes, or bug fixes. It simply updates the app's translations based on recent
-contributions from the community via Transifex.
-This patch is particularly important for countries and implementations
-that rely on up-to-date local language support for end users.
-If your project depends on recent translation updates, we recommend deploying this APK.
+[ANDROAPP-7682](https://dhis2.atlassian.net/browse/ANDROAPP-7682) Sync button doesn't always appear
+in enrollments list
+
+[ANDROAPP-7706](https://dhis2.atlassian.net/browse/ANDROAPP-7706) Tei list items display wrong
+attributes
+
+[ANDROAPP-7708](https://dhis2.atlassian.net/browse/ANDROAPP-7708) NullPointerException: Attempt to
+invoke virtual method 'java.lang.Class java.lang.Object.getClass\(\)'... \(ProgramFragment\)
+
+[ANDROAPP-7711](https://dhis2.atlassian.net/browse/ANDROAPP-7711) NullPointerException: Attempt to
+invoke virtual method 'android.content.res.Resources android.view.View.getResources\(\)' on a null
+object reference

@@ -1,60 +1,62 @@
-import org.gradle.kotlin.dsl.implementation
-import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
-    kotlin("multiplatform")
+    alias(libs.plugins.kotlin.multiplatform)
     alias(libs.plugins.compose)
-    id("com.android.library")
+    alias(libs.plugins.android.kotlin.multiplatform.library)
     alias(libs.plugins.kotlin.compose.compiler)
     alias(libs.plugins.kotlin.atomicfu)
-}
-
-
-repositories{
-    maven { url = uri("https://central.sonatype.com/repository/maven-snapshots") }
-    mavenCentral()
-    google()
+    alias(libs.plugins.kotlin.serialization)
 }
 
 kotlin {
-
-    androidTarget {
-        compilations.all {
-            compileTaskProvider.configure {
-                compilerOptions {
-                    jvmTarget.set(JvmTarget.JVM_17)
-                }
-            }
-        }
-    }
-    jvm("desktop")
-
-    @OptIn(ExperimentalKotlinGradlePluginApi::class)
     compilerOptions {
+        freeCompilerArgs.add("-Xcontext-parameters")
         freeCompilerArgs.add("-Xexpect-actual-classes")
     }
 
+    android {
+        namespace = "org.dhis2.mobile.commons"
+        compileSdk = libs.versions.sdk.get().toInt()
+        minSdk = libs.versions.minSdk.get().toInt()
+        compilerOptions { jvmTarget.set(JvmTarget.JVM_17) }
+        androidResources { enable = true }
+        withHostTestBuilder {}.configure {}
+        withDeviceTestBuilder {}.configure {
+            instrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        }
+    }
+
+    jvm("desktop")
+
     sourceSets {
         commonMain.dependencies {
-            implementation(compose.runtime)
-            implementation(compose.foundation)
-            implementation(compose.ui)
-            implementation(compose.material3)
-            implementation(compose.components.resources)
+            implementation(libs.compose.runtime)
+            implementation(libs.compose.foundation)
+            implementation(libs.compose.ui)
+            implementation(libs.compose.material3)
+            implementation(libs.compose.components.resources)
+            implementation(libs.compose.material3.window)
+            implementation(libs.lifecycle.runtime.compose)
 
             // Koin
             api(libs.koin.core)
             implementation(libs.ktxml)
             implementation(libs.koin.compose)
             implementation(libs.koin.composeVM)
+
+            // Design system
             implementation(libs.dhis2.mobile.designsystem)
+
             //dates
             implementation(libs.kotlinx.datetime)
 
             // Atomicfu
             implementation(libs.atomicfu)
 
+            //Coil
+            api(libs.coil)
+            api(libs.coil.network)
         }
         commonTest.dependencies {
             implementation(kotlin("test"))
@@ -69,15 +71,20 @@ kotlin {
             implementation(libs.dhis2.android.sdk)
             implementation(libs.test.espresso.idlingresource)
             api(libs.analytics.timber)
+            implementation(libs.androidx.browser)
             // Sentry
             api(libs.analytics.sentry)
+            implementation(libs.androidx.work)
+            compileOnly(libs.androidx.compose.preview)
+            compileOnly(libs.androidx.compose.uitooling)
         }
 
-        androidUnitTest.dependencies {
-
+        getByName("androidHostTest") {
+            dependencies {
+            }
         }
 
-        androidInstrumentedTest.dependencies {
+        getByName("androidDeviceTest") {
             dependencies {
                 implementation(libs.test.junit.ext)
                 implementation(libs.test.espresso)
@@ -87,7 +94,7 @@ kotlin {
 
         val desktopMain by getting {
             dependencies {
-                implementation(compose.desktop.common)
+                implementation(libs.compose.desktop.common)
             }
         }
     }
@@ -95,31 +102,11 @@ kotlin {
 }
 
 compose.resources {
-    publicResClass = false
+    publicResClass = true
     packageOfResClass = "org.dhis2.mobile.commons.resources"
     generateResClass = always
 }
 
-android {
-    namespace = "org.dhis2.mobile.commonskmm"
-    compileSdk = libs.versions.sdk.get().toInt()
-    defaultConfig {
-        minSdk = libs.versions.minSdk.get().toInt()
-    }
-    compileOptions {
-        isCoreLibraryDesugaringEnabled = true
-
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-    }
-
-    dependencies {
-        coreLibraryDesugaring(libs.desugar)
-    }
-}
-
 dependencies {
-    debugImplementation(libs.androidx.compose.preview)
-    debugImplementation(libs.androidx.ui.tooling)
+    coreLibraryDesugaring(libs.desugar)
 }
-

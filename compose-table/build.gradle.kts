@@ -2,7 +2,6 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     id("com.android.library")
-    kotlin("android")
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.kotlin.compose.compiler)
 }
@@ -56,4 +55,5 @@ dependencies {
     androidTestImplementation(libs.bundles.table.androidTest)
     implementation(libs.dhis2.mobile.designsystem)
     implementation(libs.androidx.material3)
+    implementation(libs.androidx.compose)
 }

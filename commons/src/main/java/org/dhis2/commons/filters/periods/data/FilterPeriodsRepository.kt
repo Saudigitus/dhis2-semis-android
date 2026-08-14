@@ -8,23 +8,24 @@ import org.hisp.dhis.android.core.D2
 import org.hisp.dhis.android.core.period.PeriodType
 import java.util.Date
 
-class FilterPeriodsRepository(private val d2: D2) {
-
-    fun getDefaultPeriodTypes(): List<FilterPeriodType> {
-        return listOf(
+class FilterPeriodsRepository(
+    private val d2: D2,
+) {
+    fun getDefaultPeriodTypes(): List<FilterPeriodType> =
+        listOf(
             FilterPeriodType.DAILY,
             FilterPeriodType.WEEKLY,
             FilterPeriodType.MONTHLY,
             FilterPeriodType.YEARLY,
         )
-    }
 
-    fun getDataSetFilterPeriodTypes(): List<FilterPeriodType> {
-        return listOf(
+    fun getDataSetFilterPeriodTypes(): List<FilterPeriodType> =
+        listOf(
             FilterPeriodType.DAILY,
             FilterPeriodType.WEEKLY,
             FilterPeriodType.WEEKLY_WEDNESDAY,
             FilterPeriodType.WEEKLY_THURSDAY,
+            FilterPeriodType.WEEKLY_FRIDAY,
             FilterPeriodType.WEEKLY_SATURDAY,
             FilterPeriodType.WEEKLY_SUNDAY,
             FilterPeriodType.BI_WEEKLY,
@@ -36,19 +37,22 @@ class FilterPeriodsRepository(private val d2: D2) {
             FilterPeriodType.SIX_MONTHLY_APRIL,
             FilterPeriodType.SIX_MONTHLY_NOV,
             FilterPeriodType.YEARLY,
+            FilterPeriodType.FINANCIAL_FEB,
             FilterPeriodType.FINANCIAL_APRIL,
             FilterPeriodType.FINANCIAL_JULY,
+            FilterPeriodType.FINANCIAL_AUG,
+            FilterPeriodType.FINANCIAL_SEP,
             FilterPeriodType.FINANCIAL_OCT,
             FilterPeriodType.FINANCIAL_NOV,
         )
-    }
 
-    fun getDTOPeriod(filterPeriodType: FilterPeriodType): PeriodType {
-        return when (filterPeriodType) {
+    fun getDTOPeriod(filterPeriodType: FilterPeriodType): PeriodType =
+        when (filterPeriodType) {
             FilterPeriodType.DAILY -> PeriodType.Daily
             FilterPeriodType.WEEKLY -> PeriodType.Weekly
             FilterPeriodType.WEEKLY_WEDNESDAY -> PeriodType.WeeklyWednesday
             FilterPeriodType.WEEKLY_THURSDAY -> PeriodType.WeeklyThursday
+            FilterPeriodType.WEEKLY_FRIDAY -> PeriodType.WeeklyFriday
             FilterPeriodType.WEEKLY_SATURDAY -> PeriodType.WeeklySaturday
             FilterPeriodType.WEEKLY_SUNDAY -> PeriodType.WeeklySunday
             FilterPeriodType.BI_WEEKLY -> PeriodType.BiWeekly
@@ -60,21 +64,23 @@ class FilterPeriodsRepository(private val d2: D2) {
             FilterPeriodType.SIX_MONTHLY_APRIL -> PeriodType.SixMonthlyApril
             FilterPeriodType.SIX_MONTHLY_NOV -> PeriodType.SixMonthlyNov
             FilterPeriodType.YEARLY -> PeriodType.Yearly
+            FilterPeriodType.FINANCIAL_FEB -> PeriodType.FinancialFeb
             FilterPeriodType.FINANCIAL_APRIL -> PeriodType.FinancialApril
             FilterPeriodType.FINANCIAL_JULY -> PeriodType.FinancialJuly
+            FilterPeriodType.FINANCIAL_AUG -> PeriodType.FinancialAug
+            FilterPeriodType.FINANCIAL_SEP -> PeriodType.FinancialSep
             FilterPeriodType.FINANCIAL_OCT -> PeriodType.FinancialOct
             FilterPeriodType.FINANCIAL_NOV -> PeriodType.FinancialNov
             FilterPeriodType.NONE -> PeriodType.Daily
         }
-    }
 
     fun getPeriodSource(
         labelProvider: PeriodLabelProvider,
         filterPeriodType: FilterPeriodType,
         minDate: Date,
         maxDate: Date?,
-    ): PeriodSource {
-        return PeriodSource(
+    ): PeriodSource =
+        PeriodSource(
             d2 = d2,
             periodLabelProvider = labelProvider,
             periodType = getDTOPeriod(filterPeriodType),
@@ -83,5 +89,4 @@ class FilterPeriodsRepository(private val d2: D2) {
             selectedDate = null,
             periodOrder = PeriodOrder.DESC,
         )
-    }
 }
