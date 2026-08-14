@@ -39,7 +39,11 @@ fun FormFieldItem(
     onAttendanceChange: (AttendanceButtonModel) -> Unit = {},
     onValueChange: (String) -> Unit
 ) {
-    val fieldData = fieldsData.find { it.tei == key }
+    val fieldData = if (field.isAttendanceReason) {
+        attendanceReasonFieldData(key, field, attendanceButtonState)
+    } else {
+        fieldsData.find { it.tei == key && it.dataElement == field.dataElementUid }
+    }
 
     Column(
         modifier = Modifier.padding(horizontal = 16.dp, vertical = 5.dp),

@@ -1,6 +1,5 @@
 package org.saudigitus.semis.attendance.ui
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -49,7 +48,6 @@ import org.hisp.dhis.mobile.ui.designsystem.component.state.rememberListCardStat
 import org.hisp.dhis.mobile.ui.designsystem.theme.Radius
 import org.hisp.dhis.mobile.ui.designsystem.theme.SurfaceColor
 import org.hisp.dhis.mobile.ui.designsystem.theme.dropShadow
-import org.saudigitus.semis.attendance.ui.components.AttendanceStatusSwitch
 import org.saudigitus.semis.attendance.ui.components.BulkCard
 import org.saudigitus.semis.attendance.ui.model.BottomSheetConfirmAction
 import org.saudigitus.semis.attendance.ui.model.BottomSheetType
@@ -158,7 +156,9 @@ fun AttendanceScreen(
                 text = {
                     Text(
                         text = if (state.buttonStep == ButtonStep.NONE) {
-                            stringResource(R.string.update)
+                            stringResource(R.string.take_attendance)
+                        } else if (state.allowAttendanceStatus) {
+                            stringResource(R.string.complete_attendance)
                         } else {
                             stringResource(R.string.save)
                         },
@@ -200,17 +200,6 @@ fun AttendanceScreen(
                 ),
             state = state.attendanceSummaryState,
             onBulk = { onEvent(AttendanceUiEvent.ShowBottomSheet(BottomSheetType.BULK)) },
-            content = {
-                if (state.attendanceStatus != null) {
-                    AttendanceStatusSwitch(
-                        title = state.attendanceStatus.displayName.orEmpty(),
-                        isChecked = state.attendanceStatus.value.toBoolean(),
-                        onCheckedChange = {
-                            onEvent(AttendanceUiEvent.AddAttendanceStatus(it))
-                        }
-                    )
-                }
-            }
         )
 
         if (state.isLoading) {
@@ -322,16 +311,28 @@ fun AttendanceScreen(
                             onCardClick = card.first.onCardCLick,
                             listAvatar = card.first.avatar,
                         )
-                        AnimatedVisibility(!state.attendanceStatus?.value.toBoolean()) {
-                            FormContent(
-                                key = tei.uid(),
-                                tei = tei,
-                                type = FormType.ATTENDANCE,
-                                modifier = Modifier.fillMaxWidth(),
-                                state = formState,
-                                onEvent = onFormEvent
-                            )
-                        }
+                        FormContent(
+                            key = tei.uid(),
+                            tei = tei,
+                            type = FormType.ATTENDANCE,
+                            modifier = Modifier.fillMaxWidth(),
+                            state = formState,
+                            onEvent = { formEvent ->
+                                if (
+                                    !state.allowAttendanceStatus &&
+                                    formEvent is FormEvent.UpdateAttendance
+                                ) {
+                                    onEvent(
+                                        AttendanceUiEvent.OnAttendanceClick(
+                                            tei = formEvent.tei,
+                                            buttonModel = formEvent.buttonModel,
+                                        )
+                                    )
+                                } else {
+                                    onFormEvent(formEvent)
+                                }
+                            }
+                        )
                         Spacer(modifier = Modifier.padding(2.dp))
                     }
                 }

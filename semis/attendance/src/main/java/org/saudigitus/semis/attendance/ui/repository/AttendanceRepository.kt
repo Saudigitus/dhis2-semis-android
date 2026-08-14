@@ -2,15 +2,30 @@ package org.saudigitus.semis.attendance.ui.repository
 
 import org.saudigitus.semis.attendance.ui.model.AttendanceStatus
 import org.saudigitus.semis.core.designsystem.components.FilterDetailsState
+import org.saudigitus.semis.core.designsystem.attendance.model.AttendanceEventWithDecorator
 
 interface AttendanceRepository {
 
-    suspend fun saveAttendanceStatus(
+    suspend fun createAttendanceStatus(
         orgUnit: String,
         program: String,
         date: String,
         filterDetailsState: FilterDetailsState,
-        attendanceStatus: AttendanceStatus
-    )
-    suspend fun getAttendanceStatus(program: String, date: String): AttendanceStatus?
+    ): AttendanceStatus?
+
+    suspend fun completeAttendanceStatus(
+        orgUnit: String,
+        program: String,
+        date: String,
+        filterDetailsState: FilterDetailsState,
+        totalLearners: Int,
+        attendanceEvents: List<AttendanceEventWithDecorator>,
+    ): AttendanceStatus?
+
+    suspend fun getAttendanceStatus(
+        orgUnit: String,
+        program: String,
+        date: String,
+        filterDetailsState: FilterDetailsState,
+    ): AttendanceStatus?
 }

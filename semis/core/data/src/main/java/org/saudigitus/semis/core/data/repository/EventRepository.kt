@@ -64,4 +64,6 @@ interface EventRepository {
         dataElement: String,
         teis: List<String>,
     ): List<Event>
+
+    suspend fun deleteEvent(event: String)
 }

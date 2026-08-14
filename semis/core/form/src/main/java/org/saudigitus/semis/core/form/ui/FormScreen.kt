@@ -49,7 +49,13 @@ fun FormContent(
                     verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    for (field in state.fields) {
+                    val visibleFields = if (type == FormType.ATTENDANCE) {
+                        visibleAttendanceFields(key, state.fields, state.attendanceButtonState)
+                    } else {
+                        state.fields.filter { it.rendered }
+                    }
+
+                    for (field in visibleFields) {
                         FormFieldItem(
                             key = key,
                             field = field,
