@@ -22,6 +22,7 @@ import org.saudigitus.semis.core.designsystem.attendance.model.AttendanceButtonM
 import org.saudigitus.semis.core.designsystem.utils.UiDefaults
 import org.saudigitus.semis.core.designsystem.utils.UiDefaults.GRAY
 import org.saudigitus.semis.core.designsystem.utils.UiDefaults.getIconByName
+import org.saudigitus.semis.core.designsystem.theme.white
 
 @Composable
 fun AttendanceButton(
@@ -46,10 +47,15 @@ fun AttendanceButton(
         ) {
             itemsIndexed(state.buttons) { _, item ->
                 val event = state.attendanceEvents.find { it.event?.tei == key }
+                val isSelected = if (item.code == null) {
+                    event == null
+                } else {
+                    event?.event?.value == item.code
+                }
 
                 IconButton(
                     onClick = {
-                        onClick.invoke( item)
+                        onClick.invoke(item)
                     },
                     enabled = item.enabled,
                     modifier = Modifier
@@ -60,11 +66,13 @@ fun AttendanceButton(
                         )
                         .size(45.dp),
                     colors = IconButtonDefaults.iconButtonColors(
-                        containerColor = if (event != null && event.event?.value == item.code) {
-                            event.decorator?.containerColor ?: Color.White
+                        containerColor = if (isSelected) {
+                            event?.decorator?.containerColor
+                                ?: item.color
+                                ?: UiDefaults.getAttendanceStatusColor(item.key)
                         } else Color.White,
-                        contentColor = if (event != null && event.event?.value == item.code) {
-                            Color(event.decorator?.contentColor ?: GRAY)
+                        contentColor = if (isSelected) {
+                            Color(event?.decorator?.contentColor ?: white)
                         } else {
                             item.color
                                 ?: UiDefaults.getAttendanceStatusColor(item.code.orEmpty())
@@ -79,23 +87,46 @@ fun AttendanceButton(
                 }
             }
         }
-    } else if (state.attendanceEvents.isEmpty()) {
-        Icon(
-            modifier = modifier.then(Modifier.size(45.dp)),
-            imageVector = Icons.AutoMirrored.Filled.Help,
-            contentDescription = null,
-            tint = Color.LightGray
-        )
     } else {
         val event = state.attendanceEvents.find { it.event?.tei == key }
 
         if (event == null) {
-            Icon(
-                modifier = modifier.then(Modifier.size(45.dp)),
-                imageVector = Icons.AutoMirrored.Filled.Help,
-                contentDescription = null,
-                tint = Color.LightGray
-            )
+            val present = state.buttons.firstOrNull { it.code == null }
+
+            if (present == null) {
+                Icon(
+                    modifier = modifier.then(Modifier.size(45.dp)),
+                    imageVector = Icons.AutoMirrored.Filled.Help,
+                    contentDescription = null,
+                    tint = Color.LightGray
+                )
+            } else {
+                IconButton(
+                    onClick = {},
+                    modifier = modifier.then(
+                        Modifier
+                            .border(
+                                width = (0.15).dp,
+                                color = Color.LightGray,
+                                shape = RoundedCornerShape(100.dp)
+                            )
+                            .size(45.dp)
+                    ),
+                    colors = IconButtonDefaults.iconButtonColors(
+                        containerColor = present.color
+                            ?: UiDefaults.getAttendanceStatusColor(present.key),
+                        contentColor = Color.White,
+                    )
+                ) {
+                    Icon(
+                        imageVector = present.icon
+                            ?: ImageVector.vectorResource(
+                                getIconByName(present.iconName.orEmpty())
+                            ),
+                        contentDescription = present.name,
+                    )
+                }
+            }
         } else {
             IconButton(
                 onClick = {},

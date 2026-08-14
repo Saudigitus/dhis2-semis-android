@@ -27,6 +27,8 @@
     <string name="marked_follow_up">Marked for follow-up</string>
     <string name="sync_error_title">Sync Error</string>
     <string name="update">Update</string>
+    <string name="take_attendance">Take Attendance</string>
+    <string name="complete_attendance">Complete Attendance</string>
     <string name="app_not_properly_config">App not configured properly. Please contact System Administrator</string>
     <string name="attendance_saved">Attendance saved successfully</string>
     <string name="not_saved">Not saved</string>

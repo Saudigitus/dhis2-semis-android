@@ -156,7 +156,9 @@ fun AttendanceScreen(
                 text = {
                     Text(
                         text = if (state.buttonStep == ButtonStep.NONE) {
-                            stringResource(R.string.update)
+                            stringResource(R.string.take_attendance)
+                        } else if (state.allowAttendanceStatus) {
+                            stringResource(R.string.complete_attendance)
                         } else {
                             stringResource(R.string.save)
                         },
@@ -197,7 +199,7 @@ fun AttendanceScreen(
                     shape = RoundedCornerShape(Radius.S)
                 ),
             state = state.attendanceSummaryState,
-            onBulk = { onEvent(AttendanceUiEvent.ShowBottomSheet(BottomSheetType.BULK)) }
+            onBulk = { onEvent(AttendanceUiEvent.ShowBottomSheet(BottomSheetType.BULK)) },
         )
 
         if (state.isLoading) {
@@ -315,7 +317,21 @@ fun AttendanceScreen(
                             type = FormType.ATTENDANCE,
                             modifier = Modifier.fillMaxWidth(),
                             state = formState,
-                            onEvent = onFormEvent
+                            onEvent = { formEvent ->
+                                if (
+                                    !state.allowAttendanceStatus &&
+                                    formEvent is FormEvent.UpdateAttendance
+                                ) {
+                                    onEvent(
+                                        AttendanceUiEvent.OnAttendanceClick(
+                                            tei = formEvent.tei,
+                                            buttonModel = formEvent.buttonModel,
+                                        )
+                                    )
+                                } else {
+                                    onFormEvent(formEvent)
+                                }
+                            }
                         )
                         Spacer(modifier = Modifier.padding(2.dp))
                     }

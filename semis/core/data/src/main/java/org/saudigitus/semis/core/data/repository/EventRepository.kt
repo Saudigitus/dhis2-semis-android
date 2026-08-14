@@ -48,10 +48,21 @@ interface EventRepository {
         orgUnit: String,
         program: String,
         programStage: String,
-        tei: SearchTeiModel,
+        tei: SearchTeiModel? = null,
         data: Map<String, Pair<String, String>>,
-        eventDate: String?,
+        eventDate: String? = null,
     )
+
+    suspend fun saveEvent(
+        event: String?,
+        orgUnit: String,
+        program: String,
+        programStage: String,
+        tei: SearchTeiModel? = null,
+        data: List<Pair<String, String?>>,
+        eventDate: String? = null,
+    )
+
     suspend fun getEvents(
         teiUids: List<String>,
         program: String,
@@ -66,4 +77,6 @@ interface EventRepository {
         dataElement: String,
         teis: List<String>,
     ): List<Event>
+
+    suspend fun deleteEvent(event: String)
 }
