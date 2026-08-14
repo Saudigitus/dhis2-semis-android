@@ -9,6 +9,7 @@ import org.saudigitus.semis.core.data.utils.isEnabled
 import org.saudigitus.semis.core.utils.Constants.ABSENTEEISM
 import org.saudigitus.semis.core.utils.Constants.APP_MODULES
 import org.saudigitus.semis.core.utils.Constants.ATTENDANCE
+import org.saudigitus.semis.core.utils.Constants.ENROLLMENT
 import org.saudigitus.semis.core.utils.Constants.PERFORMANCE
 import org.saudigitus.semis.core.utils.Constants.TRANSFER
 import org.saudigitus.semis.core.utils.JsonMapper
@@ -28,6 +29,7 @@ class AppModulesRepositoryImpl
         val modules = parsedModules.map {
             when (it.key) {
                 ATTENDANCE -> it.isEnabled(appConfig?.attendance?.enabled ?: it.enabled)
+                ENROLLMENT -> it.isEnabled(appConfig?.registration?.enabled ?: it.enabled)
                 ABSENTEEISM -> it.isEnabled(appConfig?.absenteeism?.enabled ?: it.enabled)
                 PERFORMANCE -> it.isEnabled(appConfig?.performance?.enabled ?: it.enabled)
                 TRANSFER -> it.isEnabled(appConfig?.transfer?.enabled ?: it.enabled)

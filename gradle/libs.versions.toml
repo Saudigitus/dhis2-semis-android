@@ -93,9 +93,13 @@ lifecycleViewmodel = "2.8.7"
 androidx-navigation = "2.7.0"
 junitJupiter = "5.8.1"
 ktxml = "0.3.2"
-atomicfu = "0.27.0"
+atomicfu = "0.26.0"
+playServicesLocation = "21.3.0"
+ktor = "2.3.12"
 
 #SEMIS
+room = "2.6.1"
+ksp = "2.0.21-1.0.28"
 semis = "2.0.0"
 semisDatastore = "2.0"
 materialIcons = "1.7.8"
@@ -103,6 +107,7 @@ androidxHiltNavigation = "1.0.0"
 composeNavigation = "2.9.5"
 material3Version = "1.4.0"
 uiGraphics = "1.9.4"
+agp = "8.8.0"
 
 [libraries]
 gradlePlugin = { group = "com.android.tools.build", name = "gradle", version.ref = "gradle" }
@@ -132,6 +137,9 @@ androidx-compose-viewbinding = { group = "androidx.compose.ui", name = "ui-viewb
 androidx-compose-paging = { group = "androidx.paging", name = "paging-compose", version.ref = "composePaging" }
 test-androidx-paging = { group = "androidx.paging", name = "paging-testing", version.ref = "pagingTesting" }
 androidx-compose-lifecycle = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "composeLifecycle" }
+room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
+room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
+room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
 androidx-coreKtx = { group = "androidx.core", name = "core-ktx", version.ref = "corektx" }
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
 androidx-annotation = { group = "androidx.annotation", name = "annotation", version.ref = "annotation" }
@@ -241,19 +249,28 @@ androidx-navigation-compose = { module = "org.jetbrains.androidx.navigation:navi
 junit-jupiter = { group = "org.junit.jupiter", name = "junit-jupiter", version.ref = "junitJupiter" }
 atomicfu = { module = "org.jetbrains.kotlinx:atomicfu", version.ref = "atomicfu" }
 ktxml = { module = "org.kobjects.ktxml:core", version.ref = "ktxml" }
+ktor-client-android = { group = "io.ktor", name = "ktor-client-android", version.ref = "ktor" }
+ktor-client-content-negotiation = { group = "io.ktor", name = "ktor-client-content-negotiation", version.ref = "ktor" }
+ktor-serialization-kotlinx-json = { group = "io.ktor", name = "ktor-serialization-kotlinx-json", version.ref = "ktor" }
+google-location = { group = "com.google.android.gms", name = "play-services-location", version.ref = "playServicesLocation" }
 
 #SEMIS dependencies
 androidx-compose-materialIcons = { group = "androidx.compose.material", name = "material-icons-core", version.ref = "materialIcons" }
 androidx-compose-material-iconsExtended = { group = "androidx.compose.material", name = "material-icons-extended", version.ref = "materialIcons" }
-navigationCompose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "composeNavigation" }
+navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "composeNavigation" }
 androidx-hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version.ref = "androidxHiltNavigation" }
 androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3", version.ref = "material3Version" }
 androidx-compose-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics", version.ref = "uiGraphics" }
 
 [plugins]
+androidx-room = { id = "androidx.room", version.ref = "room" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 kotlin-compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
-kotlin-serialization = { id = "kotlinx-serialization" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+kotlin-atomicfu = { id = "org.jetbrains.kotlinx.atomicfu", version.ref = "atomicfu" }
 compose = { id = "org.jetbrains.compose", version.ref = "composePlugin" }
+android-application = { id = "com.android.application", version.ref = "agp" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 [bundles]
 uicomponents-implementation = ["androidx-coreKtx", "androidx-material3", "androidx-material3-window", "androidx-material3-adaptative-android", "google-material", "lottie-compose", "dhis2-mobile-designsystem"]
 uicomponents-api = ["dhis2-mobile-designsystem", "androidx-compose-constraintlayout", "androidx-compose-preview", "androidx-compose-ui", "google-material3-themeadapter"]

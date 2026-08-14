@@ -268,6 +268,11 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    fun refreshTeis() {
+        loadJob?.cancel()
+        loadJob = viewModelScope.launch { loadTeis() }
+    }
+
     private fun handleFilterValueChange(event: FilterComponentEvent.FilterValueChange<*>) {
         viewModelScope.launch {
             loadJob?.cancel()

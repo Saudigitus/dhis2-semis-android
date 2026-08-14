@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="form_title">Formulário de Registo</string>
+    <string name="unable_load_form">Não foi possível carregar o formulário</string>
+    <string name="something_went_wrong_loading_form">Ocorreu um erro ao carregar o formulário. Por favor, tente novamente.</string>
+    <string name="retry">Tentar novamente</string>
+    <string name="administrative_area">Área administrativa</string>
+    <string name="registration_date">Data de registo</string>
+    <string name="current_precision">Precisão: %s metros</string>
+    <string name="invalide_phone_num">Número de telefone inválido</string>
+    <string name="previous">Anterior</string>
+    <string name="unsaved_changes_form">Tem alterações não guardadas. Se as descartar, os dados recolhidos serão perdidos. Toque em "Continuar a editar" para prosseguir.</string>
+    <string name="events_not_found">Ainda não existem registos de eventos. Pressione "Adicionar novo" para criar um.</string>
+    <string name="save_changes_form">Tem a certeza de que pretende guardar estas alterações?</string>
+    <string name="num_of_mandatory_field">Campo(s) obrigatório(s): %s campo(s)</string>
+    <string name="semis_form_yes">Sim</string>
+    <string name="semis_form_no">Não</string>
+</resources>

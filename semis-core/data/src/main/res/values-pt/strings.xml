@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="form_title">Formulário de registo</string>
+    <string name="error_creating_enrollment">A projeção não pode ser nula</string>
+    <string name="tei_type_not_found">Tipo de Entidade Rastreada não encontrado para o programa %s</string>
+    <string name="event_date">Data: %s</string>
+    <string name="administrative_area">Área administrativa</string>
+</resources>
