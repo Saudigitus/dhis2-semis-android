@@ -25,6 +25,8 @@ import org.saudigitus.semis.core.data.repository.TeiDownloaderRepository
 import org.saudigitus.semis.core.data.repository.TeiDownloaderRepositoryImpl
 import org.saudigitus.semis.core.data.repository.TeiRepository
 import org.saudigitus.semis.core.data.repository.TeiRepositoryImpl
+import org.saudigitus.semis.core.data.repository.TeiTransferRepository
+import org.saudigitus.semis.core.data.repository.TeiTransferRepositoryImpl
 import org.saudigitus.semis.core.data.rules.RuleEngineRepository
 import org.saudigitus.semis.core.data.utils.Transformations
 import javax.inject.Singleton
@@ -79,6 +81,22 @@ object DataModule {
         d2: D2,
         transformations: Transformations
     ): TeiRepository = TeiRepositoryImpl(d2, transformations)
+
+    @Provides
+    @Singleton
+    fun provideTeiTransferRepository(
+        d2: D2,
+        appConfigRepository: AppConfigRepository,
+        eventRepository: EventRepository,
+        transformations: Transformations,
+        resourceManager: ResourceManager,
+    ): TeiTransferRepository = TeiTransferRepositoryImpl(
+        d2 = d2,
+        appConfigRepository = appConfigRepository,
+        eventRepository = eventRepository,
+        transformations = transformations,
+        resourceManager = resourceManager,
+    )
 
     @Provides
     @Singleton

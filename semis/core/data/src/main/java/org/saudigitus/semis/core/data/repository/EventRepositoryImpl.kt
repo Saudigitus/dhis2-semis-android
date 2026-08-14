@@ -17,6 +17,40 @@ class EventRepositoryImpl @Inject constructor(
     val d2: D2
 ) : EventRepository {
 
+    override suspend fun createEvent(
+        orgUnit: String,
+        program: String,
+        programStage: String,
+        enrollmentUid: String?,
+        data: List<Pair<String, String?>>,
+        eventDate: String?,
+        status: EventStatus,
+    ): String = withContext(Dispatchers.IO) {
+        val date = eventDate ?: DateHelper.formatDate(System.currentTimeMillis())!!
+        val uid = createEventProjection(
+            enrollment = enrollmentUid,
+            ou = orgUnit,
+            program = program,
+            programStage = programStage,
+        )
+        data.forEach { (dataElement, value) ->
+            d2.trackedEntityModule().trackedEntityDataValues()
+                .value(uid, dataElement)
+                .blockingSet(value)
+        }
+        d2.eventModule().events().uid(uid).apply {
+            setEventDate(Date.valueOf(date))
+            setStatus(status)
+        }
+        uid
+    }
+
+    override suspend fun setEventStatus(eventUid: String, status: EventStatus) {
+        withContext(Dispatchers.IO) {
+            d2.eventModule().events().uid(eventUid).setStatus(status)
+        }
+    }
+
     private fun getAttributeOptionCombo() =
         d2.categoryModule().categoryOptionCombos()
             .byDisplayName().eq(Constants.DEFAULT).one().blockingGet()?.uid()

@@ -33,7 +33,6 @@ class FormViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(
         FormUiState(
-            isLoading = true,
             toolbarHeaders = ToolbarHeaders(
                 title = resourceManager.getString(R.string.form),
             )
@@ -134,6 +133,34 @@ class FormViewModel @Inject constructor(
         _uiState.update { it.copy(isEnabled = enable) }
     }
 
+    fun applyPresetValue(dataElementUid: String, value: String, locked: Boolean = false) {
+        if (dataElementUid.isBlank() || value.isBlank()) return
+
+        _uiState.update { current ->
+            if (current.fields.none { it.dataElementUid == dataElementUid }) {
+                return@update current
+            }
+            current.copy(
+                formBuilderState = current.formBuilderState.copy(
+                    presetValues = current.formBuilderState.presetValues +
+                        (dataElementUid to value),
+                    lockedDataElements = if (locked) {
+                        current.formBuilderState.lockedDataElements + dataElementUid
+                    } else {
+                        current.formBuilderState.lockedDataElements - dataElementUid
+                    },
+                ),
+                fields = current.fields.map { field ->
+                    if (field.dataElementUid == dataElementUid) {
+                        field.copy(value = value, enabled = !locked)
+                    } else {
+                        field
+                    }
+                },
+            )
+        }
+    }
+
     fun resetCacheStatus() {
         _uiState.update { it.copy(hasCachedData = false) }
     }
@@ -182,6 +209,10 @@ class FormViewModel @Inject constructor(
                     }
                 }
 
+                is FormEvent.UpdateOrganisationUnit -> {
+                    updateOrganisationUnit(uiEvent.dataElementUid, uiEvent.orgUnit)
+                }
+
                 else -> {}
             }
         }
@@ -189,17 +220,35 @@ class FormViewModel @Inject constructor(
 
     private suspend fun loadForm(program: String, programStage: String, dl: String? = null) {
         _uiState.update {
-            it.copy(isLoading = true)
+            it.copy(isLoading = true, error = null)
         }
-        val fields = formRepository.getFormFields(program, programStage, dl)
-        val updatedFields = formRepository.applyProgramRules(
-            uiState.value.formBuilderState.orgUnit,
-            uiState.value.formBuilderState.program,
-            programStage,
-            fields,
-        )
-        _uiState.update {
-            it.copy(isLoading = false, fields = updatedFields)
+        runCatching {
+            val builderState = uiState.value.formBuilderState
+            val fields = formRepository.getFormFields(program, programStage, dl).map { field ->
+                field.copy(
+                    value = builderState.presetValues[field.dataElementUid],
+                    enabled = field.dataElementUid !in builderState.lockedDataElements,
+                )
+            }
+            formRepository.applyProgramRules(
+                builderState.orgUnit,
+                builderState.program,
+                programStage,
+                fields,
+            )
+        }.onSuccess { updatedFields ->
+            _uiState.update {
+                it.copy(isLoading = false, fields = updatedFields, error = null)
+            }
+        }.onFailure { error ->
+            _uiState.update {
+                it.copy(
+                    isLoading = false,
+                    fields = emptyList(),
+                    error = error.message
+                        ?: resourceManager.getString(R.string.form_load_failed),
+                )
+            }
         }
     }
 
@@ -218,6 +267,46 @@ class FormViewModel @Inject constructor(
                 fields,
             )
             current.copy(fields = withRules)
+        }
+    }
+
+    private suspend fun updateOrganisationUnit(
+        dataElement: String,
+        orgUnit: org.saudigitus.semis.core.data.model.OrgUnit,
+    ) {
+        _uiState.update { current ->
+            val fields = current.fields.map { field ->
+                if (field.dataElementUid == dataElement) {
+                    validateField(field.copy(value = orgUnit.uid, selectedOrgUnit = orgUnit))
+                } else {
+                    field
+                }
+            }
+            val withRules = formRepository.applyProgramRules(
+                current.formBuilderState.orgUnit,
+                current.formBuilderState.program,
+                current.formBuilderState.programStage,
+                fields,
+            )
+            current.copy(fields = withRules, hasCachedData = true)
+        }
+    }
+
+    fun resetValues() {
+        _uiState.update { current ->
+            current.copy(
+                fields = current.fields.map {
+                    it.copy(
+                        value = current.formBuilderState.presetValues[it.dataElementUid],
+                        selectedOrgUnit = null,
+                        enabled = it.dataElementUid !in
+                            current.formBuilderState.lockedDataElements,
+                        hasError = false,
+                        errorMessage = null,
+                    )
+                },
+                hasCachedData = false,
+            )
         }
     }
 

@@ -19,6 +19,8 @@ import org.saudigitus.semis.attendance.ui.AttendanceViewModel
 import org.saudigitus.semis.core.designsystem.utils.mapper.TEICardMapper
 import org.saudigitus.semis.core.form.ui.FormViewModel
 import org.saudigitus.semis.performance.route.PerformanceNavGraph
+import org.saudigitus.semis.transfer.TransferUi
+import org.saudigitus.semis.transfer.TransferViewModel
 
 @Composable
 fun AppNavGraph(
@@ -97,6 +99,29 @@ fun AppNavGraph(
                 homeState.filterState,
                 navController,
                 syncData,
+            )
+        }
+        composable(route = AppRoutes.TRANSFER) {
+            val transferViewModel = hiltViewModel<TransferViewModel>()
+            val formViewModel = hiltViewModel<FormViewModel>()
+            val homeState by viewModel.uiState.collectAsStateWithLifecycle()
+
+            LaunchedEffect(homeState.program, homeState.filterState.orgUnit) {
+                homeState.filterState.orgUnit?.let { sourceOrgUnit ->
+                    transferViewModel.initialize(
+                        program = homeState.program,
+                        sourceOrgUnit = sourceOrgUnit,
+                        learners = homeState.tei,
+                        originFilterDetails = homeState.filterState.filterDetailsState,
+                    )
+                }
+            }
+
+            TransferUi(
+                viewModel = transferViewModel,
+                formViewModel = formViewModel,
+                navigateBack = navController::navigateUp,
+                syncData = syncData,
             )
         }
     }

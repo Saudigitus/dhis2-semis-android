@@ -5,5 +5,6 @@ object AppRoutes {
     const val ATTENDANCE = "attendance"
     const val ABSENTEEISM = "absenteeism"
     const val PERFORMANCE = "performance"
+    const val TRANSFER = "transfer"
     const val HOME = "home"
 }

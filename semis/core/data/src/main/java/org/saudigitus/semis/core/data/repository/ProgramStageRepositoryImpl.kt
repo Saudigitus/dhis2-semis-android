@@ -14,44 +14,34 @@ class ProgramStageRepositoryImpl @Inject constructor(
         stage: String,
         dl: String?
     ) = withContext(Dispatchers.IO) {
-        val repository = d2.programModule().programStageDataElements()
+        var repository = d2.programModule().programStageDataElements()
             .byProgramStage().eq(stage)
+        dl?.let { repository = repository.byDataElement().eq(it) }
 
-        if (dl != null) {
-            repository.byDataElement().eq(dl)
-                .blockingGet().map {
-                    val dataElement =
-                        d2.dataElementModule().dataElements().uid(it.dataElement()?.uid())
-                            .blockingGet()
-
-                    ProgramStageDataElementModel(
-                        programStageUid = it.programStage()?.uid(),
-                        code = it.code(),
-                        displayName = it.displayName(),
-                        dataElement = dataElement,
-                        compulsory = it.compulsory(),
-                        renderType = it.renderType(),
-                        allowFutureDate = it.allowFutureDate(),
-                        sortOrder = it.sortOrder()
-                    )
-                }
+        val stageDataElements = repository.blockingGet()
+        val dataElementUids = stageDataElements
+            .mapNotNull { it.dataElement()?.uid() }
+            .distinct()
+        val dataElementsByUid = if (dataElementUids.isEmpty()) {
+            emptyMap()
         } else {
-            repository.blockingGet().map {
-                val dataElement =
-                    d2.dataElementModule().dataElements().uid(it.dataElement()?.uid())
-                        .blockingGet()
+            d2.dataElementModule().dataElements()
+                .byUid().`in`(dataElementUids)
+                .blockingGet()
+                .associateBy { it.uid() }
+        }
 
-                ProgramStageDataElementModel(
-                    programStageUid = it.programStage()?.uid(),
-                    code = it.code(),
-                    displayName = it.displayName(),
-                    dataElement = dataElement,
-                    compulsory = it.compulsory(),
-                    renderType = it.renderType(),
-                    allowFutureDate = it.allowFutureDate(),
-                    sortOrder = it.sortOrder()
-                )
-            }
+        stageDataElements.map {
+            ProgramStageDataElementModel(
+                programStageUid = it.programStage()?.uid(),
+                code = it.code(),
+                displayName = it.displayName(),
+                dataElement = dataElementsByUid[it.dataElement()?.uid()],
+                compulsory = it.compulsory(),
+                renderType = it.renderType(),
+                allowFutureDate = it.allowFutureDate(),
+                sortOrder = it.sortOrder(),
+            )
         }
     }
 

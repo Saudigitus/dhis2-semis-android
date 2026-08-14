@@ -19,5 +19,12 @@
     "enabled": true,
     "icon": "performance",
     "route": "performance"
+  },
+  {
+    "key": "transfer",
+    "title": "Transfer",
+    "enabled": false,
+    "icon": "transfer",
+    "route": "transfer"
   }
 ]

@@ -2,6 +2,7 @@ package org.saudigitus.semis.core.form.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.TextFieldColors
 import androidx.compose.material3.TextFieldDefaults
@@ -12,6 +13,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import org.hisp.dhis.android.core.common.ValueType
 import org.hisp.dhis.mobile.ui.designsystem.component.InputShellState
+import org.saudigitus.semis.core.data.model.OrgUnit
 import org.saudigitus.semis.core.designsystem.attendance.AttendanceButton
 import org.saudigitus.semis.core.designsystem.attendance.AttendanceButtonState
 import org.saudigitus.semis.core.designsystem.attendance.model.AttendanceButtonModel
@@ -20,6 +22,7 @@ import org.saudigitus.semis.core.form.data.model.FormFieldState
 import org.saudigitus.semis.core.form.ui.fields.InputField
 import org.saudigitus.semis.core.form.ui.fields.NumericField
 import org.saudigitus.semis.core.form.ui.fields.OptionSetField
+import org.saudigitus.semis.core.form.ui.fields.OrganisationUnitField
 import org.saudigitus.semis.core.form.ui.fields.TrueOnlyField
 import org.saudigitus.semis.core.form.ui.fields.YesNoField
 import org.saudigitus.semis.core.form.utils.FactoryData
@@ -28,6 +31,7 @@ import org.saudigitus.semis.core.form.utils.FactoryData
 fun FormFieldItem(
     key: String,
     field: FormFieldState,
+    program: String = "",
     enabled: Boolean? = null,
     fieldsData: List<FormFieldData> = emptyList(),
     attendanceButtonState: AttendanceButtonState = AttendanceButtonState(),
@@ -37,6 +41,7 @@ fun FormFieldItem(
         disabledIndicatorColor = InputShellState.DISABLED.color,
     ),
     onAttendanceChange: (AttendanceButtonModel) -> Unit = {},
+    onOrganisationUnitChange: (OrgUnit) -> Unit = {},
     onValueChange: (String) -> Unit
 ) {
     val fieldData = if (field.isAttendanceReason) {
@@ -46,11 +51,28 @@ fun FormFieldItem(
     }
 
     Column(
-        modifier = Modifier.padding(horizontal = 16.dp, vertical = 5.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 5.dp),
         verticalArrangement = Arrangement.spacedBy(5.dp, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         when {
+            field.valueType == ValueType.ORGANISATION_UNIT -> {
+                OrganisationUnitField(
+                    field = field,
+                    program = program,
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = (enabled ?: true) && field.enabled,
+                    colors = TextFieldDefaults.colors(
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = InputShellState.UNFOCUSED.color,
+                        disabledIndicatorColor = InputShellState.DISABLED.color,
+                    ),
+                    onValueChange = onOrganisationUnitChange,
+                )
+            }
+
             !field.optionSet.isNullOrEmpty() -> {
                 if (field.isAttendanceType) {
                     AttendanceButton(

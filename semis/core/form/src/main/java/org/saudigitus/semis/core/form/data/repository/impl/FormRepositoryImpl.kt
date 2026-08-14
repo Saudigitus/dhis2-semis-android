@@ -228,12 +228,16 @@ class FormRepositoryImpl @Inject constructor(
 
         repository.getProgramStageDataElements(stage, dl)
             .map {
-                val options = getOptionModels(program, it.dataElement?.uid().orEmpty())
+                val options = if (it.dataElement?.optionSetUid().isNullOrBlank()) {
+                    emptyList()
+                } else {
+                    getOptionModels(program, it.dataElement?.uid().orEmpty())
+                }
 
                 FormFieldState(
                     dataElementUid = it.dataElement?.uid().orEmpty(),
                     label = it.dataElement?.displayFormName()
-                        .orEmpty(),
+                        ?: it.dataElement?.displayName().orEmpty(),
                     valueType = it.dataElement?.valueType() ?: ValueType.TEXT,
                     optionSet = options,
                     mandatory = it.compulsory == true,
@@ -250,6 +254,9 @@ class FormRepositoryImpl @Inject constructor(
         programStage: String,
         fields: List<FormFieldState>,
     ) = withContext(Dispatchers.IO) {
+        if (fields.none { !it.eventUid.isNullOrBlank() }) {
+            return@withContext fields
+        }
         val currentFields = fields.toMutableList()
         currentFields.clear()
 
