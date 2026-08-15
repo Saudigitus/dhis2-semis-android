@@ -18,6 +18,7 @@ import org.hisp.dhis.android.core.maintenance.D2Error
 import org.saudigitus.semis.attendance.R
 import org.saudigitus.semis.attendance.ui.model.BottomSheetConfirmAction
 import org.saudigitus.semis.attendance.ui.model.BottomSheetType
+import org.saudigitus.semis.attendance.ui.model.missingLearnerAttendanceCount
 import org.saudigitus.semis.attendance.ui.repository.AttendanceRepository
 import org.saudigitus.semis.core.data.model.SearchTeiModel
 import org.saudigitus.semis.core.data.model.app_config.Attendance
@@ -230,8 +231,27 @@ class AttendanceViewModel @Inject constructor(
         }
     }
 
-    private fun save() {
+    private fun save(): Boolean {
+        val current = uiState.value
+        if (!current.allowAttendanceStatus) {
+            val missingLearners = missingLearnerAttendanceCount(
+                learnerUids = studentsIds,
+                attendanceEvents = formRepository.attendanceButtonStateFlow.value.attendanceEvents,
+            )
+            if (missingLearners > 0) {
+                viewModelScope.launch {
+                    _errorEvent.emit(
+                        resourceManager.getString(
+                            R.string.attendance_status_incomplete,
+                            missingLearners,
+                        )
+                    )
+                }
+                return false
+            }
+        }
         saveAttendanceEvents()
+        return true
     }
 
     private fun startAttendance() {
@@ -340,6 +360,10 @@ class AttendanceViewModel @Inject constructor(
                 startAttendance()
             }
 
+            AttendanceUiEvent.ResetForm -> {
+                resetForm()
+            }
+
             is AttendanceUiEvent.OnAttendanceClick -> {
                 if (!uiState.value.allowAttendanceStatus) {
                     viewModelScope.launch {
@@ -402,9 +426,10 @@ class AttendanceViewModel @Inject constructor(
                         it.copy(displayBulk = false)
                     }
                 } else {
-                    save()
-                    _uiState.update {
-                        it.copy(displayDialog = false)
+                    if (save()) {
+                        _uiState.update {
+                            it.copy(displayDialog = false)
+                        }
                     }
                 }
             }
@@ -419,5 +444,17 @@ class AttendanceViewModel @Inject constructor(
 
     fun resetForm() {
         formRepository.reset()
+        _hasCachedData.value = false
+        cachedButtonModel = null
+        _uiState.update {
+            it.copy(
+                displayBulk = false,
+                displayDialog = false,
+                overrideBulk = false,
+            )
+        }
+        viewModelScope.launch {
+            _snackbarEvent.emit(resourceManager.getString(R.string.attendance_form_reset))
+        }
     }
 }

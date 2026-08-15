@@ -29,6 +29,7 @@
     <string name="update">Update</string>
     <string name="take_attendance">Take Attendance</string>
     <string name="complete_attendance">Complete Attendance</string>
+    <string name="reset_attendance_form">Reset attendance</string>
     <string name="app_not_properly_config">App not configured properly. Please contact System Administrator</string>
     <string name="attendance_saved">Attendance saved successfully</string>
     <string name="not_saved">Not saved</string>

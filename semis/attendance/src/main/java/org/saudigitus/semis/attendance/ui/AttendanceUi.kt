@@ -6,7 +6,9 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
@@ -26,6 +28,7 @@ fun AttendanceUi(
     syncData: () -> Unit,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
+    var snackbarIsError by remember { mutableStateOf(false) }
 
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val formState by formViewModel.uiState.collectAsStateWithLifecycle()
@@ -33,6 +36,7 @@ fun AttendanceUi(
     LaunchedEffect(Unit) {
         viewModel.snackbarEvent.collectLatest { message ->
             if (message != null) {
+                snackbarIsError = false
                 formViewModel.resetCacheStatus()
                 snackbarHostState.showSnackbar(
                     message = message,
@@ -50,6 +54,7 @@ fun AttendanceUi(
 
     LaunchedEffect(Unit) {
         viewModel.errorEvent.collectLatest { message ->
+            snackbarIsError = true
             snackbarHostState.showSnackbar(
                 message = message,
                 duration = SnackbarDuration.Long,
@@ -92,6 +97,7 @@ fun AttendanceUi(
         state = state,
         formState = formState,
         snackbarHostState = snackbarHostState,
+        snackbarIsError = snackbarIsError,
         teiCardMapper = teiCardMapper,
         onFormEvent = formViewModel::handleUiEvent,
         onEvent = {
@@ -103,6 +109,10 @@ fun AttendanceUi(
                 is AttendanceUiEvent.OnSyncClicked -> syncData()
                 is AttendanceUiEvent.OnAttendanceClick -> {
                     formViewModel.markAttendanceChanged()
+                    viewModel.handleUiEvent(it)
+                }
+                AttendanceUiEvent.ResetForm -> {
+                    formViewModel.resetCacheStatus()
                     viewModel.handleUiEvent(it)
                 }
                 else -> viewModel.handleUiEvent(it)

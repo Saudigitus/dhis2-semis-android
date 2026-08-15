@@ -50,6 +50,7 @@ class FormRepositoryImpl @Inject constructor(
 ) : FormRepository {
 
     private val attendanceButtonState = MutableStateFlow(AttendanceButtonState())
+    private var loadedAttendanceButtonState = AttendanceButtonState()
 
     override val attendanceButtonStateFlow: StateFlow<AttendanceButtonState> = attendanceButtonState
 
@@ -198,7 +199,9 @@ class FormRepositoryImpl @Inject constructor(
                 .orEmpty()
         )
 
-        attendanceButtonState.value = buttonState(program, attendanceEvents)
+        val loadedState = buttonState(program, attendanceEvents)
+        loadedAttendanceButtonState = loadedState
+        attendanceButtonState.value = loadedState
 
         return@withContext attendanceButtonStateFlow.value
     }
@@ -359,7 +362,10 @@ class FormRepositoryImpl @Inject constructor(
     }
 
     override fun reset() {
-        attendanceButtonState.value = AttendanceButtonState()
+        attendanceButtonState.value = resetAttendanceFormState(
+            current = attendanceButtonState.value,
+            loaded = loadedAttendanceButtonState,
+        )
     }
 
     override suspend fun saveAttendance(
