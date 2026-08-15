@@ -3,4 +3,6 @@
     <string name="attendance">Attendance</string>
     <string name="attendance_summary">Attendance Summary</string>
     <string name="attendance_not_saved">You have unsaved attendance changes. If you go back now, your data will be discarded.</string>
+    <string name="attendance_form_reset">Attendance form reset</string>
+    <string name="attendance_status_incomplete">Select an attendance status for every learner before saving. %1$d selections remaining.</string>
 </resources>

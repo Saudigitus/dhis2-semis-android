@@ -16,6 +16,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.CardDefaults
@@ -31,6 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.Font
@@ -63,6 +65,8 @@ import org.saudigitus.semis.core.designsystem.components.bottomsheet.model.Botto
 import org.saudigitus.semis.core.designsystem.components.summary.SummaryDetails
 import org.saudigitus.semis.core.designsystem.templates.TopAppBarScaffold
 import org.saudigitus.semis.core.designsystem.theme.dark_warning
+import org.saudigitus.semis.core.designsystem.theme.light_error
+import org.saudigitus.semis.core.designsystem.theme.light_success
 import org.saudigitus.semis.core.designsystem.utils.UiDefaults
 import org.saudigitus.semis.core.designsystem.utils.mapper.TEICardMapper
 import org.saudigitus.semis.core.designsystem.utils.mapper.searchTeiMapper
@@ -77,6 +81,7 @@ fun AttendanceScreen(
     state: AttendanceUiState,
     formState: FormUiState,
     snackbarHostState: SnackbarHostState,
+    snackbarIsError: Boolean,
     teiCardMapper: TEICardMapper,
     onFormEvent: (FormEvent) -> Unit,
     onEvent: (AttendanceUiEvent) -> Unit,
@@ -149,44 +154,76 @@ fun AttendanceScreen(
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp),
                 hostState = snackbarHostState,
+                containerColor = if (snackbarIsError) light_error else light_success,
+                painter = painterResource(
+                    if (snackbarIsError) {
+                        R.drawable.ic_outline_error_36
+                    } else {
+                        R.drawable.success_icon
+                    }
+                ),
             )
         },
         floatingActionButton = {
-            ExtendedFloatingActionButton(
-                text = {
-                    Text(
-                        text = if (state.buttonStep == ButtonStep.NONE) {
-                            stringResource(R.string.take_attendance)
-                        } else if (state.allowAttendanceStatus) {
-                            stringResource(R.string.complete_attendance)
-                        } else {
-                            stringResource(R.string.save)
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                if (state.buttonStep != ButtonStep.NONE) {
+                    ExtendedFloatingActionButton(
+                        text = {
+                            Text(
+                                text = stringResource(R.string.reset_attendance_form),
+                                style = LocalTextStyle.current.copy(
+                                    fontFamily = FontFamily(Font(R.font.rubik_medium)),
+                                ),
+                            )
                         },
-                        color = colorPrimary,
-                        style = LocalTextStyle.current.copy(
-                            fontFamily = FontFamily(Font(R.font.rubik_medium)),
-                        ),
-                    )
-                },
-                icon = {
-                    Icon(
-                        imageVector = if (state.buttonStep == ButtonStep.NONE) {
-                            Icons.Default.Edit
-                        } else {
-                            Icons.Default.Save
+                        icon = {
+                            Icon(
+                                imageVector = Icons.Default.Refresh,
+                                contentDescription = null,
+                            )
                         },
-                        contentDescription = null,
-                        tint = colorPrimary,
+                        onClick = { onEvent(AttendanceUiEvent.ResetForm) },
                     )
-                },
-                onClick = {
-                    if (state.buttonStep == ButtonStep.NONE && state.canTakeAttendance) {
-                        onEvent(AttendanceUiEvent.OnEditClicked)
-                    } else if (state.canTakeAttendance) {
-                        onEvent(AttendanceUiEvent.ShowBottomSheet(BottomSheetType.SUMMARY))
+                }
+                ExtendedFloatingActionButton(
+                    text = {
+                        Text(
+                            text = if (state.buttonStep == ButtonStep.NONE) {
+                                stringResource(R.string.take_attendance)
+                            } else if (state.allowAttendanceStatus) {
+                                stringResource(R.string.complete_attendance)
+                            } else {
+                                stringResource(R.string.save)
+                            },
+                            color = colorPrimary,
+                            style = LocalTextStyle.current.copy(
+                                fontFamily = FontFamily(Font(R.font.rubik_medium)),
+                            ),
+                        )
+                    },
+                    icon = {
+                        Icon(
+                            imageVector = if (state.buttonStep == ButtonStep.NONE) {
+                                Icons.Default.Edit
+                            } else {
+                                Icons.Default.Save
+                            },
+                            contentDescription = null,
+                            tint = colorPrimary,
+                        )
+                    },
+                    onClick = {
+                        if (state.buttonStep == ButtonStep.NONE && state.canTakeAttendance) {
+                            onEvent(AttendanceUiEvent.OnEditClicked)
+                        } else if (state.canTakeAttendance) {
+                            onEvent(AttendanceUiEvent.ShowBottomSheet(BottomSheetType.SUMMARY))
+                        }
                     }
-                },
-            )
+                )
+            }
         }
     ) {
         SummaryDetails(
