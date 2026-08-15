@@ -13,6 +13,6 @@ import org.saudigitus.campaign.core.data.repository.impl.SemisEnrollmentTeiRepos
 val campaignDataModule = module {
     single<ProgramRepository> { ProgramRepositoryImpl(get(), get()) }
     single<OptionRepository> { SemisEnrollmentOptionRepository(get()) }
-    single<TeiRepository> { SemisEnrollmentTeiRepository(get(), get()) }
+    single<TeiRepository> { SemisEnrollmentTeiRepository(get()) }
     single<EnrollmentRepository> { EnrollmentRepositoryImpl(get(), get(), get()) }
 }

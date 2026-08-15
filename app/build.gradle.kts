@@ -334,6 +334,7 @@ dependencies {
     implementation(project(":sync"))
     implementation(project(":semis:app"))
     implementation(project(":semis:core:data"))
+    implementation(project(":semis:core:designsystem"))
     implementation(project(":semis:core:utils"))
 
     implementation(libs.security.conscrypt)

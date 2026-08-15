@@ -30,7 +30,6 @@ import org.saudigitus.campaign.core.form.utils.CustomValueType
 import org.saudigitus.campaign.core.form.utils.hasBlockingFields
 import org.saudigitus.campaign.core.form.utils.phone.MozambiquePhoneValidator
 import org.saudigitus.campaign.core.navigation.AppRoute
-import org.saudigitus.campaign.core.navigation.FormType
 import org.saudigitus.campaign.core.utils.DateHelper
 import org.saudigitus.campaign.core.utils.formatBoolean
 import org.saudigitus.campaign.core.utils.formatTrueOnly

@@ -2,10 +2,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     id("com.android.library")
-    kotlin("android")
-    kotlin("kapt")
     id("kotlin-parcelize")
-    id("dagger.hilt.android.plugin")
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.kotlin.compose.compiler)
 }
@@ -80,16 +77,10 @@ dependencies {
     implementation(libs.androidx.coreKtx)
     implementation(libs.androidx.appcompat)
     implementation(libs.google.material)
-    implementation(libs.dagger.hilt.android)
 
-    kapt(libs.dagger.hilt.android.compiler)
     coreLibraryDesugaring(libs.desugar)
 
     testImplementation(libs.test.junit)
     androidTestImplementation(libs.test.junit.ext)
     androidTestImplementation(libs.test.espresso)
-}
-
-kapt {
-    correctErrorTypes = true
 }

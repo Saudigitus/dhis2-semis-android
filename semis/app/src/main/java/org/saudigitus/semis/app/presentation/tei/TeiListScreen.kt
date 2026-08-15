@@ -67,7 +67,7 @@ fun TeiListScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.Top),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                items(state.tei, key = { it.tei.uid() }) { tei ->
+                items(state.tei, key = { it.tei.uid }) { tei ->
                     val card = searchTeiMapper(
                         tei = tei,
                         teiCardMapper = teiCardMapper,

@@ -4,11 +4,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.fragment.app.FragmentActivity
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import org.koin.androidx.compose.koinViewModel
 import org.saudigitus.semis.app.presentation.AppScreen
 import org.saudigitus.semis.app.presentation.home.HomeViewModel
 import org.saudigitus.semis.app.presentation.navigation.AppRoutes
@@ -16,11 +16,11 @@ import org.saudigitus.semis.app.presentation.tei.TeiListEvent
 import org.saudigitus.semis.app.presentation.tei.TeiListScreen
 import org.saudigitus.semis.attendance.ui.AttendanceUi
 import org.saudigitus.semis.attendance.ui.AttendanceViewModel
+import org.saudigitus.semis.core.designsystem.utils.mapper.TEICardMapper
+import org.saudigitus.semis.core.form.ui.FormViewModel
 import org.saudigitus.semis.enrollment.ui.EnrollmentScreen
 import org.saudigitus.semis.enrollment.ui.form.SemisCoreEnrollmentFormScreen
 import org.saudigitus.semis.enrollment.ui.form.initializeSemisCoreForm
-import org.saudigitus.semis.core.designsystem.utils.mapper.TEICardMapper
-import org.saudigitus.semis.core.form.ui.FormViewModel
 import org.saudigitus.semis.performance.route.PerformanceNavGraph
 import org.saudigitus.semis.transfer.TransferUi
 import org.saudigitus.semis.transfer.TransferViewModel
@@ -67,8 +67,8 @@ fun AppNavGraph(
             )
         }
         composable(route = AppRoutes.ATTENDANCE) {
-            val attendanceViewModel = hiltViewModel<AttendanceViewModel>()
-            val formViewModel = hiltViewModel<FormViewModel>()
+            val attendanceViewModel = koinViewModel<AttendanceViewModel>()
+            val formViewModel = koinViewModel<FormViewModel>()
 
             val homeState by viewModel.uiState.collectAsStateWithLifecycle()
 
@@ -138,8 +138,8 @@ fun AppNavGraph(
             )
         }
         composable(route = AppRoutes.TRANSFER) {
-            val transferViewModel = hiltViewModel<TransferViewModel>()
-            val formViewModel = hiltViewModel<FormViewModel>()
+            val transferViewModel = koinViewModel<TransferViewModel>()
+            val formViewModel = koinViewModel<FormViewModel>()
             val homeState by viewModel.uiState.collectAsStateWithLifecycle()
 
             LaunchedEffect(homeState.program, homeState.filterState.orgUnit) {

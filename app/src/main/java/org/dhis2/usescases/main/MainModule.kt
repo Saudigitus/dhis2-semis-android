@@ -33,6 +33,7 @@ import org.koin.core.module.dsl.singleOf
 import org.koin.core.module.dsl.viewModel
 import org.koin.core.parameter.parametersOf
 import org.koin.dsl.module
+import org.saudigitus.semis.core.utils.ProgramValidator
 
 val mainModule = module {
 
@@ -46,6 +47,8 @@ val mainModule = module {
         WorkManagerControllerImpl(WorkManager.getInstance(androidContext()))
     }
 
+    factoryOf(::ProgramValidator)
+
     factory<HomeRepository> {
         HomeRepositoryImpl(
             d2 = get(),
@@ -55,6 +58,7 @@ val mainModule = module {
             syncStatusController = get(),
             domainErrorMapper = get(),
             dispatcher = get(),
+            programRepository = get(),
         )
     }
     factory {

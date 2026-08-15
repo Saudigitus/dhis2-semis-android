@@ -12,6 +12,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import org.koin.compose.viewmodel.koinViewModel
 import org.saudigitus.semis.core.data.model.SearchTeiModel
 import org.saudigitus.semis.core.designsystem.filters.FilterComponentState
 import org.saudigitus.semis.core.designsystem.utils.mapper.TEICardMapper
@@ -41,7 +42,7 @@ fun PerformanceNavGraph(
 
     NavHost(navController, startDestination = PROGRAM_STAGE) {
         composable(PROGRAM_STAGE) {
-            val viewModel = hiltViewModel<ProgramStageViewModel>()
+            val viewModel = koinViewModel<ProgramStageViewModel>()
             val state by viewModel.uiState.collectAsStateWithLifecycle()
 
             LaunchedEffect(Unit) {

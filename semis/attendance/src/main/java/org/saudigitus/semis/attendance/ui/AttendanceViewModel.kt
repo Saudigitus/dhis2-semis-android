@@ -4,7 +4,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Rocket
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -29,10 +28,8 @@ import org.saudigitus.semis.core.designsystem.components.model.ToolbarHeaders
 import org.saudigitus.semis.core.form.data.repository.FormRepository
 import org.saudigitus.semis.core.utils.ButtonStep
 import org.saudigitus.semis.core.utils.DateHelper
-import javax.inject.Inject
 
-@HiltViewModel
-class AttendanceViewModel @Inject constructor(
+class AttendanceViewModel(
     private val formRepository: FormRepository,
     private val attendanceRepository: AttendanceRepository,
     private val appConfigRepository: AppConfigRepository,

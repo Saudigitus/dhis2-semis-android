@@ -20,6 +20,11 @@ import org.dhis2.utils.TRUE
 import org.hisp.dhis.android.core.D2
 import org.hisp.dhis.android.core.maintenance.D2Error
 import org.hisp.dhis.android.core.program.ProgramType
+import org.saudigitus.semis.core.data.model.app_config.SEMISConfig
+import org.saudigitus.semis.core.utils.Constants.DATASTORE_KEY
+import org.saudigitus.semis.core.utils.Constants.DATASTORE_NAMESPACE
+import org.saudigitus.semis.core.utils.ProgramValidator
+import org.saudigitus.semis.core.utils.decodeJson
 import java.io.File
 
 private const val NO_HOME_ITEM = "No home item found"
@@ -32,6 +37,7 @@ class HomeRepositoryImpl(
     private val syncStatusController: SyncStatusController,
     private val domainErrorMapper: DomainErrorMapper,
     private val dispatcher: Dispatcher,
+    private val programValidator: ProgramValidator,
 ) : HomeRepository {
     private suspend fun <T> execute(block: suspend () -> T): T =
         withContext(dispatcher.io) {
@@ -150,6 +156,15 @@ class HomeRepositoryImpl(
                         program.access().data().write() == true,
                         program.trackedEntityType()?.uid() ?: "",
                         isStockUseCase = d2.isStockProgram(program.uid()),
+                        isSEMIS = programValidator.isSEMIS(
+                            DATASTORE_NAMESPACE,
+                            DATASTORE_KEY
+                        ) { dataStoreEntry ->
+                            val decodedJson = decodeJson(dataStoreEntry?.value())
+                            val semisConfig = SEMISConfig.fromJson(decodedJson)
+
+                            semisConfig?.find { it.program == program.uid() } != null
+                        },
                     )
 
                 program?.programType() == ProgramType.WITHOUT_REGISTRATION ->

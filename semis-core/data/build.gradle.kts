@@ -2,8 +2,6 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     id("com.android.library")
-    kotlin("android")
-    kotlin("kapt")
     id("kotlin-parcelize")
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.kotlin.compose.compiler)
@@ -115,6 +113,3 @@ dependencies {
     androidTestImplementation(libs.test.espresso)
 }
 
-kapt {
-    correctErrorTypes = true
-}

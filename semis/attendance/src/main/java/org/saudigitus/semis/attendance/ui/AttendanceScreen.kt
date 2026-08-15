@@ -36,10 +36,8 @@ import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
-import org.dhis2.ui.theme.colorPrimary
 import org.hisp.dhis.mobile.ui.designsystem.component.AdditionalInfoItem
 import org.hisp.dhis.mobile.ui.designsystem.component.InfoBar
-import org.hisp.dhis.mobile.ui.designsystem.component.InfoBarData
 import org.hisp.dhis.mobile.ui.designsystem.component.ListCard
 import org.hisp.dhis.mobile.ui.designsystem.component.ListCardDescriptionModel
 import org.hisp.dhis.mobile.ui.designsystem.component.ListCardTitleModel
@@ -162,7 +160,7 @@ fun AttendanceScreen(
                         } else {
                             stringResource(R.string.save)
                         },
-                        color = colorPrimary,
+                        color = SurfaceColor.Primary,
                         style = LocalTextStyle.current.copy(
                             fontFamily = FontFamily(Font(R.font.rubik_medium)),
                         ),
@@ -176,7 +174,7 @@ fun AttendanceScreen(
                             Icons.Default.Save
                         },
                         contentDescription = null,
-                        tint = colorPrimary,
+                        tint = SurfaceColor.Primary,
                     )
                 },
                 onClick = {
@@ -226,20 +224,20 @@ fun AttendanceScreen(
 
                 !state.canTakeAttendance -> {
                     InfoBar(
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier
+                            .fillMaxWidth()
                             .padding(horizontal = 16.dp),
-                        infoBarData = InfoBarData(
-                            icon = {
-                                Icon(
-                                    imageVector = Icons.Default.Warning,
-                                    contentDescription = stringResource(R.string.cannot_take_attendance),
-                                    tint = dark_warning
-                                )
-                            },
-                            text = stringResource(R.string.cannot_take_attendance),
-                            color = dark_warning,
-                            backgroundColor = Color.LightGray.copy(.25f)
-                        ),
+
+                        icon = {
+                            Icon(
+                                imageVector = Icons.Default.Warning,
+                                contentDescription = stringResource(R.string.cannot_take_attendance),
+                                tint = dark_warning
+                            )
+                        },
+                        text = stringResource(R.string.cannot_take_attendance),
+                        textColor = dark_warning,
+                        backgroundColor = Color.LightGray.copy(.25f)
                     )
                 }
             }
@@ -255,7 +253,7 @@ fun AttendanceScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.Top),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                items(state.teis, key = { it.tei.uid() }) { tei ->
+                items(state.teis, key = { it.tei.uid }) { tei ->
                     val card = searchTeiMapper(
                         tei = tei,
                         teiCardMapper = teiCardMapper,
@@ -312,7 +310,7 @@ fun AttendanceScreen(
                             listAvatar = card.first.avatar,
                         )
                         FormContent(
-                            key = tei.uid(),
+                            key = tei.tei.uid,
                             tei = tei,
                             type = FormType.ATTENDANCE,
                             modifier = Modifier.fillMaxWidth(),

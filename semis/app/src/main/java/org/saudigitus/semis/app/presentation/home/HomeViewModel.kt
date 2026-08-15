@@ -2,7 +2,6 @@ package org.saudigitus.semis.app.presentation.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -36,10 +35,9 @@ import org.saudigitus.semis.core.designsystem.utils.withSelectedFilter
 import org.saudigitus.semis.core.designsystem.utils.withSubtitle
 import org.saudigitus.semis.core.utils.onFailure
 import org.saudigitus.semis.core.utils.onSuccess
-import javax.inject.Inject
 
-@HiltViewModel
-class HomeViewModel @Inject constructor(
+
+class HomeViewModel(
     private val filterRepository: FilterRepository,
     private val appConfigRepository: AppConfigRepository,
     private val appModulesRepository: AppModulesRepository,

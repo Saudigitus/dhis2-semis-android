@@ -23,6 +23,8 @@ import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
 import org.koin.androidx.workmanager.koin.workManagerFactory
 import org.koin.core.context.startKoin
+import org.saudigitus.semis.app.di.semisModule
+import org.saudigitus.semis.core.data.di.semisDataModule
 
 object KoinInitialization {
     operator fun Application.invoke(d2Configuration: D2Configuration) {
@@ -63,6 +65,7 @@ object KoinInitialization {
                 matomoModule,
                 syncModule,
                 chartsModule,
+                semisModule,
             )
         }
     }

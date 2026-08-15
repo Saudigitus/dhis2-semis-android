@@ -7,6 +7,7 @@ buildscript {
         classpath(libs.gradlePlugin)
         classpath(libs.kotlinPlugin)
         classpath(libs.jacoco)
+        classpath(libs.kotlinSerialization)
     }
 }
 

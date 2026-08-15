@@ -2,29 +2,26 @@ package org.saudigitus.semis.app
 
 import android.os.Bundle
 import androidx.activity.compose.setContent
-import androidx.activity.viewModels
 import androidx.compose.runtime.LaunchedEffect
 import androidx.fragment.app.FragmentActivity
 import androidx.navigation.compose.rememberNavController
 import com.google.android.material.snackbar.Snackbar
-import dagger.hilt.android.AndroidEntryPoint
 import org.dhis2.commons.Constants
 import org.dhis2.commons.dialogs.imagedetail.ImageDetailActivity
 import org.dhis2.commons.sync.SyncContext
 import org.dhis2.commons.sync.SyncDialog
+import org.koin.android.ext.android.inject
+import org.koin.androidx.viewmodel.ext.android.viewModel
 import org.saudigitus.semis.app.presentation.home.HomeViewModel
 import org.saudigitus.semis.core.designsystem.theme.SEMISTheme
 import org.saudigitus.semis.core.designsystem.utils.mapper.TEICardMapper
-import javax.inject.Inject
 
-@AndroidEntryPoint
 class SEMISActivity : FragmentActivity() {
 
-    private val viewModel: HomeViewModel by viewModels()
+    private val viewModel: HomeViewModel by viewModel()
     private lateinit var program: String
 
-    @Inject
-    lateinit var teiCardMapper: TEICardMapper
+    private val teiCardMapper: TEICardMapper by inject()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

@@ -1,14 +1,8 @@
 package org.saudigitus.semis.core.data.di
 
-import android.content.Context
-import dagger.Module
-import dagger.Provides
-import dagger.hilt.InstallIn
-import dagger.hilt.android.qualifiers.ApplicationContext
-import dagger.hilt.components.SingletonComponent
 import org.dhis2.commons.network.NetworkUtils
-import org.dhis2.commons.resources.ResourceManager
-import org.hisp.dhis.android.core.D2
+import org.koin.android.ext.koin.androidContext
+import org.koin.dsl.module
 import org.saudigitus.semis.core.data.repository.AppConfigRepository
 import org.saudigitus.semis.core.data.repository.AppConfigRepositoryImpl
 import org.saudigitus.semis.core.data.repository.AppModulesRepository
@@ -27,86 +21,76 @@ import org.saudigitus.semis.core.data.repository.TeiRepository
 import org.saudigitus.semis.core.data.repository.TeiRepositoryImpl
 import org.saudigitus.semis.core.data.repository.TeiTransferRepository
 import org.saudigitus.semis.core.data.repository.TeiTransferRepositoryImpl
-import org.saudigitus.semis.core.data.rules.RuleEngineRepository
-import org.saudigitus.semis.core.data.utils.Transformations
-import javax.inject.Singleton
 
-@Module
-@InstallIn(SingletonComponent::class)
-object DataModule {
+val semisDataModule = module {
 
-    @Provides
-    @Singleton
-    fun provideAppConfigRepository(d2: D2): AppConfigRepository =
-        AppConfigRepositoryImpl(d2)
+    single<AppConfigRepository> {
+        AppConfigRepositoryImpl(
+            d2 = get(),
+        )
+    }
 
-    @Provides
-    @Singleton
-    fun provideOptionRepository(
-        d2: D2,
-        ruleEngineRepository: RuleEngineRepository
-    ): OptionRepository = OptionRepositoryImpl(d2, ruleEngineRepository)
+    single<OptionRepository> {
+        OptionRepositoryImpl(
+            d2 = get(),
+            ruleEngineRepository = get(),
+        )
+    }
 
-    @Provides
-    @Singleton
-    fun provideFilterRepository(
-        configRepository: AppConfigRepository,
-        optionRepository: OptionRepository
-    ): FilterRepository = FilterRepositoryImpl(configRepository, optionRepository)
+    single<FilterRepository> {
+        FilterRepositoryImpl(
+            configRepository = get(),
+            optionRepository = get(),
+        )
+    }
 
-    @Provides
-    @Singleton
-    fun provideAppModulesRepository(
-        configRepository: AppConfigRepository,
-        resourceManager: ResourceManager
-    ): AppModulesRepository = AppModulesRepositoryImpl(configRepository, resourceManager)
+    single<AppModulesRepository> {
+        AppModulesRepositoryImpl(
+            configRepository = get(),
+            resourceManager = get(),
+        )
+    }
 
-    @Provides
-    @Singleton
-    fun provideNetworkUtils(@ApplicationContext context: Context): NetworkUtils =
-        NetworkUtils(context)
+    single<NetworkUtils> {
+        NetworkUtils(
+            context = androidContext(),
+        )
+    }
 
+    single<TeiDownloaderRepository> {
+        TeiDownloaderRepositoryImpl(
+            d2 = get(),
+            networkUtils = get(),
+            resourceManager = get(),
+        )
+    }
 
-    @Provides
-    @Singleton
-    fun provideTeiDownloaderRepository(
-        d2: D2,
-        networkUtils: NetworkUtils,
-        resourceManager: ResourceManager
-    ): TeiDownloaderRepository = TeiDownloaderRepositoryImpl(d2, networkUtils, resourceManager)
+    single<TeiRepository> {
+        TeiRepositoryImpl(
+            d2 = get(),
+            transformations = get(),
+        )
+    }
 
-    @Provides
-    @Singleton
-    fun provideTeiRepository(
-        d2: D2,
-        transformations: Transformations
-    ): TeiRepository = TeiRepositoryImpl(d2, transformations)
+    single<TeiTransferRepository> {
+        TeiTransferRepositoryImpl(
+            d2 = get(),
+            appConfigRepository = get(),
+            eventRepository = get(),
+            transformations = get(),
+            resourceManager = get(),
+        )
+    }
 
-    @Provides
-    @Singleton
-    fun provideTeiTransferRepository(
-        d2: D2,
-        appConfigRepository: AppConfigRepository,
-        eventRepository: EventRepository,
-        transformations: Transformations,
-        resourceManager: ResourceManager,
-    ): TeiTransferRepository = TeiTransferRepositoryImpl(
-        d2 = d2,
-        appConfigRepository = appConfigRepository,
-        eventRepository = eventRepository,
-        transformations = transformations,
-        resourceManager = resourceManager,
-    )
+    single<EventRepository> {
+        EventRepositoryImpl(
+            d2 = get(),
+        )
+    }
 
-    @Provides
-    @Singleton
-    fun provideEventRepository(
-        d2: D2,
-    ): EventRepository = EventRepositoryImpl(d2)
-
-    @Provides
-    @Singleton
-    fun provideProgramStageRepository(
-        d2: D2
-    ): ProgramStageRepository = ProgramStageRepositoryImpl(d2)
+    single<ProgramStageRepository> {
+        ProgramStageRepositoryImpl(
+            d2 = get(),
+        )
+    }
 }

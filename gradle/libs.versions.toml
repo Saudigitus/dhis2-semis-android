@@ -85,8 +85,9 @@ junitJupiter = "6.0.3"
 ktxml = "1.0.0"
 atomicfu = "0.29.0"
 playservicesauth = "21.4.0"
+playserviceslocation = "21.4.0"
 playservicesphone = "18.0.2" #Can not be updated to latest due minSDK requirement of 23
-ksp = "2.3.6"
+ksp = "2.3.11"
 commonsText = "1.14.0"
 ktlint = "13.1.0"
 sonarqube = "7.2.3.7755"
@@ -98,12 +99,12 @@ jetbrains-material3="1.9.0"
 materialIconsExtended = "1.7.3"
 
 #SEMIS
-room = "2.6.1"
+room = "2.8.4"
 semis = "2.0.0"
 semisDatastore = "2.0"
 materialIcons = "1.7.8"
 androidxHiltNavigation = "1.0.0"
-composeNavigation = "2.9.5"
+
 material3Version = "1.4.0"
 uiGraphics = "1.9.4"
 agp = "8.8.0"
@@ -135,7 +136,7 @@ androidx-compose-paging = { group = "androidx.paging", name = "paging-compose", 
 lifecycle-runtime-compose = { module = "org.jetbrains.androidx.lifecycle:lifecycle-runtime-compose", version.ref = "lifecycleRuntimeCompose" }
 navigation-compose = { module = "org.jetbrains.androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
 test-androidx-paging = { group = "androidx.paging", name = "paging-testing", version.ref = "pagingTesting" }
-androidx-compose-lifecycle = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "composeLifecycle" }
+androidx-compose-lifecycle = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "lifecycleRuntimeCompose" }
 room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
 room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
 room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
@@ -245,12 +246,12 @@ compose-material3-iconsExtendend = { group = "org.jetbrains.compose.material", n
 ktor-client-android = { group = "io.ktor", name = "ktor-client-android", version.ref = "ktor" }
 ktor-client-content-negotiation = { group = "io.ktor", name = "ktor-client-content-negotiation", version.ref = "ktor" }
 ktor-serialization-kotlinx-json = { group = "io.ktor", name = "ktor-serialization-kotlinx-json", version.ref = "ktor" }
-google-location = { group = "com.google.android.gms", name = "play-services-location", version.ref = "playServicesLocation" }
+google-location = { group = "com.google.android.gms", name = "play-services-location", version.ref = "playserviceslocation" }
 
 #SEMIS dependencies
 androidx-compose-materialIcons = { group = "androidx.compose.material", name = "material-icons-core", version.ref = "materialIcons" }
 androidx-compose-material-iconsExtended = { group = "androidx.compose.material", name = "material-icons-extended", version.ref = "materialIcons" }
-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "composeNavigation" }
+
 androidx-hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version.ref = "androidxHiltNavigation" }
 androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3", version.ref = "material3Version" }
 androidx-compose-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics", version.ref = "uiGraphics" }
@@ -261,7 +262,7 @@ androidx-room = { id = "androidx.room", version.ref = "room" }
 kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 android-kotlin-multiplatform-library = { id = "com.android.kotlin.multiplatform.library", version.ref = "gradle" }
 kotlin-compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
-kotlin-serialization = { id = "kotlinx-serialization" }
+
 compose = { id = "org.jetbrains.compose", version.ref = "composePluginVersion" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }

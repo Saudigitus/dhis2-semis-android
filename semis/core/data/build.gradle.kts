@@ -2,10 +2,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     id("com.android.library")
-    kotlin("android")
-    kotlin("kapt")
     id("kotlin-parcelize")
-    id("dagger.hilt.android.plugin")
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.kotlin.compose.compiler)
 }
@@ -75,16 +72,19 @@ kotlin {
 
 dependencies {
     implementation(project(":commons"))
+    implementation(project(":commonskmm"))
     implementation(project(":dhis2-mobile-program-rules"))
+    implementation(project(":tracker"))
     implementation(project(":semis:core:utils"))
 
     implementation(libs.androidx.coreKtx)
     implementation(libs.androidx.appcompat)
     implementation(libs.google.material)
-    implementation(libs.dagger.hilt.android)
     implementation(libs.kotlin.serialization.json)
 
-    kapt(libs.dagger.hilt.android.compiler)
+    implementation(libs.koin.core)
+    implementation(libs.koin.android)
+
     coreLibraryDesugaring(libs.desugar)
 
     testImplementation(libs.test.junit)
@@ -92,6 +92,3 @@ dependencies {
     androidTestImplementation(libs.test.espresso)
 }
 
-kapt {
-    correctErrorTypes = true
-}
