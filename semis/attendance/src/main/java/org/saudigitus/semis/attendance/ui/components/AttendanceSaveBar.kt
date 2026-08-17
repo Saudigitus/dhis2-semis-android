@@ -15,7 +15,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import org.saudigitus.semis.attendance.R
-import org.saudigitus.semis.core.designsystem.components.buttons.CircularIconButton
+import org.saudigitus.semis.core.designsystem.components.buttons.TonalIconButton
 import org.saudigitus.semis.core.designsystem.components.buttons.PrimaryActionButton
 import org.saudigitus.semis.core.designsystem.theme.SemisPalette
 
@@ -42,7 +42,7 @@ internal fun AttendanceSaveBar(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         onReset?.let { reset ->
-            CircularIconButton(
+            TonalIconButton(
                 imageVector = Icons.Default.Refresh,
                 contentDescription = stringResource(R.string.reset_attendance),
                 size = 48.dp,

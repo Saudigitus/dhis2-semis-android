@@ -10,7 +10,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /**
- * Row of equally sized [StatTile]s filling the available width.
+ * Row of [StatTile]s sharing the available width equally. A lone tile keeps its intrinsic
+ * width instead of stretching across the row.
  */
 @Composable
 fun StatTileRow(
@@ -28,7 +29,7 @@ fun StatTileRow(
         tiles.forEach { tile ->
             StatTile(
                 model = tile,
-                modifier = Modifier.weight(1f),
+                modifier = if (tiles.size > 1) Modifier.weight(1f) else Modifier,
             )
         }
     }

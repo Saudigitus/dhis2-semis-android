@@ -7,15 +7,19 @@ import androidx.compose.material.icons.rounded.School
 import androidx.compose.material.icons.rounded.Stairs
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import org.saudigitus.semis.core.designsystem.R
 import org.saudigitus.semis.core.designsystem.components.FilterDetailsState
 import org.saudigitus.semis.core.designsystem.components.filters.FilterInfoCard
 import org.saudigitus.semis.core.designsystem.components.filters.FilterInfoItem
+import org.saudigitus.semis.core.designsystem.theme.SemisPalette
 
 /**
- * Filter context the attendance list is scoped to. Grade and class are only rendered
- * when the program configuration provides them.
+ * Filter context the attendance list is scoped to, laid over the screen header on the
+ * same translucent surface as the header actions. Grade and class are only rendered when
+ * the program configuration provides them.
  */
 @Composable
 internal fun AttendanceFilterInfo(
@@ -24,6 +28,12 @@ internal fun AttendanceFilterInfo(
 ) {
     FilterInfoCard(
         modifier = modifier,
+        containerColor = SemisPalette.HeaderSurface,
+        accentColor = Color.White,
+        iconContainerColor = SemisPalette.HeaderSurface,
+        labelColor = SemisPalette.OnHeaderSecondary,
+        valueColor = SemisPalette.OnHeaderPrimary,
+        elevation = 0.dp,
         items = listOf(
             FilterInfoItem(
                 label = stringResource(R.string.academic_year),

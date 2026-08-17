@@ -14,12 +14,16 @@ import org.saudigitus.semis.core.designsystem.components.cards.LearnerCard
  * Roster row of the attendance list. Reuses the shared learner card and fills its
  * trailing slot with the status selector, plus the absence reason field underneath when
  * the form asks for it.
+ *
+ * [showStatusSelector] is false until the day carries an attendance status, so the
+ * learners are listed without a status to read while none has been recorded.
  */
 @Composable
 internal fun AttendanceStudentCard(
     learner: SearchTeiModel,
     attendanceButtonState: AttendanceButtonState,
     modifier: Modifier = Modifier,
+    showStatusSelector: Boolean = true,
     onStatusSelect: (AttendanceButtonModel) -> Unit,
     reasonContent: (@Composable ColumnScope.() -> Unit)? = null,
 ) {
@@ -31,12 +35,16 @@ internal fun AttendanceStudentCard(
         supportingText = identity.firstAttributeValue,
         modifier = modifier,
         avatarColor = AvatarInitials.colorFor(teiUid),
-        trailing = {
-            AttendanceStatusSelector(
-                teiUid = teiUid,
-                state = attendanceButtonState,
-                onSelect = onStatusSelect,
-            )
+        trailing = if (showStatusSelector) {
+            {
+                AttendanceStatusSelector(
+                    teiUid = teiUid,
+                    state = attendanceButtonState,
+                    onSelect = onStatusSelect,
+                )
+            }
+        } else {
+            null
         },
         supportingContent = reasonContent,
     )

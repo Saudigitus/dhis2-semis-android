@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.saudigitus.semis.core.designsystem.R
@@ -37,6 +38,10 @@ fun FilterInfoCard(
     columns: Int = 2,
     accentColor: Color = SemisPalette.ActionBlue,
     containerColor: Color = SemisPalette.CardSurface,
+    iconContainerColor: Color = accentColor.copy(alpha = .10f),
+    labelColor: Color = SemisPalette.TextMuted,
+    valueColor: Color = SemisPalette.TextPrimary,
+    elevation: Dp = 4.dp,
 ) {
     val visibleItems = items.filter { it.value.isNotBlank() }
 
@@ -47,7 +52,7 @@ fun FilterInfoCard(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .softShadow(shape, 4.dp)
+            .softShadow(shape, elevation)
             .background(color = containerColor, shape = shape)
             .padding(horizontal = 12.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -62,6 +67,9 @@ fun FilterInfoCard(
                     FilterInfoEntry(
                         item = item,
                         accentColor = accentColor,
+                        iconContainerColor = iconContainerColor,
+                        labelColor = labelColor,
+                        valueColor = valueColor,
                         modifier = Modifier.weight(1f),
                     )
                 }
@@ -78,6 +86,9 @@ fun FilterInfoCard(
 private fun FilterInfoEntry(
     item: FilterInfoItem,
     accentColor: Color,
+    iconContainerColor: Color,
+    labelColor: Color,
+    valueColor: Color,
     modifier: Modifier = Modifier,
 ) {
     Row(
@@ -88,7 +99,7 @@ private fun FilterInfoEntry(
         Box(
             modifier = Modifier
                 .size(28.dp)
-                .background(color = accentColor.copy(alpha = .10f), shape = CircleShape),
+                .background(color = iconContainerColor, shape = CircleShape),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
@@ -102,7 +113,7 @@ private fun FilterInfoEntry(
         Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
             Text(
                 text = item.label,
-                color = SemisPalette.TextMuted,
+                color = labelColor,
                 fontSize = 9.5.sp,
                 lineHeight = 12.sp,
                 maxLines = 1,
@@ -111,7 +122,7 @@ private fun FilterInfoEntry(
             )
             Text(
                 text = item.value,
-                color = SemisPalette.TextPrimary,
+                color = valueColor,
                 fontSize = 12.5.sp,
                 lineHeight = 15.sp,
                 maxLines = 1,

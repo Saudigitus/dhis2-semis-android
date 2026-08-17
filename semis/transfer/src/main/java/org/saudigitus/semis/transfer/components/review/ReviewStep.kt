@@ -62,7 +62,7 @@ internal fun ReviewStep(state: TransferUiState, formState: FormUiState) {
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .softShadow(MaterialTheme.shapes.medium, 6.dp),
+                    .softShadow(RoundedCornerShape(16.dp), 6.dp),
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 border = BorderStroke(
@@ -82,7 +82,7 @@ internal fun ReviewStep(state: TransferUiState, formState: FormUiState) {
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .softShadow(MaterialTheme.shapes.medium, 6.dp),
+                    .softShadow(RoundedCornerShape(16.dp), 6.dp),
                 color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.75f),
                 shape = RoundedCornerShape(16.dp),
             ) {

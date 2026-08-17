@@ -23,12 +23,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import org.saudigitus.semis.core.designsystem.components.avatar.AvatarInitials
-import org.saudigitus.semis.core.designsystem.utils.softShadow
 
 /**
  * List card for a learner: initials avatar, name with an optional supporting line, a
@@ -42,6 +42,10 @@ fun LearnerCard(
     selected: Boolean = false,
     avatarColor: Color = MaterialTheme.colorScheme.primary,
     avatarSize: Dp = 52.dp,
+    containerColor: Color = Color.Transparent,
+    elevation: Dp = 0.dp,
+    shadowElevation: Dp = 6.dp,
+    shape: Shape = RoundedCornerShape(16.dp),
     onClick: (() -> Unit)? = null,
     trailing: (@Composable () -> Unit)? = null,
     supportingContent: (@Composable ColumnScope.() -> Unit)? = null,
@@ -58,16 +62,15 @@ fun LearnerCard(
 
     Card(
         modifier = modifier
-            .fillMaxWidth()
-            .softShadow(MaterialTheme.shapes.medium, 6.dp),
+            .fillMaxWidth(),
         onClick = onClick ?: {},
-        enabled = onClick != null,
-        shape = RoundedCornerShape(16.dp),
+        enabled = true,
+        shape = shape,
         colors = CardDefaults.cardColors(
-            containerColor = Color.Transparent,
+            containerColor = containerColor,
         ),
         border = BorderStroke(if (selected) 1.dp else 0.25.dp, border),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = elevation),
     ) {
         Column(
             modifier = Modifier

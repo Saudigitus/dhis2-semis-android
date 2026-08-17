@@ -24,9 +24,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import org.saudigitus.semis.attendance.ui.components.AttendanceBulkBar
-import org.saudigitus.semis.attendance.ui.components.AttendanceFilterInfo
 import org.saudigitus.semis.attendance.ui.components.AttendanceHeader
-import org.saudigitus.semis.attendance.ui.components.AttendanceListCaption
 import org.saudigitus.semis.attendance.ui.components.AttendanceSaveBar
 import org.saudigitus.semis.attendance.ui.components.AttendanceStudentCard
 import org.saudigitus.semis.attendance.ui.model.BottomSheetConfirmAction
@@ -39,7 +37,6 @@ import org.saudigitus.semis.core.designsystem.components.NoResults
 import org.saudigitus.semis.core.designsystem.components.SnackBar
 import org.saudigitus.semis.core.designsystem.components.notice.InlineNotice
 import org.saudigitus.semis.core.designsystem.templates.RoundedHeaderScaffold
-import org.saudigitus.semis.core.designsystem.theme.SemisPalette
 import org.saudigitus.semis.core.designsystem.theme.dark_warning
 import org.saudigitus.semis.core.designsystem.theme.light_error
 import org.saudigitus.semis.core.designsystem.theme.light_success
@@ -79,6 +76,13 @@ fun AttendanceScreen(
 
     val isEditing = state.buttonStep != ButtonStep.NONE
 
+    /**
+     * A status is only meaningful once the day carries an attendance record, or while an
+     * attendance is being taken. Until then the counters report zero, the learners are
+     * listed without a status and the screen states that nothing was recorded.
+     */
+    val hasAttendanceForDay = state.hasAttendanceRecord || isEditing
+
     RoundedHeaderScaffold(
         header = {
             AttendanceHeader(
@@ -90,6 +94,7 @@ fun AttendanceScreen(
                     hasAttendanceRecord = state.hasAttendanceRecord,
                 ),
                 pendingSyncCount = state.pendingSyncCount,
+                filterDetailsState = state.attendanceSummaryState.filterDetailsState,
                 dateValidator = { state.dateValidator(it) },
                 onNavigateBack = { onEvent(AttendanceUiEvent.NavBack) },
                 onSync = { onEvent(AttendanceUiEvent.OnSyncClicked) },
@@ -148,15 +153,6 @@ fun AttendanceScreen(
             )
         }
 
-        AttendanceFilterInfo(
-            state = state.attendanceSummaryState.filterDetailsState,
-            modifier = Modifier.padding(
-                start = 16.dp,
-                top = 12.dp,
-                end = 16.dp,
-            ),
-        )
-
         if (state.isLoading) {
             Box(
                 modifier = Modifier.fillMaxSize(),
@@ -188,25 +184,15 @@ fun AttendanceScreen(
                     )
                 }
 
-                !state.hasAttendanceRecord && !isEditing -> {
+                !hasAttendanceForDay -> {
                     InlineNotice(
                         text = stringResource(AttendanceRes.string.attendance_not_recorded),
                         imageVector = Icons.Default.EventBusy,
-                        tone = SemisPalette.ActionBlue,
+                        tone = dark_warning,
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                     )
                 }
             }
-
-            AttendanceListCaption(
-                pendingCount = state.notRecordedCount,
-                modifier = Modifier.padding(
-                    start = 16.dp,
-                    top = 12.dp,
-                    end = 16.dp,
-                    bottom = 4.dp,
-                ),
-            )
 
             LazyColumn(
                 modifier = Modifier
@@ -226,6 +212,7 @@ fun AttendanceScreen(
                         learner = tei,
                         attendanceButtonState = formState.attendanceButtonState,
                         modifier = Modifier.testTag("TEI_ITEM"),
+                        showStatusSelector = hasAttendanceForDay,
                         onStatusSelect = { buttonModel ->
                             if (state.allowAttendanceStatus) {
                                 onFormEvent(FormEvent.UpdateAttendance(tei, buttonModel))

@@ -22,6 +22,9 @@ object SemisPalette {
     val OnHeaderPrimary = Color(0xFFFFFFFF)
     val OnHeaderSecondary = Color(0xFFA9C1E8)
 
+    /** Translucent surface shared by the actions and cards laid over [HeaderBlue]. */
+    val HeaderSurface = Color(0xFFFFFFFF).copy(alpha = .16f)
+
     /** Deep tones used by the summary tiles rendered on top of [HeaderBlue]. */
     val TileTeal = Color(0xFF115E59)
     val TilePurple = Color(0xFF5B3A94)

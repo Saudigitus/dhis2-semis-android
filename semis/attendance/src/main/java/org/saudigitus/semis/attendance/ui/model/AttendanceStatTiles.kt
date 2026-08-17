@@ -9,9 +9,9 @@ import org.saudigitus.semis.core.designsystem.theme.SemisPalette
  * configured attendance status, in configuration order.
  *
  * The code-less default status is derived from the learners left over, so it would read
- * as everyone being present on a day nobody was recorded. While [hasAttendanceRecord] is
- * false every status therefore reports zero, and the screen states instead that the day
- * has no attendance yet.
+ * as everyone being present on a day nobody was recorded. Every status therefore reports
+ * zero while [hasAttendanceRecord] is false, and the tiles start counting once the day
+ * carries an attendance record.
  */
 internal fun attendanceStatTiles(
     totalLabel: String,

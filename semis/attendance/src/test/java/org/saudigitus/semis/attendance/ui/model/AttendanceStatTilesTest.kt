@@ -26,7 +26,7 @@ class AttendanceStatTilesTest {
     }
 
     @Test
-    fun `every status reports zero while the day has no attendance record`() {
+    fun `every status is kept but reports zero while the day has no attendance record`() {
         val tiles = attendanceStatTiles(
             totalLabel = "Total",
             totalLearners = 10,
@@ -34,6 +34,7 @@ class AttendanceStatTilesTest {
             hasAttendanceRecord = false,
         )
 
+        assertEquals(listOf("Total", "Present", "Absent", "Late"), tiles.map { it.label })
         assertEquals(10, tiles.first().value)
         assertEquals(listOf(0, 0, 0), tiles.drop(1).map { it.value })
     }
