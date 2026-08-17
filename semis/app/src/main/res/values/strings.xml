@@ -3,4 +3,8 @@
     <string name="sync_offline_check_connection">Looks like you\\\\\\\'re offline. Please check you connection</string>
     <string name="not_saved">Not saved</string>
     <string name="attendance_not_saved">You have unsaved attendance changes. If you go back now, your data will be discarded.</string>
+    <string name="home_modules">Modules</string>
+    <string name="home_stat_enrolled">Enrolled</string>
+    <string name="home_stat_modules">Modules</string>
+    <string name="home_stat_status">Status</string>
 </resources>
