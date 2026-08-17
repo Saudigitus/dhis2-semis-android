@@ -205,8 +205,27 @@ class AttendanceViewModel @Inject constructor(
                 program = uiState.value.program,
                 totalLearners = studentsIds.size,
             ) { summaries ->
+                val attendanceEvents = formRepository.attendanceButtonStateFlow
+                    .value
+                    .attendanceEvents
+
+                val hasRecordedValue = attendanceEvents.any { event ->
+                    !event.event?.value.isNullOrBlank()
+                }
+
                 _uiState.update {
                     it.copy(
+                        pendingSyncCount = attendanceEvents.count { event ->
+                            event.event?.event == null
+                        },
+                        hasPersistedAttendance = attendanceEvents.any { event ->
+                            event.event?.event != null
+                        },
+                        hasAttendanceRecord = it.attendanceStatus != null || hasRecordedValue,
+                        notRecordedCount = missingLearnerAttendanceCount(
+                            learnerUids = studentsIds,
+                            attendanceEvents = attendanceEvents,
+                        ),
                         attendanceSummaryState = attendanceSummaryState.copy(
                             bottomSheetModels = summaries,
                             enableBulk = it.buttonStep != ButtonStep.NONE

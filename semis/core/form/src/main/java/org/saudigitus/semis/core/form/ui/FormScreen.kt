@@ -12,6 +12,7 @@ import androidx.compose.ui.graphics.Color
 import org.hisp.dhis.mobile.ui.designsystem.component.ProgressIndicator
 import org.hisp.dhis.mobile.ui.designsystem.component.ProgressIndicatorType
 import org.saudigitus.semis.core.data.model.SearchTeiModel
+import org.saudigitus.semis.core.form.data.model.FormFieldState
 import org.saudigitus.semis.core.form.data.model.FormType
 import org.saudigitus.semis.core.form.ui.state.FormEvent
 import org.saudigitus.semis.core.form.ui.state.FormUiState
@@ -24,6 +25,7 @@ fun FormContent(
     type: FormType,
     modifier: Modifier = Modifier,
     state: FormUiState,
+    fieldFilter: (FormFieldState) -> Boolean = { true },
     onEvent: (FormEvent) -> Unit
 ) {
     Box(modifier = modifier) {
@@ -53,7 +55,7 @@ fun FormContent(
                         visibleAttendanceFields(key, state.fields, state.attendanceButtonState)
                     } else {
                         state.fields.filter { it.rendered }
-                    }
+                    }.filter(fieldFilter)
 
                     for (field in visibleFields) {
                         FormFieldItem(

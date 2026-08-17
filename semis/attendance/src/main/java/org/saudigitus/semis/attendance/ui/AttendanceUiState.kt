@@ -22,6 +22,12 @@ data class AttendanceUiState(
     val buttonStep: ButtonStep = ButtonStep.NONE,
     val canTakeAttendance: Boolean = true,
     val allowAttendanceStatus: Boolean = false,
+    val pendingSyncCount: Int = 0,
+    val notRecordedCount: Int = 0,
+    /** Whether the selected day already carries saved attendance events. */
+    val hasPersistedAttendance: Boolean = false,
+    /** Whether attendance has been recorded at all for the selected day. */
+    val hasAttendanceRecord: Boolean = false,
     val teis: List<SearchTeiModel> = emptyList(),
     val attendanceStatus: AttendanceStatus? = null,
     val formBuilderState: FormBuilderState = FormBuilderState(),
