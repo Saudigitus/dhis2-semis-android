@@ -8,6 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import org.saudigitus.semis.transfer.components.incoming.IncomingStudents
 import org.saudigitus.semis.transfer.components.learner.LearnerList
+import org.saudigitus.semis.transfer.components.outgoing.PendingOutgoingStudents
 import org.saudigitus.semis.transfer.event.TransferUiEvent
 import org.saudigitus.semis.transfer.model.TransferTab
 import org.saudigitus.semis.transfer.state.TransferUiState
@@ -21,6 +22,7 @@ internal fun TransferLanding(
         TransferTabs(
             selectedTab = state.selectedTab,
             incomingCount = state.incomingTransfers.size,
+            pendingOutgoingCount = state.pendingOutgoingTransfers.size,
         ) { onEvent(TransferUiEvent.SelectTab(it)) }
         Crossfade(
             modifier = Modifier.fillMaxSize(),
@@ -34,6 +36,7 @@ internal fun TransferLanding(
                     LearnerList(state, onEvent)
                 }
                 TransferTab.INCOMING_STUDENTS -> IncomingStudents(state, onEvent)
+                TransferTab.PENDING_OUTGOING -> PendingOutgoingStudents(state)
             }
         }
     }

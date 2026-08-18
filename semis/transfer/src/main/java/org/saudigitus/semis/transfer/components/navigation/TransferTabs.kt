@@ -27,6 +27,7 @@ import org.saudigitus.semis.transfer.model.TransferTab
 internal fun TransferTabs(
     selectedTab: TransferTab,
     incomingCount: Int,
+    pendingOutgoingCount: Int,
     onSelect: (TransferTab) -> Unit,
 ) {
     Surface(
@@ -60,17 +61,27 @@ internal fun TransferTabs(
                     shape = RoundedCornerShape(14.dp),
                 ) {
                     Text(
-                        modifier = Modifier.padding(vertical = 12.dp, horizontal = 4.dp),
-                        text = if (tab == TransferTab.TRANSFERS) {
-                            stringResource(R.string.transfers_tab)
-                        } else {
-                            stringResource(R.string.incoming_students_tab_count, incomingCount)
+                        modifier = Modifier.padding(vertical = 10.dp, horizontal = 2.dp),
+                        text = when (tab) {
+                            TransferTab.TRANSFERS ->
+                                stringResource(R.string.outgoing_students_tab)
+                            TransferTab.INCOMING_STUDENTS ->
+                                stringResource(
+                                    R.string.incoming_students_tab_count,
+                                    incomingCount,
+                                )
+                            TransferTab.PENDING_OUTGOING ->
+                                stringResource(
+                                    R.string.pending_outgoing_tab_count,
+                                    pendingOutgoingCount,
+                                )
                         },
+                        maxLines = 2,
                         color = if (selected) MaterialTheme.colorScheme.primary
                         else MaterialTheme.colorScheme.onSurfaceVariant,
                         fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
                         textAlign = TextAlign.Center,
-                        style = MaterialTheme.typography.labelLarge,
+                        style = MaterialTheme.typography.labelMedium,
                     )
                 }
             }

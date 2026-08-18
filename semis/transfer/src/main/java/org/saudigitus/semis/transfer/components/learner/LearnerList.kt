@@ -30,7 +30,7 @@ internal fun LearnerList(state: TransferUiState, onEvent: (TransferUiEvent) -> U
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            items(state.learners, key = { it.tei.uid() }) { learner ->
+            items(state.outgoingLearners, key = { it.tei.uid() }) { learner ->
                 LearnerCard(
                     learner = learner,
                     selected = learner.tei.uid() in state.selectedLearnerUids,

@@ -69,6 +69,7 @@ class TransferViewModel @Inject constructor(
         }
         loadTransferMetadata(program)
         loadIncomingTransfers()
+        loadPendingOutgoingTransfers()
     }
 
     fun handleEvent(event: TransferUiEvent) {
@@ -137,6 +138,29 @@ class TransferViewModel @Inject constructor(
                             ?: resourceManager.getString(R.string.incoming_transfer_load_failed),
                     )
                 }
+        }
+    }
+
+    private fun loadPendingOutgoingTransfers() {
+        val current = _uiState.value
+        val orgUnit = current.sourceOrgUnit ?: return
+        if (current.isLoadingPendingOutgoing) return
+
+        _uiState.update { it.copy(isLoadingPendingOutgoing = true) }
+        viewModelScope.launch {
+            runCatching {
+                repository.getPendingOutgoingTransfers(current.program, orgUnit.uid)
+            }.onSuccess { pending ->
+                _uiState.update {
+                    it.copy(isLoadingPendingOutgoing = false, pendingOutgoingTransfers = pending)
+                }
+            }.onFailure { error ->
+                _uiState.update { it.copy(isLoadingPendingOutgoing = false) }
+                emitError(
+                    error.message
+                        ?: resourceManager.getString(R.string.pending_outgoing_load_failed),
+                )
+            }
         }
     }
 
@@ -257,6 +281,7 @@ class TransferViewModel @Inject constructor(
                     )
                 }
                 _formResetEvent.emit(Unit)
+                loadPendingOutgoingTransfers()
                 if (result.transferredTeiUids.isNotEmpty()) {
                     emitSuccess(
                         resourceManager.getString(

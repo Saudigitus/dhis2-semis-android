@@ -3,6 +3,7 @@ package org.saudigitus.semis.transfer.state
 import org.saudigitus.semis.core.data.model.OrgUnit
 import org.saudigitus.semis.core.data.model.SearchTeiModel
 import org.saudigitus.semis.core.data.model.transfer.IncomingTeiTransfer
+import org.saudigitus.semis.core.data.model.transfer.OutgoingTeiTransfer
 import org.saudigitus.semis.core.designsystem.components.FilterDetailsState
 import org.saudigitus.semis.transfer.model.TransferStep
 import org.saudigitus.semis.transfer.model.TransferTab
@@ -12,6 +13,7 @@ data class TransferUiState(
     val isLoading: Boolean = false,
     val isLoadingMetadata: Boolean = false,
     val isLoadingIncoming: Boolean = false,
+    val isLoadingPendingOutgoing: Boolean = false,
     val isSubmitting: Boolean = false,
     val program: String = "",
     val sourceOrgUnit: OrgUnit? = null,
@@ -28,6 +30,7 @@ data class TransferUiState(
     val isTransferFormValid: Boolean = false,
     val learners: List<SearchTeiModel> = emptyList(),
     val incomingTransfers: List<IncomingTeiTransfer> = emptyList(),
+    val pendingOutgoingTransfers: List<OutgoingTeiTransfer> = emptyList(),
     val approvingEventUids: Set<String> = emptySet(),
     val selectedTab: TransferTab = TransferTab.TRANSFERS,
     val selectedLearnerUids: Set<String> = emptySet(),
@@ -54,4 +57,16 @@ data class TransferUiState(
 
     val showTransferActions: Boolean
         get() = selectedTab == TransferTab.TRANSFERS
+
+    private val pendingOutgoingTeiUids: Set<String>
+        get() = pendingOutgoingTransfers.mapTo(mutableSetOf()) { it.teiUid }
+
+    /**
+     * Learners still available to transfer. A learner whose transfer is awaiting approval
+     * is listed under the pending tab instead, so it cannot be sent out twice.
+     */
+    val outgoingLearners: List<SearchTeiModel>
+        get() = pendingOutgoingTeiUids.let { pending ->
+            if (pending.isEmpty()) learners else learners.filterNot { it.tei.uid() in pending }
+        }
 }
