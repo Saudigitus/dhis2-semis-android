@@ -15,5 +15,7 @@ data class StatusOption(
     @SerialName("icon")
     val icon: String?,
     @SerialName("key")
-    val key: String?
+    val key: String?,
+    @SerialName("totalSummary")
+    val totalSummary: String?,
 )

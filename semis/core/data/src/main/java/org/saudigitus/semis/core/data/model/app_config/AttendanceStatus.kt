@@ -10,9 +10,7 @@ data class AttendanceStatus(
     val allowAttendanceStatus: Boolean? = null,
     val program: String? = null,
     val programStage: String? = null,
-    @JsonNames("totalAbsencesDataElement")
-    val totalAbsences: String? = null,
-    @JsonNames("totalRecordsDataElement")
+    @JsonNames("totalRecords")
     val totalRecords: String? = null,
 )
 
@@ -22,6 +20,5 @@ fun AttendanceStatus?.isEnabledAndConfigured(): Boolean {
     return config.allowAttendanceStatus == true &&
         !config.program.isNullOrBlank() &&
         !config.programStage.isNullOrBlank() &&
-        !config.totalAbsences.isNullOrBlank() &&
         !config.totalRecords.isNullOrBlank()
 }
