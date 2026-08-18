@@ -96,10 +96,8 @@ fun AppNavGraph(
                 programName = homeState.programName,
                 tei = homeState.tei,
                 filterState = homeState.filterState,
-                teiCardMapper = teiCardMapper,
                 onBack = navController::navigateUp,
                 onSync = syncData,
-                onDisplayImage = displayImageDetail,
                 onNewEnrollment = {
                     initializeSemisCoreForm()
                     navController.navigate(AppRoutes.ENROLLMENT_FORM)
