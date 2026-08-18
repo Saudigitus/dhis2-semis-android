@@ -22,6 +22,7 @@ import org.saudigitus.semis.core.designsystem.theme.light_success
 import org.saudigitus.semis.core.form.ui.state.FormEvent
 import org.saudigitus.semis.core.form.ui.state.FormUiState
 import org.saudigitus.semis.transfer.components.destination.DestinationStep
+import org.saudigitus.semis.transfer.components.incoming.IncomingActionsBar
 import org.saudigitus.semis.transfer.components.navigation.TransferBottomBar
 import org.saudigitus.semis.transfer.components.navigation.TransferLanding
 import org.saudigitus.semis.transfer.components.navigation.TransferStepContainer
@@ -86,10 +87,22 @@ fun TransferScreen(
             )
         },
         bottomBar = {
-            if (state.showTransferActions) {
-                TransferBottomBar(
+            when {
+                state.showTransferActions -> TransferBottomBar(
                     state = state,
                     onContinue = { onEvent(TransferUiEvent.Continue) },
+                )
+
+                state.showIncomingActions -> IncomingActionsBar(
+                    selectedCount = state.selectedIncomingTransfers.size,
+                    enabled = state.processingEventUids.isEmpty(),
+                    onApproveAll = { onEvent(TransferUiEvent.ApproveAllIncoming) },
+                    onDecideSelected = {
+                        onEvent(TransferUiEvent.DecideSelectedIncoming(it))
+                    },
+                    onClearSelection = {
+                        onEvent(TransferUiEvent.ClearIncomingSelection)
+                    },
                 )
             }
         },

@@ -1,23 +1,20 @@
 package org.saudigitus.semis.transfer.components.incoming
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.School
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -31,28 +28,63 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import org.saudigitus.semis.core.data.model.transfer.IncomingTeiTransfer
+import org.saudigitus.semis.core.data.model.transfer.TransferDecision
+import org.saudigitus.semis.core.designsystem.components.cards.SelectionCheckIndicator
 import org.saudigitus.semis.transfer.R
-import org.saudigitus.semis.transfer.components.common.StatusPill
 import org.saudigitus.semis.transfer.components.common.initials
 import org.saudigitus.semis.transfer.softShadow
 
+/**
+ * An incoming transfer request. Long pressing starts a bulk selection; once one is
+ * running a plain tap adds and removes further requests.
+ */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun IncomingStudentCard(
     transfer: IncomingTeiTransfer,
-    approving: Boolean,
-    onApprove: () -> Unit,
+    processing: Boolean,
+    selected: Boolean,
+    selectionActive: Boolean,
+    onToggleSelection: () -> Unit,
+    onDecide: (TransferDecision) -> Unit,
 ) {
+    val shape = RoundedCornerShape(24.dp)
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .softShadow(RoundedCornerShape(24.dp), 6.dp),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f)),
+            .softShadow(shape, 6.dp)
+            .combinedClickable(
+                enabled = !processing,
+                onLongClick = onToggleSelection,
+                onClick = { if (selectionActive) onToggleSelection() },
+            ),
+        shape = shape,
+        colors = CardDefaults.cardColors(
+            containerColor = if (selected) {
+                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f)
+            } else {
+                MaterialTheme.colorScheme.surface
+            },
+        ),
+        border = BorderStroke(
+            width = 1.dp,
+            color = if (selected) {
+                MaterialTheme.colorScheme.primary.copy(alpha = 0.75f)
+            } else {
+                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f)
+            },
+        ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
-        Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+        Column(
+            modifier = Modifier.padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
                 Surface(
                     modifier = Modifier.size(52.dp),
                     shape = RoundedCornerShape(17.dp),
@@ -60,15 +92,16 @@ internal fun IncomingStudentCard(
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Text(
-                            transfer.learnerName.initials(),
+                            text = transfer.learnerName.initials(),
                             color = MaterialTheme.colorScheme.primary,
                             fontWeight = FontWeight.ExtraBold,
                         )
                     }
                 }
+
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        transfer.learnerName,
+                        text = transfer.learnerName,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         maxLines = 1,
@@ -76,7 +109,7 @@ internal fun IncomingStudentCard(
                     )
                     if (transfer.firstAttributeValue.isNotBlank()) {
                         Text(
-                            transfer.firstAttributeValue,
+                            text = transfer.firstAttributeValue,
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
@@ -84,10 +117,20 @@ internal fun IncomingStudentCard(
                         )
                     }
                 }
-                StatusPill(stringResource(R.string.pending))
+
+                if (selectionActive) {
+                    SelectionCheckIndicator(selected = selected)
+                }
             }
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f))
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f),
+            )
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
                 Surface(
                     modifier = Modifier.size(38.dp),
                     shape = RoundedCornerShape(12.dp),
@@ -102,38 +145,25 @@ internal fun IncomingStudentCard(
                         )
                     }
                 }
+
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        stringResource(R.string.from_school),
+                        text = stringResource(R.string.from_school),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Text(
-                        transfer.originSchoolName.ifBlank { transfer.originOrgUnit },
+                        text = transfer.originSchoolName.ifBlank { transfer.originOrgUnit },
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
-            }
-            Button(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp),
-                enabled = !approving,
-                shape = RoundedCornerShape(16.dp),
-                onClick = onApprove,
-            ) {
-                if (approving) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        strokeWidth = 2.dp,
-                    )
-                    Spacer(modifier = Modifier.width(10.dp))
-                }
-                Text(
-                    stringResource(if (approving) R.string.approving else R.string.approve_student),
-                    fontWeight = FontWeight.Bold,
+
+                IncomingDecisionActions(
+                    processing = processing,
+                    onDecide = onDecide,
                 )
             }
         }

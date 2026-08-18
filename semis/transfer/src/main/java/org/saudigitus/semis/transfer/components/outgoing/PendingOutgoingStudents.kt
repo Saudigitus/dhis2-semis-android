@@ -20,7 +20,7 @@ import org.saudigitus.semis.transfer.state.TransferUiState
 @Composable
 internal fun PendingOutgoingStudents(state: TransferUiState) {
     when {
-        state.isLoadingPendingOutgoing -> Box(
+        state.isLoadingOutgoingTransfers -> Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center,
         ) { CircularProgressIndicator() }

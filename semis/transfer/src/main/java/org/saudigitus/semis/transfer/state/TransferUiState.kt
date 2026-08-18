@@ -13,7 +13,7 @@ data class TransferUiState(
     val isLoading: Boolean = false,
     val isLoadingMetadata: Boolean = false,
     val isLoadingIncoming: Boolean = false,
-    val isLoadingPendingOutgoing: Boolean = false,
+    val isLoadingOutgoingTransfers: Boolean = false,
     val isSubmitting: Boolean = false,
     val program: String = "",
     val sourceOrgUnit: OrgUnit? = null,
@@ -30,8 +30,9 @@ data class TransferUiState(
     val isTransferFormValid: Boolean = false,
     val learners: List<SearchTeiModel> = emptyList(),
     val incomingTransfers: List<IncomingTeiTransfer> = emptyList(),
-    val pendingOutgoingTransfers: List<OutgoingTeiTransfer> = emptyList(),
-    val approvingEventUids: Set<String> = emptySet(),
+    val outgoingTransfers: List<OutgoingTeiTransfer> = emptyList(),
+    val processingEventUids: Set<String> = emptySet(),
+    val selectedIncomingEventUids: Set<String> = emptySet(),
     val selectedTab: TransferTab = TransferTab.TRANSFERS,
     val selectedLearnerUids: Set<String> = emptySet(),
     val effectiveDate: Date = Date(),
@@ -58,15 +59,39 @@ data class TransferUiState(
     val showTransferActions: Boolean
         get() = selectedTab == TransferTab.TRANSFERS
 
-    private val pendingOutgoingTeiUids: Set<String>
-        get() = pendingOutgoingTransfers.mapTo(mutableSetOf()) { it.teiUid }
+    /** Whether the incoming tab is showing its own bottom actions. */
+    val showIncomingActions: Boolean
+        get() = step == TransferStep.SELECT_LEARNERS &&
+            selectedTab == TransferTab.INCOMING_STUDENTS &&
+            incomingTransfers.isNotEmpty()
+
+    /** Incoming requests picked for a bulk decision. */
+    val selectedIncomingTransfers: List<IncomingTeiTransfer>
+        get() = incomingTransfers.filter { it.eventUid in selectedIncomingEventUids }
+
+    val hasIncomingSelection: Boolean
+        get() = selectedIncomingTransfers.isNotEmpty()
 
     /**
-     * Learners still available to transfer. A learner whose transfer is awaiting approval
-     * is listed under the pending tab instead, so it cannot be sent out twice.
+     * Requests the destination school still has to act on. A transfer that was approved or
+     * rejected is no longer pending and drops off the tab.
+     */
+    val pendingOutgoingTransfers: List<OutgoingTeiTransfer>
+        get() = outgoingTransfers.filter { it.isPending }
+
+    private val transferredTeiUids: Set<String>
+        get() = outgoingTransfers.mapTo(mutableSetOf()) { it.teiUid }
+
+    /**
+     * Learners still available to transfer. Creating a transfer event takes a learner off
+     * this list whatever the request went on to become, so none can be sent out twice.
      */
     val outgoingLearners: List<SearchTeiModel>
-        get() = pendingOutgoingTeiUids.let { pending ->
-            if (pending.isEmpty()) learners else learners.filterNot { it.tei.uid() in pending }
+        get() = transferredTeiUids.let { transferred ->
+            if (transferred.isEmpty()) {
+                learners
+            } else {
+                learners.filterNot { it.tei.uid() in transferred }
+            }
         }
 }

@@ -16,7 +16,11 @@ class TransferOutgoingLearnersTest {
         tei = TrackedEntityInstance.builder().uid(uid).build()
     }
 
-    private fun pending(teiUid: String) = OutgoingTeiTransfer(
+    private fun transfer(
+        teiUid: String,
+        statusCode: String = "PENDING",
+        isPending: Boolean = true,
+    ) = OutgoingTeiTransfer(
         eventUid = "event-$teiUid",
         teiUid = teiUid,
         enrollmentUid = "enrollment-$teiUid",
@@ -24,40 +28,69 @@ class TransferOutgoingLearnersTest {
         firstAttributeValue = "",
         destinationOrgUnit = "destination",
         destinationSchoolName = "Destination School",
+        statusCode = statusCode,
+        isPending = isPending,
         effectiveDate = Date(),
     )
 
     @Test
-    fun `learners awaiting approval are dropped from the outgoing list`() {
+    fun `a learner holding a transfer event leaves the outgoing list`() {
         val state = TransferUiState(
             learners = listOf(learner("a"), learner("b"), learner("c")),
-            pendingOutgoingTransfers = listOf(pending("b")),
+            outgoingTransfers = listOf(transfer("b")),
         )
 
         assertEquals(listOf("a", "c"), state.outgoingLearners.map { it.tei.uid() })
     }
 
     @Test
-    fun `every learner stays outgoing while nothing is pending`() {
+    fun `a transfer that is no longer pending keeps its learner off the outgoing list`() {
+        val state = TransferUiState(
+            learners = listOf(learner("a"), learner("b")),
+            outgoingTransfers = listOf(
+                transfer("b", statusCode = "APPROVED", isPending = false),
+            ),
+        )
+
+        assertEquals(listOf("a"), state.outgoingLearners.map { it.tei.uid() })
+    }
+
+    @Test
+    fun `only pending requests are listed under pending outgoing`() {
+        val state = TransferUiState(
+            learners = listOf(learner("a"), learner("b"), learner("c")),
+            outgoingTransfers = listOf(
+                transfer("a"),
+                transfer("b", statusCode = "APPROVED", isPending = false),
+                transfer("c", statusCode = "REJECTED", isPending = false),
+            ),
+        )
+
+        assertEquals(listOf("a"), state.pendingOutgoingTransfers.map { it.teiUid })
+    }
+
+    @Test
+    fun `a settled transfer leaves the learner out of both tabs`() {
+        val state = TransferUiState(
+            learners = listOf(learner("a")),
+            outgoingTransfers = listOf(
+                transfer("a", statusCode = "APPROVED", isPending = false),
+            ),
+        )
+
+        assertEquals(emptyList<String>(), state.outgoingLearners.map { it.tei.uid() })
+        assertEquals(emptyList<String>(), state.pendingOutgoingTransfers.map { it.teiUid })
+    }
+
+    @Test
+    fun `every learner stays outgoing while nothing was transferred`() {
         val state = TransferUiState(learners = listOf(learner("a"), learner("b")))
 
         assertEquals(2, state.outgoingLearners.size)
     }
 
     @Test
-    fun `the outgoing list empties once every learner is awaiting approval`() {
-        val state = TransferUiState(
-            learners = listOf(learner("a"), learner("b")),
-            pendingOutgoingTransfers = listOf(pending("a"), pending("b")),
-        )
-
-        assertEquals(emptyList<String>(), state.outgoingLearners.map { it.tei.uid() })
-    }
-
-    @Test
     fun `pending outgoing tab hides the transfer actions`() {
-        val state = TransferUiState(selectedTab = TransferTab.PENDING_OUTGOING)
-
-        assertFalse(state.showTransferActions)
+        assertFalse(TransferUiState(selectedTab = TransferTab.PENDING_OUTGOING).showTransferActions)
     }
 }

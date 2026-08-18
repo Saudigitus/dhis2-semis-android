@@ -1,6 +1,7 @@
 package org.saudigitus.semis.core.data.repository
 
 import org.saudigitus.semis.core.data.model.transfer.TeiTransferMetadata
+import org.saudigitus.semis.core.data.model.transfer.TransferDecision
 import org.saudigitus.semis.core.data.model.transfer.TeiTransferRequest
 import org.saudigitus.semis.core.data.model.transfer.TeiTransferResult
 import org.saudigitus.semis.core.data.model.transfer.IncomingTeiTransfer
@@ -17,17 +18,23 @@ interface TeiTransferRepository {
     ): List<IncomingTeiTransfer>
 
     /**
-     * Transfers sent from [currentOrgUnit] that are still awaiting approval at their
-     * destination school.
+     * Every transfer sent from [currentOrgUnit], whatever its status. A learner holding
+     * one is no longer available to transfer; those still awaiting approval are flagged
+     * through [OutgoingTeiTransfer.isPending].
      */
-    suspend fun getPendingOutgoingTransfers(
+    suspend fun getOutgoingTransfers(
         program: String,
         currentOrgUnit: String,
     ): List<OutgoingTeiTransfer>
 
-    suspend fun approveIncomingTransfer(
+    /**
+     * Records what this school decided about an incoming request. Approving keeps the
+     * learner here, rejecting hands them back to the school that sent them.
+     */
+    suspend fun decideIncomingTransfer(
         program: String,
         currentOrgUnit: String,
         eventUid: String,
+        decision: TransferDecision,
     )
 }
