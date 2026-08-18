@@ -3,13 +3,13 @@ package org.saudigitus.semis.attendance.ui.repository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.hisp.dhis.android.core.D2
-import org.hisp.dhis.android.core.dataelement.DataElement
 import org.hisp.dhis.android.core.event.Event
 import org.hisp.dhis.android.core.event.EventCreateProjection
 import org.hisp.dhis.android.core.event.EventStatus
 import org.saudigitus.semis.attendance.ui.model.AttendanceStatus
+import org.saudigitus.semis.attendance.ui.model.attendanceStatusSummaryValues
 import org.saudigitus.semis.attendance.ui.model.attendanceSummaryCounts
-import org.saudigitus.semis.core.data.model.app_config.StatusOption
+import org.saudigitus.semis.attendance.ui.model.isPresent
 import org.saudigitus.semis.core.data.model.app_config.isEnabledAndConfigured
 import org.saudigitus.semis.core.data.repository.AppConfigRepository
 import org.saudigitus.semis.core.designsystem.attendance.model.AttendanceEventWithDecorator
@@ -89,7 +89,6 @@ class AttendanceRepositoryImpl(
 
         val summary = summaryValues(
             program = program,
-            programStage = attendanceStatus.programStage.orEmpty(),
             totalLearners = totalLearners,
             attendanceEvents = attendanceEvents,
         )
@@ -161,7 +160,6 @@ class AttendanceRepositoryImpl(
 
     private suspend fun summaryValues(
         program: String,
-        programStage: String,
         totalLearners: Int,
         attendanceEvents: List<AttendanceEventWithDecorator>,
     ): List<Pair<String, String>> {
@@ -169,92 +167,25 @@ class AttendanceRepositoryImpl(
         val configuredStatuses = attendance?.statusOptions
             ?.filterNotNull()
             .orEmpty()
-        val nonPresentStatuses = configuredStatuses
-            .filterNot { it.isPresent() }
-            .distinctBy { it.code }
         val summaryCounts = attendanceSummaryCounts(
             totalLearners = totalLearners,
-            configuredStatusCodes = nonPresentStatuses.mapNotNull { it.code },
+            configuredStatusCodes = configuredStatuses
+                .filterNot { it.isPresent() }
+                .mapNotNull { it.code },
             attendanceValues = attendanceEvents.mapNotNull { it.event?.value },
         )
-        val stageDataElements = programStageDataElements(programStage)
-        val values = linkedMapOf<String, String>()
         val attendanceStatusConfig = attendance?.attendanceStatus
             ?: error("Attendance status configuration is missing")
-        val totalAbsencesDataElement = attendanceStatusConfig.totalAbsences
-            ?.takeIf { it.isNotBlank() }
-            ?: error("Attendance status total absences data element is missing")
         val totalRecordsDataElement = attendanceStatusConfig.totalRecords
             ?.takeIf { it.isNotBlank() }
             ?: error("Attendance status total records data element is missing")
 
-        values[totalAbsencesDataElement] = summaryCounts.totalAbsences.toString()
-        values[totalRecordsDataElement] = summaryCounts.totalLearners.toString()
-
-        nonPresentStatuses.forEach { status ->
-            val dataElement = resolveDataElement(
-                stageDataElements,
-                listOfNotNull(status.configKey, status.key, status.code),
-            )
-            dataElement?.let {
-                values[it.uid()] = (summaryCounts.statusCounts[status.code] ?: 0).toString()
-            }
-        }
-
-        val presentStatus = configuredStatuses.firstOrNull { it.isPresent() }
-        resolveDataElement(
-            stageDataElements,
-            listOfNotNull(
-                presentStatus?.configKey,
-                presentStatus?.key,
-                presentStatus?.code,
-                PRESENT_KEY,
-            ),
-        )?.let {
-            values[it.uid()] = summaryCounts.presentLearners.toString()
-        }
-
-        return values.map { it.key to it.value }
+        return attendanceStatusSummaryValues(
+            statusOptions = configuredStatuses,
+            totalRecordsDataElement = totalRecordsDataElement,
+            counts = summaryCounts,
+        )
     }
-
-    private fun programStageDataElements(programStage: String): List<DataElement> =
-        d2.programModule().programStageDataElements()
-            .byProgramStage().eq(programStage)
-            .blockingGet()
-            .mapNotNull { it.dataElement()?.uid() }
-            .distinct()
-            .mapNotNull { d2.dataElementModule().dataElements().uid(it).blockingGet() }
-
-    private fun resolveDataElement(
-        dataElements: List<DataElement>,
-        identifiers: List<String>,
-        minimumPartialLength: Int = 1,
-    ): DataElement? {
-        val normalizedIdentifiers = identifiers
-            .map(::normalize)
-            .filter { it.isNotEmpty() }
-
-        return dataElements.firstOrNull { dataElement ->
-            dataElement.identifiers().any { it in normalizedIdentifiers }
-        } ?: dataElements.firstOrNull { dataElement ->
-            dataElement.identifiers().any { metadataIdentifier ->
-                normalizedIdentifiers
-                    .filter { it.length >= minimumPartialLength }
-                    .any { identifier ->
-                        metadataIdentifier.contains(identifier) || identifier.contains(
-                            metadataIdentifier
-                        )
-                    }
-            }
-        }
-    }
-
-    private fun DataElement.identifiers() = listOfNotNull(
-        uid(),
-        code(),
-        displayName(),
-        displayFormName(),
-    ).map(::normalize)
 
     private fun Event.matches(contextValues: List<Pair<String, String>>) =
         contextValues.all { (dataElement, value) ->
@@ -270,14 +201,6 @@ class AttendanceRepositoryImpl(
             dataElement to value
         }
 
-    private fun StatusOption.isPresent() =
-        key.equals(PRESENT_KEY, ignoreCase = true) ||
-            code.equals(PRESENT_KEY, ignoreCase = true)
-
-    private fun normalize(value: String) = value
-        .lowercase()
-        .filter(Char::isLetterOrDigit)
-
     private suspend fun attendanceStatusConfig(program: String) =
         appConfigRepository.getAppConfig(program)
             ?.attendance
@@ -290,9 +213,4 @@ class AttendanceRepositoryImpl(
             .one()
             .blockingGet()
             ?.uid()
-
-    private companion object {
-        const val PRESENT_KEY = "present"
-
-    }
 }
