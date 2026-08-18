@@ -15,7 +15,6 @@ import androidx.navigation.NavHostController
 import kotlinx.coroutines.flow.collectLatest
 import org.saudigitus.semis.attendance.R
 import org.saudigitus.semis.core.designsystem.components.bottomsheet.launchBottomSheet
-import org.saudigitus.semis.core.designsystem.utils.mapper.TEICardMapper
 import org.saudigitus.semis.core.form.ui.FormViewModel
 
 @Composable
@@ -23,7 +22,6 @@ fun AttendanceUi(
     activity: FragmentActivity,
     viewModel: AttendanceViewModel,
     formViewModel: FormViewModel,
-    teiCardMapper: TEICardMapper,
     navController: NavHostController,
     syncData: () -> Unit,
 ) {
@@ -98,7 +96,6 @@ fun AttendanceUi(
         formState = formState,
         snackbarHostState = snackbarHostState,
         snackbarIsError = snackbarIsError,
-        teiCardMapper = teiCardMapper,
         onFormEvent = formViewModel::handleUiEvent,
         onEvent = {
             when (it) {

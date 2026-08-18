@@ -33,7 +33,7 @@ internal fun DestinationCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .softShadow(MaterialTheme.shapes.medium, 6.dp),
+            .softShadow(RoundedCornerShape(24.dp), 6.dp),
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),

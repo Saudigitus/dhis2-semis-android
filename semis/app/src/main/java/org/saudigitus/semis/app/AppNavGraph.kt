@@ -85,7 +85,6 @@ fun AppNavGraph(
                 activity = activity,
                 viewModel = attendanceViewModel,
                 formViewModel = formViewModel,
-                teiCardMapper = teiCardMapper,
                 navController = navController,
                 syncData = syncData
             )
