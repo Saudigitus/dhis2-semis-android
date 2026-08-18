@@ -10,6 +10,9 @@
     <string name="attendance_unsynced_count">%1$d unsynced</string>
     <string name="attendance_all_recorded">All students recorded</string>
     <string name="attendance_not_recorded">No attendance has been recorded for this day yet.</string>
+    <string name="attendance_reset_warning">Resetting deletes the attendance already recorded for this day. This cannot be undone.</string>
+    <string name="attendance_completed">Attendance completed for this day</string>
+    <string name="attendance_incomplete">Incomplete attendance</string>
     <string name="select_attendance_date">Select attendance date</string>
     <string name="reset_attendance">Reset attendance</string>
     <string name="bulk_label">Bulk:</string>

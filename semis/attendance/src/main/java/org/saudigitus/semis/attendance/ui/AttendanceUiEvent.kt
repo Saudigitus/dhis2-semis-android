@@ -11,6 +11,8 @@ sealed class AttendanceUiEvent {
     data object OnSyncClicked : AttendanceUiEvent()
     data object OnEditClicked : AttendanceUiEvent()
     data object ResetForm : AttendanceUiEvent()
+    data object ConfirmResetForm : AttendanceUiEvent()
+    data object DismissResetDialog : AttendanceUiEvent()
     data object BulkOverrideAttendance : AttendanceUiEvent()
     data class BottomSheetAction(val action: BottomSheetConfirmAction) : AttendanceUiEvent()
     data class DismissBottomSheet(val type: BottomSheetType): AttendanceUiEvent()

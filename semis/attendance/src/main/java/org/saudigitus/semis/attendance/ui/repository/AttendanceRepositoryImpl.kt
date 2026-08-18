@@ -87,6 +87,53 @@ class AttendanceRepositoryImpl(
             filterDetailsState,
         ) ?: return@withContext null
 
+        writeStatusValues(
+            attendanceStatus = attendanceStatus,
+            program = program,
+            filterDetailsState = filterDetailsState,
+            totalLearners = totalLearners,
+            attendanceEvents = attendanceEvents,
+        )
+
+        d2.eventModule().events().uid(attendanceStatus.event)
+            .setStatus(EventStatus.COMPLETED)
+
+        attendanceStatus.copy(status = EventStatus.COMPLETED)
+    }
+
+    override suspend fun updateAttendanceStatusSummary(
+        orgUnit: String,
+        program: String,
+        date: String,
+        filterDetailsState: FilterDetailsState,
+        totalLearners: Int,
+        attendanceEvents: List<AttendanceEventWithDecorator>,
+    ): AttendanceStatus? = withContext(Dispatchers.IO) {
+        val attendanceStatus = getAttendanceStatus(
+            orgUnit,
+            program,
+            date,
+            filterDetailsState,
+        ) ?: return@withContext null
+
+        writeStatusValues(
+            attendanceStatus = attendanceStatus,
+            program = program,
+            filterDetailsState = filterDetailsState,
+            totalLearners = totalLearners,
+            attendanceEvents = attendanceEvents,
+        )
+
+        attendanceStatus
+    }
+
+    private suspend fun writeStatusValues(
+        attendanceStatus: AttendanceStatus,
+        program: String,
+        filterDetailsState: FilterDetailsState,
+        totalLearners: Int,
+        attendanceEvents: List<AttendanceEventWithDecorator>,
+    ) {
         val summary = summaryValues(
             program = program,
             totalLearners = totalLearners,
@@ -100,11 +147,6 @@ class AttendanceRepositoryImpl(
                     .value(attendanceStatus.event, dataElement)
                     .blockingSet(value)
             }
-
-        d2.eventModule().events().uid(attendanceStatus.event)
-            .setStatus(EventStatus.COMPLETED)
-
-        attendanceStatus.copy(status = EventStatus.COMPLETED)
     }
 
     override suspend fun getAttendanceStatus(

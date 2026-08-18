@@ -1,6 +1,7 @@
 package org.saudigitus.semis.attendance.ui
 
 import androidx.compose.runtime.Immutable
+import org.hisp.dhis.android.core.event.EventStatus
 import org.saudigitus.semis.attendance.ui.model.AttendanceStatus
 import org.saudigitus.semis.core.data.model.SearchTeiModel
 import org.saudigitus.semis.core.designsystem.attendance.model.AttendanceButtonModel
@@ -16,6 +17,7 @@ data class AttendanceUiState(
     val displayBulk: Boolean = false,
     val displayDialog: Boolean = false,
     val overrideBulk: Boolean = false,
+    val displayResetDialog: Boolean = false,
     val toolbarHeaders: ToolbarHeaders = ToolbarHeaders(""),
     val dateValidator: (Long) -> Boolean = { _ -> true },
     val program: String = "",
@@ -35,4 +37,17 @@ data class AttendanceUiState(
     val bottomSheetState: BottomSheetState.HasItemsState = BottomSheetState.HasItemsState(),
     val genericsBottomSheetState: BottomSheetState.GenericsState<AttendanceButtonModel> = BottomSheetState.GenericsState(),
     val errorMessage: String? = null
-)
+) {
+    /** Whether the attendance status event of the day has been completed. */
+    val isAttendanceCompleted: Boolean
+        get() = attendanceStatus?.status == EventStatus.COMPLETED
+
+    /**
+     * Whether the day carries an attendance status event that is still open, which the
+     * screen reports as an incomplete attendance.
+     */
+    val isAttendanceIncomplete: Boolean
+        get() = allowAttendanceStatus &&
+            attendanceStatus != null &&
+            attendanceStatus.status != EventStatus.COMPLETED
+}

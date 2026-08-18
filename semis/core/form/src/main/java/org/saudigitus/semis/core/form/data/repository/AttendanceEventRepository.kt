@@ -41,6 +41,15 @@ interface AttendanceEventRepository {
         buttonModel: AttendanceButtonModel
     ): AttendanceButtonState
 
+    /**
+     * Deletes the attendance recorded for the loaded date.
+     *
+     * @param absencesOnly keeps the records whose value is not one of the configured
+     * coded statuses. The attendance status event lives on its own program stage and is
+     * never touched here.
+     */
+    suspend fun deleteAttendance(absencesOnly: Boolean): AttendanceButtonState
+
     fun updateAttendanceReason(tei: String, dataElement: String, value: String): AttendanceButtonState?
 
     suspend fun loadAttendanceEvents(

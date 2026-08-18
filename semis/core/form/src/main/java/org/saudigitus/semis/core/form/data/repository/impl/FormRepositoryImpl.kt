@@ -146,6 +146,30 @@ class FormRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun deleteAttendance(
+        absencesOnly: Boolean,
+    ): AttendanceButtonState = withContext(Dispatchers.IO) {
+        val current = attendanceButtonStateFlow.value
+        val removable = removableAttendanceEvents(
+            events = current.attendanceEvents,
+            configuredStatusCodes = current.buttons.mapNotNull { it.code },
+            absencesOnly = absencesOnly,
+        )
+
+        removable.forEach { event ->
+            event.event?.event?.let { uid -> eventRepository.deleteEvent(uid) }
+        }
+
+        val remaining = current.attendanceEvents - removable.toSet()
+        loadedAttendanceButtonState = loadedAttendanceButtonState.copy(
+            attendanceEvents = remaining,
+        )
+
+        return@withContext attendanceButtonState.updateAndGet {
+            it.copy(attendanceEvents = remaining)
+        }
+    }
+
     override fun updateAttendanceReason(
         tei: String,
         dataElement: String,
@@ -373,6 +397,15 @@ class FormRepositoryImpl @Inject constructor(
         programStage: String,
         attendanceEvents: List<AttendanceEventWithDecorator>
     ) = withContext(Dispatchers.IO) {
+        // A learner dropped from the form no longer holds a status, so the record loaded
+        // for them has to go with it rather than linger as a stale event.
+        orphanedAttendanceEvents(
+            loaded = loadedAttendanceButtonState.attendanceEvents,
+            current = attendanceEvents,
+        ).forEach { orphan ->
+            orphan.event?.event?.let { uid -> eventRepository.deleteEvent(uid) }
+        }
+
         attendanceEvents.forEach { attendanceEvent ->
             eventRepository.saveEvent(
                 event = attendanceEvent.event?.event,
