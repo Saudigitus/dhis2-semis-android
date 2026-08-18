@@ -12,8 +12,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import org.saudigitus.semis.core.designsystem.theme.SemisAccent
 import org.saudigitus.semis.core.designsystem.theme.SemisPalette
 import org.saudigitus.semis.core.designsystem.theme.semisSoftShadow
+import org.saudigitus.semis.core.designsystem.theme.surfaceTone
 import org.saudigitus.semis.core.utils.Constants
 
 /** Tinted page background the white cards sit on, shared with the listing screens. */
@@ -29,15 +31,15 @@ internal fun Modifier.softShadow(shape: Shape, elevation: Dp = 4.dp): Modifier =
     semisSoftShadow(shape, elevation)
 
 internal object HomeAccent {
-    val Blue = Color(0xFF2563EB)
-    val Green = Color(0xFF16A34A)
-    val Purple = Color(0xFF7C3AED)
-    val Amber = Color(0xFFD97706)
-    val Teal = Color(0xFF0D9488)
+    val Blue = SemisAccent.Blue
+    val Green = SemisAccent.Green
+    val Purple = SemisAccent.Purple
+    val Amber = SemisAccent.Amber
+    val Teal = SemisAccent.Teal
 }
 
 /** Container tint used behind icons, matching the accent at low opacity. */
-internal fun Color.softContainer() = copy(alpha = 0.12f)
+internal fun Color.softContainer() = surfaceTone(0.12f)
 
 internal fun moduleAccent(module: String): Color = when (module) {
     Constants.ENROLLMENT -> HomeAccent.Blue

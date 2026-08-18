@@ -16,8 +16,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import org.saudigitus.semis.app.R
 import org.saudigitus.semis.app.presentation.home.HomeUIState
-import org.saudigitus.semis.app.presentation.home.components.HomeFilterDetails
 import org.saudigitus.semis.core.designsystem.components.NoResults
+import org.saudigitus.semis.core.designsystem.components.SemisFilterDetails
 import org.saudigitus.semis.core.designsystem.components.cards.TeiLearnerCard
 import org.saudigitus.semis.core.designsystem.components.model.ToolbarHeaders
 import org.saudigitus.semis.core.designsystem.templates.TopAppBarScaffold
@@ -42,7 +42,7 @@ fun TeiListScreen(
             modifier = Modifier.semisScreenBackground(),
             verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.Top),
         ) {
-            HomeFilterDetails(
+            SemisFilterDetails(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(start = 16.dp, end = 16.dp, top = 16.dp),

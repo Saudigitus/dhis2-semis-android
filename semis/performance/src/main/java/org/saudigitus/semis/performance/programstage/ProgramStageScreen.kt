@@ -1,37 +1,29 @@
 package org.saudigitus.semis.performance.programstage
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Text
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.EventNote
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import org.hisp.dhis.mobile.ui.designsystem.theme.Radius
-import org.hisp.dhis.mobile.ui.designsystem.theme.SurfaceColor
-import org.hisp.dhis.mobile.ui.designsystem.theme.dropShadow
 import org.saudigitus.semis.core.designsystem.components.ConfigNotFound
-import org.saudigitus.semis.core.designsystem.components.FilterDetails
+import org.saudigitus.semis.core.designsystem.components.SemisFilterDetails
 import org.saudigitus.semis.core.designsystem.components.ToolbarActionState
-import org.saudigitus.semis.core.designsystem.components.cards.ActionCard
+import org.saudigitus.semis.core.designsystem.components.cards.NavigationCard
 import org.saudigitus.semis.core.designsystem.templates.TopAppBarScaffold
+import org.saudigitus.semis.core.designsystem.theme.SemisAccent
 import org.saudigitus.semis.core.designsystem.theme.semisScreenBackground
-import org.saudigitus.semis.core.designsystem.utils.ModuleIcons
-import org.saudigitus.semis.core.utils.Constants.TERMS
 import org.saudigitus.semis.performance.R
 import org.saudigitus.semis.performance.route.Destinations.PROGRAM_STAGE_DATA_ELEMENTS
-
 
 @Composable
 fun ProgramStageScreen(
@@ -46,43 +38,35 @@ fun ProgramStageScreen(
     ) {
         Column(
             modifier = Modifier.semisScreenBackground(),
-            verticalArrangement = Arrangement.spacedBy(5.dp, Alignment.Top),
-            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.Top),
         ) {
-            FilterDetails(
+            SemisFilterDetails(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(5.dp)
-                    .dropShadow(RoundedCornerShape(Radius.S))
-                    .background(
-                        color = SurfaceColor.SurfaceBright,
-                        shape = RoundedCornerShape(Radius.S)
-                    ),
+                    .padding(start = 16.dp, end = 16.dp, top = 16.dp),
                 state = state.filterState.filterDetailsState,
-
-                )
+                showChevron = false,
+            )
 
             if (state.programStages.isNotEmpty()) {
-                LazyVerticalGrid(
+                LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    columns = GridCells.Adaptive(128.dp),
-                    contentPadding = PaddingValues(vertical = 5.dp, horizontal = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.Top),
-                    horizontalArrangement = Arrangement.spacedBy(
-                        16.dp,
-                        Alignment.CenterHorizontally,
+                    contentPadding = PaddingValues(
+                        start = 16.dp,
+                        end = 16.dp,
+                        top = 4.dp,
+                        bottom = 24.dp
                     ),
+                    verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.Top),
                 ) {
-                    items(state.programStages, key = { it.uid!! }) {
-                        Text(it.displayName!!)
-                        ActionCard(
-                            modifier = Modifier.fillMaxWidth(),
-                            label = it.displayName,
+                    items(state.programStages, key = { it.uid!! }) { stage ->
+                        NavigationCard(
+                            title = stage.displayName.orEmpty(),
+                            icon = Icons.AutoMirrored.Rounded.EventNote,
+                            accent = SemisAccent.Purple,
                             enabled = state.filterState.filterDetailsState.count != 0,
-                            icon = painterResource(ModuleIcons.getModuleIconByName(TERMS)),
                             onClick = {
-                                navTo.invoke("${PROGRAM_STAGE_DATA_ELEMENTS}/${it.uid}")
-
+                                navTo.invoke("$PROGRAM_STAGE_DATA_ELEMENTS/${stage.uid}")
                             }
                         )
                     }
@@ -91,9 +75,8 @@ fun ProgramStageScreen(
                 ConfigNotFound(
                     Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp), message = stringResource(
-                        R.string.performance_config_error
-                    )
+                        .padding(horizontal = 16.dp),
+                    message = stringResource(R.string.performance_config_error)
                 )
             }
         }
