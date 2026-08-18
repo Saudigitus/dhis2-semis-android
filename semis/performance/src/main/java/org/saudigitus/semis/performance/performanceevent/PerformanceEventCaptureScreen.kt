@@ -13,7 +13,6 @@ import androidx.navigation.NavHostController
 import kotlinx.coroutines.flow.collectLatest
 import org.saudigitus.semis.core.designsystem.R
 import org.saudigitus.semis.core.designsystem.components.bottomsheet.launchBottomSheet
-import org.saudigitus.semis.core.designsystem.utils.mapper.TEICardMapper
 import org.saudigitus.semis.core.form.ui.FormViewModel
 
 @Composable
@@ -21,7 +20,6 @@ fun PerformanceEventCaptureScreen(
     activity: FragmentActivity,
     viewModel: PerformanceViewModel,
     formViewModel: FormViewModel,
-    teiCardMapper: TEICardMapper,
     navController: NavHostController,
     syncData: () -> Unit,
 ) {
@@ -79,7 +77,6 @@ fun PerformanceEventCaptureScreen(
         state = state,
         formState = formState,
         snackbarHostState = snackbarHostState,
-        teiCardMapper = teiCardMapper,
         onFormEvent = formViewModel::handleUiEvent,
         onEvent = {
             when (it) {

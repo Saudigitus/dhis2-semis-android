@@ -2,6 +2,7 @@ package org.saudigitus.semis.performance.programstage
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -25,6 +26,7 @@ import org.saudigitus.semis.core.designsystem.components.FilterDetails
 import org.saudigitus.semis.core.designsystem.components.ToolbarActionState
 import org.saudigitus.semis.core.designsystem.components.cards.ActionCard
 import org.saudigitus.semis.core.designsystem.templates.TopAppBarScaffold
+import org.saudigitus.semis.core.designsystem.theme.semisScreenBackground
 import org.saudigitus.semis.core.designsystem.utils.ModuleIcons
 import org.saudigitus.semis.core.utils.Constants.TERMS
 import org.saudigitus.semis.performance.R
@@ -42,52 +44,58 @@ fun ProgramStageScreen(
         navigationAction = navBack,
         toolbarActionState = ToolbarActionState(filterVisibility = false)
     ) {
-        FilterDetails(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(5.dp)
-                .dropShadow(RoundedCornerShape(Radius.S))
-                .background(
-                    color = SurfaceColor.SurfaceBright,
-                    shape = RoundedCornerShape(Radius.S)
-                ),
-            state = state.filterState.filterDetailsState,
-
-            )
-
-        if (state.programStages.isNotEmpty()) {
-            LazyVerticalGrid(
-                modifier = Modifier.fillMaxSize(),
-                columns = GridCells.Adaptive(128.dp),
-                contentPadding = PaddingValues(vertical = 5.dp, horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.Top),
-                horizontalArrangement = Arrangement.spacedBy(
-                    16.dp,
-                    Alignment.CenterHorizontally,
-                ),
-            ) {
-                items(state.programStages, key = { it.uid!! }) {
-                    Text(it.displayName!!)
-                    ActionCard(
-                        modifier = Modifier.fillMaxWidth(),
-                        label = it.displayName,
-                        enabled = state.filterState.filterDetailsState.count != 0,
-                        icon = painterResource(ModuleIcons.getModuleIconByName(TERMS)),
-                        onClick = {
-                            navTo.invoke("${PROGRAM_STAGE_DATA_ELEMENTS}/${it.uid}")
-
-                        }
-                    )
-                }
-            }
-        } else {
-            ConfigNotFound(
-                Modifier
+        Column(
+            modifier = Modifier.semisScreenBackground(),
+            verticalArrangement = Arrangement.spacedBy(5.dp, Alignment.Top),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            FilterDetails(
+                modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp), message = stringResource(
-                    R.string.performance_config_error
+                    .padding(5.dp)
+                    .dropShadow(RoundedCornerShape(Radius.S))
+                    .background(
+                        color = SurfaceColor.SurfaceBright,
+                        shape = RoundedCornerShape(Radius.S)
+                    ),
+                state = state.filterState.filterDetailsState,
+
                 )
-            )
+
+            if (state.programStages.isNotEmpty()) {
+                LazyVerticalGrid(
+                    modifier = Modifier.fillMaxSize(),
+                    columns = GridCells.Adaptive(128.dp),
+                    contentPadding = PaddingValues(vertical = 5.dp, horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.Top),
+                    horizontalArrangement = Arrangement.spacedBy(
+                        16.dp,
+                        Alignment.CenterHorizontally,
+                    ),
+                ) {
+                    items(state.programStages, key = { it.uid!! }) {
+                        Text(it.displayName!!)
+                        ActionCard(
+                            modifier = Modifier.fillMaxWidth(),
+                            label = it.displayName,
+                            enabled = state.filterState.filterDetailsState.count != 0,
+                            icon = painterResource(ModuleIcons.getModuleIconByName(TERMS)),
+                            onClick = {
+                                navTo.invoke("${PROGRAM_STAGE_DATA_ELEMENTS}/${it.uid}")
+
+                            }
+                        )
+                    }
+                }
+            } else {
+                ConfigNotFound(
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp), message = stringResource(
+                        R.string.performance_config_error
+                    )
+                )
+            }
         }
     }
 }

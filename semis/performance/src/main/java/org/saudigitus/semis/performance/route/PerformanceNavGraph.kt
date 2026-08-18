@@ -14,7 +14,6 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import org.saudigitus.semis.core.data.model.SearchTeiModel
 import org.saudigitus.semis.core.designsystem.filters.FilterComponentState
-import org.saudigitus.semis.core.designsystem.utils.mapper.TEICardMapper
 import org.saudigitus.semis.core.form.ui.FormViewModel
 import org.saudigitus.semis.performance.performanceevent.PerformanceEventCaptureScreen
 import org.saudigitus.semis.performance.performanceevent.PerformanceViewModel
@@ -32,7 +31,6 @@ fun PerformanceNavGraph(
     program: String,
     orgUnit: String,
     teiList: List<SearchTeiModel> = emptyList(),
-    teiCardMapper: TEICardMapper,
     filterState: FilterComponentState? = null,
     parentNavController: NavHostController? = null,
     syncData: (() -> Unit)? = null,
@@ -105,7 +103,6 @@ fun PerformanceNavGraph(
                 activity = activity,
                 viewModel = viewModel,
                 formViewModel = formViewModel,
-                teiCardMapper = teiCardMapper,
                 navController = navController,
                 syncData = syncData!!,
             )

@@ -2,6 +2,7 @@ package org.saudigitus.semis.performance.programstagedataelement
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -14,6 +15,7 @@ import androidx.compose.material.icons.rounded.Book
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -26,6 +28,7 @@ import org.saudigitus.semis.core.designsystem.components.FilterDetails
 import org.saudigitus.semis.core.designsystem.components.RoundedCard
 import org.saudigitus.semis.core.designsystem.components.ToolbarActionState
 import org.saudigitus.semis.core.designsystem.templates.TopAppBarScaffold
+import org.saudigitus.semis.core.designsystem.theme.semisScreenBackground
 import org.saudigitus.semis.performance.R
 import org.saudigitus.semis.performance.route.Destinations.EVENT_CAPTURE
 
@@ -40,61 +43,67 @@ fun ProgramStageDataElementsScreen(
         navigationAction = navBack,
         toolbarActionState = ToolbarActionState(filterVisibility = false)
     ) {
-        FilterDetails(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(5.dp)
-                .dropShadow(RoundedCornerShape(Radius.S))
-                .background(
-                    color = SurfaceColor.SurfaceBright,
-                    shape = RoundedCornerShape(Radius.S)
-                ),
-            state = state.filterState.filterDetailsState,
-        )
-
-        if (state.programStageDataElements.isNotEmpty()) {
-            LazyColumn(
+        Column(
+            modifier = Modifier.semisScreenBackground(),
+            verticalArrangement = Arrangement.spacedBy(5.dp, Alignment.Top),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            FilterDetails(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 16.dp),
-            ) {
-                items(state.programStageDataElements) { item ->
-                    RoundedCard(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(5.dp)
-                            .dropShadow(RoundedCornerShape(Radius.S))
-                            .background(
-                                color = SurfaceColor.SurfaceBright,
-                                shape = RoundedCornerShape(Radius.S)
-                            ),
-                        onClick = {
-                            navTo("${EVENT_CAPTURE}/${item.programStageUid}/${item.dataElement?.uid()}")
-                        }
-                    ) {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    .fillMaxWidth()
+                    .padding(5.dp)
+                    .dropShadow(RoundedCornerShape(Radius.S))
+                    .background(
+                        color = SurfaceColor.SurfaceBright,
+                        shape = RoundedCornerShape(Radius.S)
+                    ),
+                state = state.filterState.filterDetailsState,
+            )
+
+            if (state.programStageDataElements.isNotEmpty()) {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp),
+                ) {
+                    items(state.programStageDataElements) { item ->
+                        RoundedCard(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(5.dp)
+                                .dropShadow(RoundedCornerShape(Radius.S))
+                                .background(
+                                    color = SurfaceColor.SurfaceBright,
+                                    shape = RoundedCornerShape(Radius.S)
+                                ),
+                            onClick = {
+                                navTo("${EVENT_CAPTURE}/${item.programStageUid}/${item.dataElement?.uid()}")
+                            }
                         ) {
-                            Icon(
-                                imageVector = Icons.Rounded.Book,
-                                tint = colorPrimary,
-                                contentDescription = null
-                            )
-                            Text(
-                                text = item.dataElement?.displayName().orEmpty(),
-                            )
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Book,
+                                    tint = colorPrimary,
+                                    contentDescription = null
+                                )
+                                Text(
+                                    text = item.dataElement?.displayName().orEmpty(),
+                                )
+                            }
                         }
                     }
                 }
-            }
-        } else {
-            ConfigNotFound(
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp), message = stringResource(
-                    R.string.performance_config_error
+            } else {
+                ConfigNotFound(
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp), message = stringResource(
+                        R.string.performance_config_error
+                    )
                 )
-            )
+            }
         }
     }
 }

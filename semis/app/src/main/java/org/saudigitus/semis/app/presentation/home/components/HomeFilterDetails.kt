@@ -34,6 +34,7 @@ import org.saudigitus.semis.core.designsystem.components.FilterDetailsState
 internal fun HomeFilterDetails(
     modifier: Modifier = Modifier,
     state: FilterDetailsState,
+    showChevron: Boolean = true,
     onClick: () -> Unit = {},
 ) {
     val title = listOfNotNull(state.grade, state.section)
@@ -124,7 +125,7 @@ internal fun HomeFilterDetails(
                 }
             }
 
-            if (state.enable) {
+            if (state.enable && showChevron) {
                 Icon(
                     modifier = Modifier.size(20.dp),
                     imageVector = Icons.Rounded.ChevronRight,

@@ -130,7 +130,6 @@ fun AppNavGraph(
                 homeState.program,
                 homeState.filterState.orgUnit?.uid.orEmpty(),
                 homeState.tei,
-                teiCardMapper,
                 homeState.filterState,
                 navController,
                 syncData,

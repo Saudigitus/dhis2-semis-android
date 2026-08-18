@@ -6,30 +6,27 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import org.saudigitus.semis.core.designsystem.theme.SemisPalette
+import org.saudigitus.semis.core.designsystem.theme.semisSoftShadow
 import org.saudigitus.semis.core.utils.Constants
 
-/** Tinted page background the white cards sit on. */
-internal val HomeBackground = Color(0xFFF1F4FA)
+/** Tinted page background the white cards sit on, shared with the listing screens. */
+internal val HomeBackground = SemisPalette.ScreenBackground
 
 /** Cards keep a plain white surface on top of [HomeBackground]. */
-internal val HomeSurface = Color.White
+internal val HomeSurface = SemisPalette.CardSurface
 
 /**
  * Soft elevation used across the home surfaces, mirroring the transfer module look.
  */
-internal fun Modifier.softShadow(shape: Shape, elevation: Dp = 4.dp): Modifier = shadow(
-    elevation = elevation,
-    shape = shape,
-    ambientColor = Color.Black.copy(alpha = 0.05f),
-    spotColor = Color.Black.copy(alpha = 0.10f),
-)
+internal fun Modifier.softShadow(shape: Shape, elevation: Dp = 4.dp): Modifier =
+    semisSoftShadow(shape, elevation)
 
 internal object HomeAccent {
     val Blue = Color(0xFF2563EB)
