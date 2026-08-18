@@ -2,7 +2,7 @@ package org.saudigitus.semis.core.designsystem.theme
 
 import androidx.compose.ui.graphics.Color
 
-val primaryLight = Color(0xFF1B4BA8)
+val primaryLight = SemisPalette.HeaderBlue
 val onPrimaryLight = Color(0xFFFFFFFF)
 val primaryContainerLight = Color(0xFFDBE1FF)
 val onPrimaryContainerLight = Color(0xFF324478)

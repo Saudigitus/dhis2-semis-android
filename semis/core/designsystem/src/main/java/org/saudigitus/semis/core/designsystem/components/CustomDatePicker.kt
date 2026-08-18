@@ -21,6 +21,7 @@ import androidx.compose.ui.window.DialogProperties
 import org.dhis2.commons.date.DateUtils
 import org.dhis2.ui.theme.colorPrimary
 import org.saudigitus.semis.core.designsystem.R
+import org.saudigitus.semis.core.designsystem.theme.SemisPalette
 import org.saudigitus.semis.core.designsystem.theme.light_error
 import org.saudigitus.semis.core.designsystem.theme.light_info
 import org.saudigitus.semis.core.utils.DateHelper
@@ -96,6 +97,13 @@ fun CustomDatePicker(
                 state = datePickerState,
                 title = {},
                 showModeToggle = false,
+                colors = DatePickerDefaults.colors(
+                    containerColor = Color.White,
+                    todayContentColor = SemisPalette.HeaderBlue,
+                    todayDateBorderColor = SemisPalette.HeaderBlue,
+                    selectedDayContainerColor = SemisPalette.HeaderBlue,
+                    selectedYearContainerColor = SemisPalette.HeaderBlue,
+                ),
             )
         }
     }
