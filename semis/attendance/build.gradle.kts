@@ -98,6 +98,10 @@ dependencies {
     coreLibraryDesugaring(libs.desugar)
 
     testImplementation(libs.test.junit)
+    testImplementation(libs.test.mockitoCore)
+    testImplementation(libs.test.mockitoInline)
+    testImplementation(libs.test.mockitoKotlin)
+    testImplementation(libs.test.kotlinCoroutines)
     androidTestImplementation(libs.test.junit.ext)
     androidTestImplementation(libs.test.espresso)
 }

@@ -24,6 +24,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import org.saudigitus.semis.attendance.ui.components.AttendanceBulkBar
+import org.saudigitus.semis.attendance.ui.components.AttendanceCompletionNotice
 import org.saudigitus.semis.attendance.ui.components.AttendanceHeader
 import org.saudigitus.semis.attendance.ui.components.AttendanceSaveBar
 import org.saudigitus.semis.attendance.ui.components.AttendanceStudentCard
@@ -62,6 +63,14 @@ fun AttendanceScreen(
             onConfirm = {
                 onEvent(AttendanceUiEvent.BottomSheetAction(BottomSheetConfirmAction.PERFORM_SAVE))
             }
+        )
+    }
+
+    if (state.displayResetDialog) {
+        AlertDialog(
+            message = stringResource(id = AttendanceRes.string.attendance_reset_warning),
+            onConfirm = { onEvent(AttendanceUiEvent.ConfirmResetForm) },
+            onDismissRequest = { onEvent(AttendanceUiEvent.DismissResetDialog) },
         )
     }
 
@@ -189,6 +198,13 @@ fun AttendanceScreen(
                         text = stringResource(AttendanceRes.string.attendance_not_recorded),
                         imageVector = Icons.Default.EventBusy,
                         tone = dark_warning,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    )
+                }
+
+                state.allowAttendanceStatus && state.attendanceStatus != null -> {
+                    AttendanceCompletionNotice(
+                        completed = state.isAttendanceCompleted,
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                     )
                 }

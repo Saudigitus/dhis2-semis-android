@@ -380,7 +380,15 @@ class AttendanceViewModel @Inject constructor(
             }
 
             AttendanceUiEvent.ResetForm -> {
-                resetForm()
+                _uiState.update { it.copy(displayResetDialog = true) }
+            }
+
+            AttendanceUiEvent.DismissResetDialog -> {
+                _uiState.update { it.copy(displayResetDialog = false) }
+            }
+
+            AttendanceUiEvent.ConfirmResetForm -> {
+                discardAttendance()
             }
 
             is AttendanceUiEvent.OnAttendanceClick -> {
@@ -457,6 +465,46 @@ class AttendanceViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Clears the attendance recorded for the selected date.
+     *
+     * The attendance status event is kept and only has its counters rewritten: when the
+     * status flow is on, a learner without a record counts as present, so deleting the
+     * coded records is what resets the day. Without the status flow every record of the
+     * date is deleted, since each learner carries one.
+     */
+    private fun discardAttendance() {
+        viewModelScope.launch {
+            val current = uiState.value
+
+            runCatching {
+                formRepository.deleteAttendance(absencesOnly = current.allowAttendanceStatus)
+
+                if (current.allowAttendanceStatus) {
+                    attendanceRepository.updateAttendanceStatusSummary(
+                        orgUnit = current.formBuilderState.orgUnit,
+                        program = current.program,
+                        date = selectedDate,
+                        filterDetailsState = current.attendanceSummaryState.filterDetailsState,
+                        totalLearners = studentsIds.size,
+                        attendanceEvents = formRepository.attendanceButtonStateFlow
+                            .value
+                            .attendanceEvents,
+                    )
+                }
+            }.onSuccess {
+                resetForm()
+                loadAttendanceEventsByDate(selectedDate)
+                attendanceSummary()
+                _syncEvent.emit(Unit)
+            }.onFailure { error ->
+                val message = friendlyErrorMessage(error)
+                _uiState.update { it.copy(displayResetDialog = false, errorMessage = message) }
+                _errorEvent.emit(message)
+            }
+        }
+    }
+
     fun disableEditing() {
         formRepository.allowFormEdition(false)
     }
@@ -470,6 +518,7 @@ class AttendanceViewModel @Inject constructor(
                 displayBulk = false,
                 displayDialog = false,
                 overrideBulk = false,
+                displayResetDialog = false,
             )
         }
         viewModelScope.launch {
