@@ -13,12 +13,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.dp
-import org.dhis2.ui.theme.colorPrimary
+import org.saudigitus.semis.core.designsystem.theme.SemisPalette
 
 @Composable
 fun Backdrop(
     modifier: Modifier,
-    backLayerContainerColor: Color = colorPrimary,
+    backLayerContainerColor: Color = SemisPalette.HeaderBlueAccent,
     frontLayerContainerColor: Color = Color.White,
     frontLayerShape: Shape = MaterialTheme.shapes.medium
         .copy(

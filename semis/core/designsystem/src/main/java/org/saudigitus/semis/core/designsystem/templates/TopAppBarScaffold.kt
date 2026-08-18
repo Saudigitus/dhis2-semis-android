@@ -7,10 +7,10 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import org.dhis2.ui.theme.colorPrimary
 import org.saudigitus.semis.core.designsystem.components.Toolbar
 import org.saudigitus.semis.core.designsystem.components.ToolbarActionState
 import org.saudigitus.semis.core.designsystem.components.model.ToolbarHeaders
+import org.saudigitus.semis.core.designsystem.theme.SemisPalette
 
 @Composable
 fun TopAppBarScaffold(
@@ -21,7 +21,7 @@ fun TopAppBarScaffold(
     floatingActionButtonPosition: FabPosition = FabPosition.End,
     toolbarHeaders: ToolbarHeaders,
     topAppBarColors: TopAppBarColors = TopAppBarDefaults.topAppBarColors(
-        containerColor = colorPrimary,
+        containerColor = SemisPalette.HeaderBlueAccent,
         navigationIconContentColor = Color.White,
         titleContentColor = Color.White,
         actionIconContentColor = Color.White,
