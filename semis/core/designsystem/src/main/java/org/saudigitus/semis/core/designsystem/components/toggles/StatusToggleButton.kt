@@ -6,27 +6,24 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.Text
+import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.font.Font
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import org.saudigitus.semis.core.designsystem.R
 
 /**
- * Circular single-letter toggle. Tinted while unselected and solid once selected.
+ * Circular status toggle. Tinted while unselected and solid once selected.
  */
 @Composable
-fun LetterToggleButton(
-    option: LetterToggleOption,
+fun StatusToggleButton(
+    option: StatusToggleOption,
     selected: Boolean,
     modifier: Modifier = Modifier,
     size: Dp = 34.dp,
+    iconSize: Dp = 19.dp,
     onClick: () -> Unit,
 ) {
     Box(
@@ -48,12 +45,11 @@ fun LetterToggleButton(
             ),
         contentAlignment = Alignment.Center,
     ) {
-        Text(
-            text = option.letter,
-            color = if (selected) option.selectedContentColor else option.contentColor,
-            fontSize = 13.sp,
-            maxLines = 1,
-            fontFamily = FontFamily(Font(R.font.rubik_medium)),
+        Icon(
+            imageVector = option.icon,
+            contentDescription = option.label,
+            tint = if (selected) option.selectedContentColor else option.contentColor,
+            modifier = Modifier.size(iconSize),
         )
     }
 }

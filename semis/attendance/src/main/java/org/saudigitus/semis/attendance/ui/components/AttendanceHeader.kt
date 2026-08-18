@@ -89,8 +89,8 @@ internal fun AttendanceHeader(
             },
         )
 
-        StatTileRow(tiles = tiles)
-
         AttendanceFilterInfo(state = filterDetailsState)
+
+        StatTileRow(tiles = tiles)
     }
 }

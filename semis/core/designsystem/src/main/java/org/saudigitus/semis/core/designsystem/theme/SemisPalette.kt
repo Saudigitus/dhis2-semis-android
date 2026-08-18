@@ -1,6 +1,7 @@
 package org.saudigitus.semis.core.designsystem.theme
 
 import androidx.compose.ui.graphics.Color
+import org.saudigitus.semis.core.designsystem.theme.SemisPalette.HeaderBlue
 
 /**
  * Palette tokens shared by the module screens that follow the mobile mock-up design.
@@ -30,6 +31,8 @@ object SemisPalette {
     val TilePurple = Color(0xFF5B3A94)
     val TileSlate = Color(0xFF475569)
 
-    /** Ordered tones assigned to the configured statuses of a summary tile row. */
+    /** Fallback tones for summary tiles whose status carries no configured color. */
     val TileTones = listOf(TileTeal, TilePurple, TileSlate, HeaderBlueAccent)
+
+    val SurfaceBackground = Color(0xFFF1F4FA)
 }

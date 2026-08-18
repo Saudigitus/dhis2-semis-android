@@ -2,14 +2,16 @@ package org.saudigitus.semis.core.designsystem.components.toggles
 
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 
 /**
- * A single choice of a [LetterToggleGroup], rendered as the leading letter of its label.
+ * A single choice of a [StatusToggleGroup], rendered as the icon of the status it stands
+ * for and colored after it.
  */
 @Immutable
-data class LetterToggleOption(
+data class StatusToggleOption(
     val id: String,
-    val letter: String,
+    val icon: ImageVector,
     val label: String,
     val selectedContainerColor: Color,
     val containerColor: Color,

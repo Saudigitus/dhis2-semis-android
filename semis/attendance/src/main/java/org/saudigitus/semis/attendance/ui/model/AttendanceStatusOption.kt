@@ -1,8 +1,11 @@
 package org.saudigitus.semis.attendance.ui.model
 
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.vectorResource
 import org.saudigitus.semis.core.designsystem.attendance.model.AttendanceButtonModel
 import org.saudigitus.semis.core.designsystem.attendance.model.AttendanceEventWithDecorator
-import org.saudigitus.semis.core.designsystem.components.toggles.LetterToggleOption
+import org.saudigitus.semis.core.designsystem.components.toggles.StatusToggleOption
 import org.saudigitus.semis.core.designsystem.theme.borderTone
 import org.saudigitus.semis.core.designsystem.theme.contentTone
 import org.saudigitus.semis.core.designsystem.theme.surfaceTone
@@ -18,18 +21,21 @@ internal val AttendanceButtonModel.statusId: String
     get() = code ?: DEFAULT_STATUS_ID
 
 /**
- * Renders a configured attendance status as a single-letter toggle, keeping the color
- * coming from the app configuration.
+ * Renders a configured attendance status as an icon toggle, keeping the icon and the
+ * color coming from the app configuration.
  */
-internal fun AttendanceButtonModel.toLetterToggleOption(
+@Composable
+internal fun AttendanceButtonModel.toStatusToggleOption(
     isEditing: Boolean,
-): LetterToggleOption {
+): StatusToggleOption {
     val statusColor = color ?: UiDefaults.getAttendanceStatusColor(key)
     val statusLabel = name?.takeIf { it.isNotBlank() } ?: key
 
-    return LetterToggleOption(
+    return StatusToggleOption(
         id = statusId,
-        letter = statusLabel.firstOrNull()?.uppercase().orEmpty(),
+        icon = icon ?: ImageVector.vectorResource(
+            UiDefaults.getIconByName(iconName.orEmpty()),
+        ),
         label = statusLabel,
         selectedContainerColor = statusColor,
         containerColor = statusColor.surfaceTone(),
