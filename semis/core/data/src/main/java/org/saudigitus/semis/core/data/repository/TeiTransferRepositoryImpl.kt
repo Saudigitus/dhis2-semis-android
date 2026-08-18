@@ -11,6 +11,7 @@ import org.saudigitus.semis.core.data.model.app_config.Transfer
 import org.saudigitus.semis.core.data.model.app_config.isIncomingEnabledAndConfigured
 import org.saudigitus.semis.core.data.model.app_config.pendingStatusCode
 import org.saudigitus.semis.core.data.model.transfer.IncomingTeiTransfer
+import org.saudigitus.semis.core.data.model.transfer.OutgoingTeiTransfer
 import org.saudigitus.semis.core.data.model.transfer.TeiTransferFailure
 import org.saudigitus.semis.core.data.model.transfer.TeiTransferLearner
 import org.saudigitus.semis.core.data.model.transfer.TeiTransferMetadata
@@ -103,6 +104,34 @@ class TeiTransferRepositoryImpl @Inject constructor(
                     event.dataValue(transfer.destinySchool) == currentOrgUnit
             }
             .mapNotNull { event -> incomingTransfer(event, program, transfer) }
+            .sortedByDescending { it.effectiveDate }
+            .toList()
+    }
+
+    override suspend fun getPendingOutgoingTransfers(
+        program: String,
+        currentOrgUnit: String,
+    ): List<OutgoingTeiTransfer> = withContext(Dispatchers.IO) {
+        val transfer = appConfigRepository.getAppConfig(program)
+            ?.transfer
+            ?.takeIf { it.isIncomingEnabledAndConfigured() }
+            ?: return@withContext emptyList()
+
+        // The transfer event is created at the destination school, so an outgoing request
+        // is recognised by its origin data value rather than by the event organisation unit.
+        d2.eventModule().events()
+            .byProgramUid().eq(program)
+            .byProgramStageUid().eq(transfer.programStage.orEmpty())
+            .byDeleted().isFalse
+            .withTrackedEntityDataValues()
+            .blockingGet()
+            .asSequence()
+            .filter { event ->
+                event.status() == EventStatus.ACTIVE &&
+                    event.dataValue(transfer.status) == transfer.pendingStatusCode() &&
+                    event.dataValue(transfer.originSchool) == currentOrgUnit
+            }
+            .mapNotNull { event -> outgoingTransfer(event, program, transfer) }
             .sortedByDescending { it.effectiveDate }
             .toList()
     }
@@ -229,6 +258,43 @@ class TeiTransferRepositoryImpl @Inject constructor(
             originOrgUnit = originOrgUnit,
             originSchoolName = originSchoolName,
             destinationOrgUnit = event.dataValue(transfer.destinySchool).orEmpty(),
+            effectiveDate = event.eventDate() ?: java.util.Date(),
+        )
+    }
+
+    private fun outgoingTransfer(
+        event: Event,
+        program: String,
+        transfer: Transfer,
+    ): OutgoingTeiTransfer? {
+        val enrollmentUid = event.enrollment() ?: return null
+        val enrollment = d2.enrollmentModule().enrollments()
+            .uid(enrollmentUid)
+            .blockingGet()
+            ?: return null
+        val teiUid = enrollment.trackedEntityInstance() ?: return null
+        val tei = d2.trackedEntityModule().trackedEntityInstances()
+            .byUid().eq(teiUid)
+            .withTrackedEntityAttributeValues()
+            .one()
+            .blockingGet()
+            ?: return null
+        val identity = transformations.transform(tei, program, enrollment).learnerIdentity()
+        val destinationOrgUnit = event.dataValue(transfer.destinySchool).orEmpty()
+        val destinationSchoolName = d2.organisationUnitModule().organisationUnits()
+            .uid(destinationOrgUnit)
+            .blockingGet()
+            ?.displayName()
+            .orEmpty()
+
+        return OutgoingTeiTransfer(
+            eventUid = event.uid(),
+            teiUid = teiUid,
+            enrollmentUid = enrollmentUid,
+            learnerName = identity.name,
+            firstAttributeValue = identity.firstAttributeValue,
+            destinationOrgUnit = destinationOrgUnit,
+            destinationSchoolName = destinationSchoolName,
             effectiveDate = event.eventDate() ?: java.util.Date(),
         )
     }

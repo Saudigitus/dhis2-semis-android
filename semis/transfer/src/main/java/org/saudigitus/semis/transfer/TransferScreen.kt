@@ -49,11 +49,12 @@ fun TransferScreen(
         toolbarHeaders = ToolbarHeaders(
             title = stringResource(R.string.transfer),
             subtitle = stringResource(
-                if (
-                    state.step == TransferStep.SELECT_LEARNERS &&
-                    state.selectedTab == TransferTab.INCOMING_STUDENTS
-                ) {
-                    R.string.incoming_students_subtitle
+                if (state.step == TransferStep.SELECT_LEARNERS) {
+                    when (state.selectedTab) {
+                        TransferTab.TRANSFERS -> state.step.subtitleResource()
+                        TransferTab.INCOMING_STUDENTS -> R.string.incoming_students_subtitle
+                        TransferTab.PENDING_OUTGOING -> R.string.pending_outgoing_subtitle
+                    }
                 } else {
                     state.step.subtitleResource()
                 }
