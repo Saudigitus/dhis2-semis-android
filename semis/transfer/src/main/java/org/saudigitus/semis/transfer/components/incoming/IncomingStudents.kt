@@ -37,15 +37,22 @@ internal fun IncomingStudents(state: TransferUiState, onEvent: (TransferUiEvent)
             )
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(16.dp),
+                contentPadding = PaddingValues(start = 16.dp, top = 12.dp, end = 16.dp, bottom = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
                 items(state.incomingTransfers, key = { it.eventUid }) { transfer ->
                     IncomingStudentCard(
                         transfer = transfer,
-                        approving = transfer.eventUid in state.approvingEventUids,
-                        onApprove = {
-                            onEvent(TransferUiEvent.ApproveIncoming(transfer.eventUid))
+                        processing = transfer.eventUid in state.processingEventUids,
+                        selected = transfer.eventUid in state.selectedIncomingEventUids,
+                        selectionActive = state.hasIncomingSelection,
+                        onToggleSelection = {
+                            onEvent(TransferUiEvent.ToggleIncomingSelection(transfer.eventUid))
+                        },
+                        onDecide = { decision ->
+                            onEvent(
+                                TransferUiEvent.DecideIncoming(transfer.eventUid, decision),
+                            )
                         },
                     )
                 }

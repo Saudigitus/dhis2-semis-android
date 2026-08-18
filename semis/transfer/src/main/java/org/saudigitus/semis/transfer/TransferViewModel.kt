@@ -15,6 +15,7 @@ import org.dhis2.commons.resources.ResourceManager
 import org.saudigitus.semis.core.data.model.OrgUnit
 import org.saudigitus.semis.core.data.model.SearchTeiModel
 import org.saudigitus.semis.core.data.model.transfer.TeiTransferLearner
+import org.saudigitus.semis.core.data.model.transfer.TransferDecision
 import org.saudigitus.semis.core.data.model.transfer.TeiTransferRequest
 import org.saudigitus.semis.core.data.repository.TeiTransferRepository
 import org.saudigitus.semis.core.designsystem.components.FilterDetailsState
@@ -69,13 +70,18 @@ class TransferViewModel @Inject constructor(
         }
         loadTransferMetadata(program)
         loadIncomingTransfers()
+        loadOutgoingTransfers()
     }
 
     fun handleEvent(event: TransferUiEvent) {
         when (event) {
             is TransferUiEvent.SelectTab -> selectTab(event.tab)
             is TransferUiEvent.ToggleLearner -> toggleLearner(event.teiUid)
-            is TransferUiEvent.ApproveIncoming -> approveIncoming(event.eventUid)
+            is TransferUiEvent.DecideIncoming -> decideIncoming(event.eventUid, event.decision)
+            is TransferUiEvent.ToggleIncomingSelection -> toggleIncomingSelection(event.eventUid)
+            is TransferUiEvent.DecideSelectedIncoming -> decideSelectedIncoming(event.decision)
+            TransferUiEvent.ApproveAllIncoming -> approveAllIncoming()
+            TransferUiEvent.ClearIncomingSelection -> clearIncomingSelection()
             TransferUiEvent.Continue -> continueFlow()
             TransferUiEvent.Back -> previousStep()
         }
@@ -140,42 +146,109 @@ class TransferViewModel @Inject constructor(
         }
     }
 
-    private fun approveIncoming(eventUid: String) {
+    private fun loadOutgoingTransfers() {
         val current = _uiState.value
         val orgUnit = current.sourceOrgUnit ?: return
-        if (eventUid in current.approvingEventUids) return
+        if (current.isLoadingOutgoingTransfers) return
 
-        _uiState.update {
-            it.copy(approvingEventUids = it.approvingEventUids + eventUid)
-        }
+        _uiState.update { it.copy(isLoadingOutgoingTransfers = true) }
         viewModelScope.launch {
             runCatching {
-                repository.approveIncomingTransfer(
-                    program = current.program,
-                    currentOrgUnit = orgUnit.uid,
-                    eventUid = eventUid,
-                )
-            }.onSuccess {
+                repository.getOutgoingTransfers(current.program, orgUnit.uid)
+            }.onSuccess { outgoing ->
                 _uiState.update {
-                    it.copy(
-                        approvingEventUids = it.approvingEventUids - eventUid,
-                        incomingTransfers = it.incomingTransfers.filterNot { request ->
-                            request.eventUid == eventUid
-                        },
-                    )
+                    it.copy(isLoadingOutgoingTransfers = false, outgoingTransfers = outgoing)
                 }
-                emitSuccess(
-                    resourceManager.getString(R.string.incoming_transfer_approved),
-                )
-                _syncEvent.emit(Unit)
             }.onFailure { error ->
-                _uiState.update {
-                    it.copy(approvingEventUids = it.approvingEventUids - eventUid)
-                }
+                _uiState.update { it.copy(isLoadingOutgoingTransfers = false) }
                 emitError(
                     error.message
-                        ?: resourceManager.getString(R.string.incoming_transfer_approval_failed),
+                        ?: resourceManager.getString(R.string.pending_outgoing_load_failed),
                 )
+            }
+        }
+    }
+
+    private fun toggleIncomingSelection(eventUid: String) {
+        _uiState.update { current ->
+            val selected = current.selectedIncomingEventUids.toMutableSet()
+            if (!selected.add(eventUid)) selected.remove(eventUid)
+            current.copy(selectedIncomingEventUids = selected)
+        }
+    }
+
+    private fun clearIncomingSelection() {
+        _uiState.update { it.copy(selectedIncomingEventUids = emptySet()) }
+    }
+
+    private fun approveAllIncoming() {
+        decideIncoming(
+            eventUids = _uiState.value.incomingTransfers.map { it.eventUid },
+            decision = TransferDecision.APPROVE,
+        )
+    }
+
+    private fun decideSelectedIncoming(decision: TransferDecision) {
+        decideIncoming(
+            eventUids = _uiState.value.selectedIncomingTransfers.map { it.eventUid },
+            decision = decision,
+        )
+    }
+
+    private fun decideIncoming(eventUid: String, decision: TransferDecision) {
+        decideIncoming(eventUids = listOf(eventUid), decision = decision)
+    }
+
+    /**
+     * Applies [decision] to each request in turn so one failure leaves the others decided,
+     * and reports how many went through.
+     */
+    private fun decideIncoming(eventUids: List<String>, decision: TransferDecision) {
+        val current = _uiState.value
+        val orgUnit = current.sourceOrgUnit ?: return
+        val pending = eventUids.filterNot { it in current.processingEventUids }
+        if (pending.isEmpty()) return
+
+        _uiState.update { it.copy(processingEventUids = it.processingEventUids + pending) }
+
+        viewModelScope.launch {
+            val decided = mutableListOf<String>()
+            val failures = mutableListOf<String>()
+
+            pending.forEach { eventUid ->
+                runCatching {
+                    repository.decideIncomingTransfer(
+                        program = current.program,
+                        currentOrgUnit = orgUnit.uid,
+                        eventUid = eventUid,
+                        decision = decision,
+                    )
+                }.onSuccess {
+                    decided += eventUid
+                }.onFailure { error ->
+                    failures += error.message
+                        ?: resourceManager.getString(decision.failureMessage())
+                }
+            }
+
+            _uiState.update { state ->
+                state.copy(
+                    processingEventUids = state.processingEventUids - pending.toSet(),
+                    selectedIncomingEventUids = state.selectedIncomingEventUids - decided.toSet(),
+                    incomingTransfers = state.incomingTransfers.filterNot {
+                        it.eventUid in decided
+                    },
+                )
+            }
+
+            if (decided.isNotEmpty()) {
+                emitSuccess(
+                    resourceManager.getString(decision.successMessage(), decided.size),
+                )
+                _syncEvent.emit(Unit)
+            }
+            if (failures.isNotEmpty()) {
+                emitError(failures.distinct().joinToString(separator = "\n"))
             }
         }
     }
@@ -257,6 +330,7 @@ class TransferViewModel @Inject constructor(
                     )
                 }
                 _formResetEvent.emit(Unit)
+                loadOutgoingTransfers()
                 if (result.transferredTeiUids.isNotEmpty()) {
                     emitSuccess(
                         resourceManager.getString(
@@ -297,4 +371,14 @@ class TransferViewModel @Inject constructor(
     private suspend fun emitError(message: String) {
         _messageEvent.emit(TransferMessage(message, TransferMessageType.ERROR))
     }
+}
+
+private fun TransferDecision.successMessage() = when (this) {
+    TransferDecision.APPROVE -> R.string.incoming_transfers_approved
+    TransferDecision.REJECT -> R.string.incoming_transfers_rejected
+}
+
+private fun TransferDecision.failureMessage() = when (this) {
+    TransferDecision.APPROVE -> R.string.incoming_transfer_approval_failed
+    TransferDecision.REJECT -> R.string.incoming_transfer_rejection_failed
 }

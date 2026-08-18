@@ -22,5 +22,8 @@
     <string name="transfer_origin_school_missing">Origin school data element is missing</string>
     <string name="transfer_destination_school_missing">Destination school data element is missing</string>
     <string name="transfer_status_missing">Transfer status data element is missing</string>
+    <string name="transfer_approved_status_missing">Transfer approved status code is missing</string>
+    <string name="transfer_rejected_status_missing">Transfer rejected status code is missing</string>
+    <string name="transfer_origin_school_unknown">Transfer request does not record the origin school</string>
     <string name="transfer_pending_status_missing">Pending transfer status option is missing</string>
 </resources>

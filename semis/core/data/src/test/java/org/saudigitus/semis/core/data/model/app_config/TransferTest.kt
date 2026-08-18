@@ -26,8 +26,8 @@ class TransferTest {
     fun `gets pending value from the matching status option code`() {
         val transfer = decodeTransfer("pendingCode").copy(
             statusOptions = listOf(
-                StatusOption("APPROVED_CODE", null, null, null, "approved"),
-                StatusOption("PENDING_CODE", null, null, null, " pending "),
+                statusOption(code = "APPROVED_CODE", key = "approved"),
+                statusOption(code = "PENDING_CODE", key = " pending "),
             )
         )
 
@@ -51,6 +51,15 @@ class TransferTest {
         assertFalse(configured.copy(destinySchool = null).isIncomingEnabledAndConfigured())
         assertFalse(null.isIncomingEnabledAndConfigured())
     }
+
+    private fun statusOption(code: String, key: String) = StatusOption(
+        code = code,
+        color = null,
+        configKey = null,
+        icon = null,
+        key = key,
+        totalSummary = null,
+    )
 
     private fun decodeTransfer(pendingProperty: String): Transfer =
         JsonMapper.json.decodeFromString(

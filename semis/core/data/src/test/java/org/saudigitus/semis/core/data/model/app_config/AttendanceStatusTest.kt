@@ -7,25 +7,11 @@ import org.saudigitus.semis.core.utils.JsonMapper
 class AttendanceStatusTest {
 
     @Test
-    fun `reads total data elements from attendance status property names`() {
+    fun `reads the total records data element`() {
         val status = JsonMapper.json.decodeFromString<AttendanceStatus>(
-            """{"totalAbsences":"absences","totalRecords":"records"}"""
+            """{"totalRecords":"records"}"""
         )
 
-        assertEquals("absences", status.totalAbsences)
-        assertEquals("records", status.totalRecords)
-    }
-
-    @Test
-    fun `reads legacy total data element property names`() {
-        val status = JsonMapper.json.decodeFromString<AttendanceStatus>(
-            """{
-                "totalAbsencesDataElement":"absences",
-                "totalRecordsDataElement":"records"
-            }""".trimIndent()
-        )
-
-        assertEquals("absences", status.totalAbsences)
         assertEquals("records", status.totalRecords)
     }
 
@@ -35,12 +21,13 @@ class AttendanceStatusTest {
             allowAttendanceStatus = true,
             program = "program",
             programStage = "stage",
-            totalAbsences = "absences",
             totalRecords = "records",
         )
 
         assertEquals(true, complete.isEnabledAndConfigured())
         assertEquals(false, complete.copy(totalRecords = null).isEnabledAndConfigured())
+        assertEquals(false, complete.copy(programStage = null).isEnabledAndConfigured())
+        assertEquals(false, complete.copy(program = null).isEnabledAndConfigured())
         assertEquals(false, complete.copy(allowAttendanceStatus = false).isEnabledAndConfigured())
         assertEquals(false, null.isEnabledAndConfigured())
     }
