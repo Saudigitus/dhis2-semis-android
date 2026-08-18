@@ -1,4 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="performance_config_error">Performance configuration not found.</string>
+    <string name="performance_students_count">%1$d students</string>
+    <string name="performance_stat_graded">Graded</string>
+    <string name="performance_stat_missing">Missing</string>
+    <string name="performance_stat_average">Average</string>
+    <string name="performance_stat_highest">Highest</string>
+    <plurals name="performance_students_without_marks">
+        <item quantity="one">%1$d student without marks</item>
+        <item quantity="other">%1$d students without marks</item>
+    </plurals>
+    <string name="performance_save_marks">Save Marks</string>
+    <string name="performance_edit_marks">Edit Marks</string>
 </resources>

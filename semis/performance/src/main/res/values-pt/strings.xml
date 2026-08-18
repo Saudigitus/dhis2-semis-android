@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="performance_config_error">Configuração de desempenho não encontrada.</string>
+    <string name="performance_students_count">%1$d alunos</string>
+    <string name="performance_stat_graded">Lançadas</string>
+    <string name="performance_stat_missing">Em falta</string>
+    <string name="performance_stat_average">Média</string>
+    <string name="performance_stat_highest">Máxima</string>
+    <plurals name="performance_students_without_marks">
+        <item quantity="one">%1$d aluno sem nota</item>
+        <item quantity="other">%1$d alunos sem nota</item>
+    </plurals>
+    <string name="performance_save_marks">Guardar notas</string>
+    <string name="performance_edit_marks">Editar notas</string>
+</resources>

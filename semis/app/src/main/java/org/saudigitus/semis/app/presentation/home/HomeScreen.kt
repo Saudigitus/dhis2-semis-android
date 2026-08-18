@@ -27,7 +27,6 @@ import androidx.compose.ui.unit.dp
 import org.saudigitus.semis.app.R
 import org.saudigitus.semis.app.presentation.home.components.HomeAccent
 import org.saudigitus.semis.app.presentation.home.components.HomeBackground
-import org.saudigitus.semis.app.presentation.home.components.HomeFilterDetails
 import org.saudigitus.semis.app.presentation.home.components.HomeModuleCard
 import org.saudigitus.semis.app.presentation.home.components.HomeSectionLabel
 import org.saudigitus.semis.app.presentation.home.components.HomeStat
@@ -36,6 +35,7 @@ import org.saudigitus.semis.app.presentation.home.components.moduleAccent
 import org.saudigitus.semis.app.presentation.navigation.AppRoutes
 import org.saudigitus.semis.core.designsystem.components.ConfigNotFound
 import org.saudigitus.semis.core.designsystem.components.NoRecordsFound
+import org.saudigitus.semis.core.designsystem.components.SemisFilterDetails
 import org.saudigitus.semis.core.designsystem.filters.FilterComponentEvent
 import org.saudigitus.semis.core.designsystem.filters.FilterContainer
 import org.saudigitus.semis.core.designsystem.templates.Backdrop
@@ -79,7 +79,7 @@ fun HomeScreen(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             fullWidthItem(key = "filter_details") {
-                HomeFilterDetails(
+                SemisFilterDetails(
                     state = filterDetails,
                     onClick = {
                         navTo.invoke(AppRoutes.TRACKER_LIST)

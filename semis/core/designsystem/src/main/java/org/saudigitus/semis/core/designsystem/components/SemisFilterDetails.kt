@@ -1,4 +1,4 @@
-package org.saudigitus.semis.app.presentation.home.components
+package org.saudigitus.semis.core.designsystem.components
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,18 +22,28 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import org.saudigitus.semis.core.designsystem.components.FilterDetailsState
+import org.saudigitus.semis.core.designsystem.theme.SemisAccent
+import org.saudigitus.semis.core.designsystem.theme.SemisPalette
+import org.saudigitus.semis.core.designsystem.theme.semisSoftShadow
+import org.saudigitus.semis.core.designsystem.theme.surfaceTone
 
 /**
- * Home variant of the shared FilterDetails card, restyled with the transfer module design system.
+ * Selection card shown at the top of the module screens: the grade and section being worked on,
+ * the academic year and school underneath, and how many learners the selection holds.
+ *
+ * Restyled variant of [FilterDetails], introduced by the home screen and shared with the module
+ * listings so every screen opens with the same header.
  */
 @Composable
-internal fun HomeFilterDetails(
+fun SemisFilterDetails(
     modifier: Modifier = Modifier,
     state: FilterDetailsState,
+    accent: Color = SemisAccent.Blue,
+    showChevron: Boolean = true,
     onClick: () -> Unit = {},
 ) {
     val title = listOfNotNull(state.grade, state.section)
@@ -44,14 +54,14 @@ internal fun HomeFilterDetails(
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .softShadow(RoundedCornerShape(20.dp)),
+            .semisSoftShadow(CardShape),
         onClick = onClick,
         enabled = state.enable,
-        shape = RoundedCornerShape(20.dp),
+        shape = CardShape,
         colors = CardDefaults.cardColors(
-            containerColor = HomeSurface,
+            containerColor = SemisPalette.CardSurface,
             contentColor = MaterialTheme.colorScheme.onSurface,
-            disabledContainerColor = HomeSurface,
+            disabledContainerColor = SemisPalette.CardSurface,
             disabledContentColor = MaterialTheme.colorScheme.onSurface,
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
@@ -66,14 +76,14 @@ internal fun HomeFilterDetails(
             Surface(
                 modifier = Modifier.size(42.dp),
                 shape = RoundedCornerShape(14.dp),
-                color = HomeAccent.Blue.softContainer(),
+                color = accent.surfaceTone(0.12f),
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
                         modifier = Modifier.size(22.dp),
                         imageVector = Icons.Rounded.School,
                         contentDescription = null,
-                        tint = HomeAccent.Blue,
+                        tint = accent,
                     )
                 }
             }
@@ -101,7 +111,7 @@ internal fun HomeFilterDetails(
             if (state.enableCounter) {
                 Surface(
                     shape = CircleShape,
-                    color = HomeAccent.Blue.softContainer(),
+                    color = accent.surfaceTone(0.12f),
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
@@ -112,19 +122,19 @@ internal fun HomeFilterDetails(
                             modifier = Modifier.size(15.dp),
                             imageVector = Icons.Outlined.Person,
                             contentDescription = null,
-                            tint = HomeAccent.Blue,
+                            tint = accent,
                         )
                         Text(
                             text = "${state.count}",
                             style = MaterialTheme.typography.labelLarge,
-                            color = HomeAccent.Blue,
+                            color = accent,
                             fontWeight = FontWeight.Bold,
                         )
                     }
                 }
             }
 
-            if (state.enable) {
+            if (state.enable && showChevron) {
                 Icon(
                     modifier = Modifier.size(20.dp),
                     imageVector = Icons.Rounded.ChevronRight,
@@ -135,3 +145,5 @@ internal fun HomeFilterDetails(
         }
     }
 }
+
+private val CardShape = RoundedCornerShape(20.dp)
