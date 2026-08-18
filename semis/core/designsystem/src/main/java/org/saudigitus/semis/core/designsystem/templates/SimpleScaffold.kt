@@ -16,7 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.dp
-import org.dhis2.ui.theme.colorPrimary
+import org.saudigitus.semis.core.designsystem.theme.SemisPalette
 
 @Composable
 fun SimpleScaffold(
@@ -46,7 +46,7 @@ fun SimpleScaffold(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(color = colorPrimary)
+                .background(color = SemisPalette.HeaderBlueAccent)
                 .padding(innerPadding),
             verticalArrangement = Arrangement.Top,
             horizontalAlignment = Alignment.Start,

@@ -14,6 +14,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import org.saudigitus.semis.core.designsystem.theme.SemisPalette
+import org.saudigitus.semis.core.designsystem.theme.SemisPalette.SurfaceBackground
 
 /**
  * Scaffold for screens whose colored header carries its own rounded bottom corners,
@@ -40,7 +41,7 @@ fun RoundedHeaderScaffold(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .background(color = Color.White),
+                .background(color = SurfaceBackground),
             verticalArrangement = Arrangement.spacedBy(verticalSpacing, Alignment.Top),
             horizontalAlignment = Alignment.CenterHorizontally,
             content = content,

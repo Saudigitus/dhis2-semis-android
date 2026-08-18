@@ -1,7 +1,9 @@
 package org.saudigitus.semis.attendance.ui.model
 
 import org.junit.Assert.assertEquals
+import androidx.compose.ui.graphics.Color
 import org.saudigitus.semis.core.designsystem.components.bottomsheet.model.BottomSheetModel
+import org.saudigitus.semis.core.designsystem.theme.SemisPalette
 import org.junit.Test
 
 class AttendanceStatTilesTest {
@@ -64,5 +66,40 @@ class AttendanceStatTilesTest {
         val statusColors = tiles.drop(1).map { it.containerColor }
 
         assertEquals(statusColors.size, statusColors.distinct().size)
+    }
+
+    @Test
+    fun `status tiles are painted with the color the status is configured with`() {
+        val present = Color(0xFF81C784)
+        val absent = Color(0xFFE57373)
+
+        val tiles = attendanceStatTiles(
+            totalLabel = "Total",
+            totalLearners = 5,
+            summaries = listOf(
+                BottomSheetModel(label = "Present", value = "3", color = present),
+                BottomSheetModel(label = "Absent", value = "2", color = absent),
+            ),
+            hasAttendanceRecord = true,
+        )
+
+        assertEquals(present, tiles[1].containerColor)
+        assertEquals(absent, tiles[2].containerColor)
+    }
+
+    @Test
+    fun `a light status color is given a dark foreground so the count stays legible`() {
+        val tiles = attendanceStatTiles(
+            totalLabel = "Total",
+            totalLearners = 5,
+            summaries = listOf(
+                BottomSheetModel(label = "Late", value = "1", color = Color(0xFFFACC95)),
+                BottomSheetModel(label = "Excused", value = "1", color = Color(0xFF1B5E20)),
+            ),
+            hasAttendanceRecord = true,
+        )
+
+        assertEquals(SemisPalette.TextPrimary, tiles[1].contentColor)
+        assertEquals(Color.White, tiles[2].contentColor)
     }
 }
