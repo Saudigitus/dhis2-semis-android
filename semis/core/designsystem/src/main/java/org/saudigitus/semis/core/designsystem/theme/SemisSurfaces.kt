@@ -26,6 +26,9 @@ object SemisAccent {
 /** Shape of the content area right below the toolbar. */
 val SemisScreenShape: Shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)
 
+/** Rounded box the form fields are drawn in, as on the enrollment form. */
+val SemisFieldShape: Shape = RoundedCornerShape(12.dp)
+
 /** Soft elevation used by the SEMIS cards, mirroring the transfer module look. */
 fun Modifier.semisSoftShadow(shape: Shape, elevation: Dp = 4.dp): Modifier = shadow(
     elevation = elevation,
