@@ -35,6 +35,7 @@ fun EnrollmentScreen(
     onBack: () -> Unit,
     onSync: () -> Unit,
     onNewEnrollment: () -> Unit,
+    onTeiClick: (teiUid: String) -> Unit = {},
 ) {
     TopAppBarScaffold(
         toolbarHeaders = ToolbarHeaders(title = programName),
@@ -79,6 +80,7 @@ fun EnrollmentScreen(
                             tei = student,
                             modifier = Modifier.testTag("ENROLLMENT_TEI_ITEM"),
                             maxAdditionalInfo = 0,
+                            onClick = { onTeiClick(student.tei.uid()) },
                         )
                     }
                 }

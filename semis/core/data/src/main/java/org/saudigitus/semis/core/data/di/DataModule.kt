@@ -23,6 +23,8 @@ import org.saudigitus.semis.core.data.repository.ProgramStageRepository
 import org.saudigitus.semis.core.data.repository.ProgramStageRepositoryImpl
 import org.saudigitus.semis.core.data.repository.TeiDownloaderRepository
 import org.saudigitus.semis.core.data.repository.TeiDownloaderRepositoryImpl
+import org.saudigitus.semis.core.data.repository.TeiProfileRepository
+import org.saudigitus.semis.core.data.repository.TeiProfileRepositoryImpl
 import org.saudigitus.semis.core.data.repository.TeiRepository
 import org.saudigitus.semis.core.data.repository.TeiRepositoryImpl
 import org.saudigitus.semis.core.data.repository.TeiTransferRepository
@@ -81,6 +83,18 @@ object DataModule {
         d2: D2,
         transformations: Transformations
     ): TeiRepository = TeiRepositoryImpl(d2, transformations)
+
+    @Provides
+    @Singleton
+    fun provideTeiProfileRepository(
+        d2: D2,
+        appConfigRepository: AppConfigRepository,
+        transformations: Transformations,
+    ): TeiProfileRepository = TeiProfileRepositoryImpl(
+        d2 = d2,
+        appConfigRepository = appConfigRepository,
+        transformations = transformations,
+    )
 
     @Provides
     @Singleton

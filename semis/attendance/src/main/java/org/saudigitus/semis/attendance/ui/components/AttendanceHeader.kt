@@ -18,6 +18,7 @@ import org.saudigitus.semis.attendance.R
 import org.saudigitus.semis.core.designsystem.components.CustomDatePicker
 import org.saudigitus.semis.core.designsystem.components.FilterDetailsState
 import org.saudigitus.semis.core.designsystem.components.buttons.TonalIconButton
+import org.saudigitus.semis.core.designsystem.components.filters.FilterDetailsInfoCard
 import org.saudigitus.semis.core.designsystem.components.header.HeaderTitleBar
 import org.saudigitus.semis.core.designsystem.components.header.RoundedBottomHeader
 import org.saudigitus.semis.core.designsystem.components.model.ToolbarHeaders
@@ -89,7 +90,7 @@ internal fun AttendanceHeader(
             },
         )
 
-        AttendanceFilterInfo(state = filterDetailsState)
+        FilterDetailsInfoCard(state = filterDetailsState)
 
         StatTileRow(tiles = tiles)
     }

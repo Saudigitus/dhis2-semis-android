@@ -1,3 +1,29 @@
 <resources>
     <string name="app_name">enrollment</string>
+
+    <string name="profile_tab_details">Details</string>
+    <string name="profile_tab_attendance">Attendance</string>
+    <string name="profile_tab_performance">Performance</string>
+
+    <string name="profile_identity">Identity</string>
+    <string name="profile_socio_economics">Socio-economic details</string>
+    <string name="profile_attendance_summary">Attendance summary</string>
+    <string name="profile_attendance_history">Recorded days</string>
+    <string name="profile_performance">Performance</string>
+
+    <string name="profile_occurred_at">Occurred at</string>
+    <string name="profile_school">School</string>
+    <string name="profile_active">Active</string>
+    <string name="profile_average">Average %1$s</string>
+    <string name="profile_recorded">Recorded</string>
+    <string name="profile_recorded_days">%1$d day(s) recorded</string>
+    <string name="profile_more_records">%1$d more day(s) not listed</string>
+    <string name="profile_unknown_date">Unknown date</string>
+    <string name="profile_unknown_learner">Learner</string>
+
+    <string name="profile_no_identity">No identity attributes were captured for this learner.</string>
+    <string name="profile_no_socio_economics">No socio-economic record was captured for this learner.</string>
+    <string name="profile_no_attendance">No attendance was recorded for the selected academic year.</string>
+    <string name="profile_no_performance">No marks were recorded for the selected academic year.</string>
+    <string name="profile_not_found">This learner profile could not be loaded.</string>
 </resources>
