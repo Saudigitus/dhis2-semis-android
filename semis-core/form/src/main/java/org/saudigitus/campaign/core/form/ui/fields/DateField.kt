@@ -19,6 +19,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import org.hisp.dhis.mobile.ui.designsystem.theme.Spacing
 import org.saudigitus.campaign.core.designsystem.components.CustomDatePicker
+import org.saudigitus.campaign.core.designsystem.theme.FormSurfaces
 import org.saudigitus.campaign.core.form.R
 import org.saudigitus.campaign.core.form.data.models.FormFieldModel
 import org.saudigitus.campaign.core.form.utils.Utils
@@ -43,6 +44,7 @@ fun DateField(
     )
 
     TextField(
+        shape = FormSurfaces.FieldShape,
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(Spacing.Spacing0, 300.dp)
@@ -103,6 +105,7 @@ fun DateField(
     )
 
     TextField(
+        shape = FormSurfaces.FieldShape,
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(Spacing.Spacing0, 300.dp)

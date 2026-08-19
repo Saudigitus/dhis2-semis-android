@@ -4,6 +4,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -11,10 +12,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.PinDrop
@@ -24,7 +23,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.ProgressIndicatorDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -39,17 +37,16 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import org.hisp.dhis.android.core.common.ValueType
-import org.hisp.dhis.mobile.ui.designsystem.theme.SurfaceColor
 import org.saudigitus.campaign.core.designsystem.templates.SimpleScaffold
+import org.saudigitus.campaign.core.designsystem.theme.FormSurfaces
 import org.saudigitus.campaign.core.designsystem.theme.light_success
 import org.saudigitus.campaign.core.form.R
-import org.saudigitus.campaign.core.form.ui.FormFieldItem
 import org.saudigitus.campaign.core.form.ui.component.FormInfo
 import org.saudigitus.campaign.core.form.ui.component.MandatoryFieldWrapper
 import org.saudigitus.campaign.core.form.ui.fields.DateField
@@ -57,10 +54,8 @@ import org.saudigitus.campaign.core.form.ui.fields.OuField
 import org.saudigitus.campaign.core.form.ui.state.FormEvent
 import org.saudigitus.campaign.core.form.ui.state.FormSectionType
 import org.saudigitus.campaign.core.form.ui.state.FormSectionUiState
-import org.saudigitus.campaign.core.form.utils.checkUnfilledMandatoryFields
 import org.saudigitus.campaign.core.form.utils.completionPercentage
 import org.saudigitus.campaign.core.form.utils.firstBlockingFieldIndex
-import org.saudigitus.campaign.core.utils.IdGenerator
 import org.saudigitus.campaign.core.utils.location.rememberCoordinateState
 import org.saudigitus.campaign.core.utils.location.state.CoordinateState
 
@@ -75,16 +70,8 @@ internal fun FormSectionUi(
         section.rendered && section.formFields.any { field -> field.rendered == true }
     }
     val hasVisibleSections = visibleSections.isNotEmpty()
-    val pagerState = rememberPagerState { maxOf(visibleSections.size, 1) }
+    val listState = rememberLazyListState()
     val scrollScope = rememberCoroutineScope()
-    val lazyListState = remember(pagerState.pageCount) {
-        List(pagerState.pageCount) { LazyListState() }
-    }
-    val currentPage = if (hasVisibleSections) {
-        pagerState.currentPage.coerceIn(0, visibleSections.lastIndex)
-    } else {
-        0
-    }
 
     val animatedProgress by animateFloatAsState(
         targetValue = visibleSections.completionPercentage(),
@@ -95,7 +82,7 @@ internal fun FormSectionUi(
     var finishedCoordinateFields by remember { mutableStateOf(emptySet<String>()) }
     var coordinateStatesByField by remember { mutableStateOf(emptyMap<String, CoordinateState>()) }
 
-    val currentCoordinateCandidate = visibleSections.getOrNull(currentPage)?.let { section ->
+    val currentCoordinateCandidate = visibleSections.firstNotNullOfOrNull { section ->
         section.formFields
             .filter { field ->
                 field.rendered == true && field.valueType == ValueType.COORDINATE
@@ -160,18 +147,23 @@ internal fun FormSectionUi(
         )
     }
 
-    fun isCurrentPageValid(): Boolean {
+    val showsBaseFields = state.formType == FormSectionType.NEW_ENROLLMENT ||
+        state.formType == FormSectionType.EDIT_ENROLLMENT ||
+        state.formType == FormSectionType.NEW_EVENT_WITHOUT_REGISTRATION
+    val pendingMandatorySection = visibleSections.firstOrNull { it.hasUnfilledMandatoryFields() }
+
+    // The header sits inside the list, so the sections start right after it.
+    val sectionsOffset = if (showsBaseFields || pendingMandatorySection != null) 1 else 0
+
+    fun isFormValid(): Boolean {
         hasUnfilledMandatoryFields = hasBaseMandatoryFields(state) ||
-            (hasVisibleSections && visibleSections[currentPage].hasUnfilledMandatoryFields())
+            visibleSections.any { it.hasUnfilledMandatoryFields() }
 
-        val firstBlockingFieldIndex = visibleSections
-            .getOrNull(currentPage)
-            ?.firstBlockingFieldIndex()
-            ?: -1
+        val blockingSection = visibleSections.indexOfFirst { it.firstBlockingFieldIndex() != -1 }
 
-        if (firstBlockingFieldIndex != -1) {
+        if (blockingSection != -1) {
             scrollScope.launch {
-                lazyListState[currentPage].animateScrollToItem(firstBlockingFieldIndex)
+                listState.animateScrollToItem(blockingSection + sectionsOffset)
             }
 
             return false
@@ -191,43 +183,23 @@ internal fun FormSectionUi(
                         verticalArrangement = Arrangement.spacedBy(5.dp, Alignment.Top),
                         horizontalAlignment = Alignment.Start
                     ) {
-                        if (hasVisibleSections) {
-                            Text(
-                                visibleSections[currentPage].name.orEmpty(),
-                                style = MaterialTheme.typography.titleLarge
-                            )
-                            visibleSections[currentPage].description?.let {
-                                Text(
-                                    it,
-                                    style = MaterialTheme.typography.titleMedium,
-                                    softWrap = true,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                            }
-                        }
+                        Text(
+                            stringResource(R.string.form_title),
+                            style = MaterialTheme.typography.titleLarge
+                        )
 
-                        Column(
-                            verticalArrangement = Arrangement.Top,
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            if (hasVisibleSections) {
-                                Text(
-                                    "${currentPage + 1} of ${visibleSections.size}",
-                                    style = MaterialTheme.typography.labelMedium
-                                )
-                                LinearProgressIndicator(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    trackColor = Color.White,
-                                    color = light_success,
-                                    progress = { animatedProgress }
-                                )
-                            }
+                        if (hasVisibleSections) {
+                            LinearProgressIndicator(
+                                modifier = Modifier.fillMaxWidth(),
+                                trackColor = Color.White,
+                                color = light_success,
+                                progress = { animatedProgress }
+                            )
                         }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = SurfaceColor.Primary,
+                    containerColor = FormSurfaces.HeaderBlue,
                     navigationIconContentColor = Color.White,
                     titleContentColor = Color.White,
                     actionIconContentColor = Color.White,
@@ -252,177 +224,74 @@ internal fun FormSectionUi(
                 horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                if (pagerState.pageCount == 1) {
-                    Button(
-                        modifier = Modifier.fillMaxWidth(),
-                        onClick = {
-                            if (isCurrentPageValid()) {
-                                onEvent(FormEvent.ConfirmSave)
-                            }
+                Button(
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = {
+                        if (isFormValid()) {
+                            onEvent(FormEvent.ConfirmSave)
                         }
-                    ) {
-                        Text(stringResource(R.string.save))
                     }
-                } else {
-                    OutlinedButton(
-                        modifier = Modifier.weight(1f),
-                        enabled = pagerState.canScrollBackward,
-                        onClick = {
-                            if (pagerState.canScrollBackward) {
-                                scrollScope.launch {
-                                    pagerState.animateScrollToPage(page = pagerState.currentPage - 1)
-                                }
-                            }
-                        }
-                    ) {
-                        Text(stringResource(R.string.previous))
-                    }
-                    Button(
-                        modifier = Modifier.weight(1f),
-                        onClick = {
-                            val isValid = isCurrentPageValid()
-
-                            if (pagerState.canScrollForward && isValid) {
-                                scrollScope.launch {
-                                    pagerState.animateScrollToPage(page = pagerState.currentPage + 1)
-                                }
-                            } else if (isValid) {
-                                onEvent(FormEvent.ConfirmSave)
-                            }
-                        }
-                    ) {
-                        Text(
-                            text = if (pagerState.canScrollForward) {
-                                stringResource(R.string.next)
-                            } else stringResource(R.string.save)
-                        )
-                    }
+                ) {
+                    Text(stringResource(R.string.save))
                 }
             }
         },
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
     ) {
-        Column(
+        LazyColumn(
             modifier = Modifier
-                .then(modifier)
+                .fillMaxSize()
+                .background(FormSurfaces.HeaderBlue)
+                .clip(FormSurfaces.ScreenShape)
+                .background(FormSurfaces.ScreenBackground)
+                .then(modifier),
+            state = listState,
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.Top),
         ) {
-            if (
-                state.formType == FormSectionType.NEW_ENROLLMENT ||
-                state.formType == FormSectionType.EDIT_ENROLLMENT ||
-                state.formType == FormSectionType.NEW_EVENT_WITHOUT_REGISTRATION
-            ) {
-                MandatoryFieldWrapper(hasUnfilledMandatoryFields) {
-                    OuField(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 5.dp),
-                        placeholder = stringResource(R.string.administrative_area),
-                        leadingIcon = Icons.Default.PinDrop,
-                        selectedOrgUnit = state.orgUnit,
-                        program = state.program.orEmpty()
-                    ) {
-                        hasUnfilledMandatoryFields = false
-                        onEvent(FormEvent.SelectedOU(it))
-                    }
-                }
-
-                DateField(
-                    isEnabled = false,
-                    date = visibleSections.firstOrNull()?.registrationDate,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 5.dp)
-                ) {
-                    onEvent(FormEvent.SelectedDate(it))
-                }
-            }
-
-            if (hasVisibleSections && visibleSections.checkUnfilledMandatoryFields()) {
-                FormInfo(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    formSectionModel = visibleSections[currentPage]
-                )
-            }
-
-            if (hasVisibleSections) {
-                HorizontalPager(
-                    modifier = Modifier.fillMaxSize(),
-                    state = pagerState,
-                    userScrollEnabled = false,
-                    verticalAlignment = Alignment.Top,
-                    key = {
-                        visibleSections.getOrNull(it)?.uid
-                            ?: IdGenerator.generateDhis2PatternId()
-                    }
-                ) { page ->
-                    LazyColumn(
-                        modifier = Modifier.fillMaxWidth(),
-                        state = lazyListState[page],
-                        verticalArrangement = Arrangement.Top,
-                        horizontalAlignment = Alignment.Start,
-                    ) {
-                        items(
-                            visibleSections[page].formFields.filter { it.rendered == true },
-                            key = { it.uid }
-                        ) { field ->
-                            if (field.mandatory == true) {
-                                MandatoryFieldWrapper(hasUnfilledMandatoryFields) {
-                                    FormFieldItem(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        field = field,
-                                        enabled = field.enabled,
-                                        coordinateState = coordinateStatesByField[field.uid],
-                                        onValueChange = { value ->
-                                            onEvent(
-                                                FormEvent.UpdateField(
-                                                    visibleSections[page],
-                                                    field.uid,
-                                                    value
-                                                )
-                                            )
-                                        },
-                                        onQuery = { fieldModel, query ->
-                                            onEvent(
-                                                FormEvent.SearchFieldQuery(
-                                                    visibleSections[page],
-                                                    fieldModel.uid,
-                                                    query
-                                                )
-                                            )
-                                        }
-                                    )
-                                }
-                            } else {
-                                FormFieldItem(
+            if (sectionsOffset == 1) {
+                item(key = "form_header") {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        if (showsBaseFields) {
+                            MandatoryFieldWrapper(hasUnfilledMandatoryFields) {
+                                OuField(
                                     modifier = Modifier.fillMaxWidth(),
-                                    field = field,
-                                    enabled = field.enabled,
-                                    coordinateState = coordinateStatesByField[field.uid],
-                                    onValueChange = { value ->
-                                        onEvent(
-                                            FormEvent.UpdateField(
-                                                visibleSections[page],
-                                                field.uid,
-                                                value
-                                            )
-                                        )
-                                    },
-                                    onQuery = { fieldModel, query ->
-                                        onEvent(
-                                            FormEvent.SearchFieldQuery(
-                                                visibleSections[page],
-                                                fieldModel.uid,
-                                                query
-                                            )
-                                        )
-                                    }
-                                )
+                                    placeholder = stringResource(R.string.administrative_area),
+                                    leadingIcon = Icons.Default.PinDrop,
+                                    selectedOrgUnit = state.orgUnit,
+                                    program = state.program.orEmpty()
+                                ) {
+                                    hasUnfilledMandatoryFields = false
+                                    onEvent(FormEvent.SelectedOU(it))
+                                }
                             }
+
+                            DateField(
+                                isEnabled = false,
+                                date = visibleSections.firstOrNull()?.registrationDate,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                onEvent(FormEvent.SelectedDate(it))
+                            }
+                        }
+
+                        pendingMandatorySection?.let { section ->
+                            FormInfo(
+                                modifier = Modifier.fillMaxWidth(),
+                                formSectionModel = section
+                            )
                         }
                     }
                 }
+            }
+
+            items(visibleSections, key = { it.uid }) { section ->
+                FormSectionCard(
+                    section = section,
+                    showMandatoryError = hasUnfilledMandatoryFields,
+                    coordinateStates = coordinateStatesByField,
+                    onEvent = onEvent,
+                )
             }
         }
     }

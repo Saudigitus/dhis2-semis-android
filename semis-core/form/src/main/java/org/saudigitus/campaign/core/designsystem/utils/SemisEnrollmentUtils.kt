@@ -18,13 +18,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.unit.IntSize
+import org.saudigitus.campaign.core.designsystem.theme.FormSurfaces
 
 object Utils {
     @Composable
     fun inputColors() = TextFieldDefaults.colors(
-        focusedContainerColor = Color.White,
-        unfocusedContainerColor = Color.White,
-        disabledContainerColor = Color.White,
+        focusedContainerColor = FormSurfaces.FieldSurface,
+        unfocusedContainerColor = FormSurfaces.FieldSurface,
+        disabledContainerColor = FormSurfaces.FieldSurface,
         focusedIndicatorColor = Color.Transparent,
         unfocusedIndicatorColor = Color.Transparent,
         disabledIndicatorColor = Color.Transparent,
