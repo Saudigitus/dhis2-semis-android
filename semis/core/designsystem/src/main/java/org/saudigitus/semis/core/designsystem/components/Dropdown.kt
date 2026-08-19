@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toSize
 import org.hisp.dhis.mobile.ui.designsystem.theme.SurfaceColor
+import org.saudigitus.semis.core.designsystem.theme.SemisFieldShape
 
 @Composable
 fun <T> DropdownField(
@@ -77,6 +78,7 @@ fun <T> DropdownField(
 
     Column {
         TextField(
+            shape = SemisFieldShape,
             value = selectedText,
             onValueChange = {},
             label = { Text(text = label) },

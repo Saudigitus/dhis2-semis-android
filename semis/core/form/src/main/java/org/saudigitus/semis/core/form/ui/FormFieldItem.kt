@@ -5,14 +5,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.TextFieldColors
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import org.hisp.dhis.android.core.common.ValueType
-import org.hisp.dhis.mobile.ui.designsystem.component.InputShellState
 import org.saudigitus.semis.core.data.model.OrgUnit
 import org.saudigitus.semis.core.designsystem.attendance.AttendanceButton
 import org.saudigitus.semis.core.designsystem.attendance.AttendanceButtonState
@@ -35,11 +32,7 @@ fun FormFieldItem(
     enabled: Boolean? = null,
     fieldsData: List<FormFieldData> = emptyList(),
     attendanceButtonState: AttendanceButtonState = AttendanceButtonState(),
-    colors: TextFieldColors = TextFieldDefaults.colors(
-        focusedIndicatorColor = InputShellState.FOCUSED.color,
-        unfocusedIndicatorColor = InputShellState.UNFOCUSED.color,
-        disabledIndicatorColor = InputShellState.DISABLED.color,
-    ),
+    colors: TextFieldColors = FormFieldDefaults.colors(),
     onAttendanceChange: (AttendanceButtonModel) -> Unit = {},
     onOrganisationUnitChange: (OrgUnit) -> Unit = {},
     onValueChange: (String) -> Unit
@@ -64,11 +57,7 @@ fun FormFieldItem(
                     program = program,
                     modifier = Modifier.fillMaxWidth(),
                     enabled = (enabled ?: true) && field.enabled,
-                    colors = TextFieldDefaults.colors(
-                        focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = InputShellState.UNFOCUSED.color,
-                        disabledIndicatorColor = InputShellState.DISABLED.color,
-                    ),
+                    colors = colors,
                     onValueChange = onOrganisationUnitChange,
                 )
             }
@@ -86,12 +75,7 @@ fun FormFieldItem(
                         field,
                         formFieldData = fieldData,
                         enabled = enabled,
-                        colors =
-                            TextFieldDefaults.colors(
-                                focusedIndicatorColor = Color.Transparent,
-                                unfocusedIndicatorColor = InputShellState.UNFOCUSED.color,
-                                disabledIndicatorColor = InputShellState.DISABLED.color,
-                            ),
+                        colors = colors,
                         onValueChange
                     )
                 }

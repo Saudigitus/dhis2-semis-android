@@ -30,6 +30,7 @@ import org.dhis2.composetable.model.extensions.keyboardCapitalization
 import org.dhis2.composetable.model.extensions.toKeyboardType
 import org.saudigitus.semis.core.designsystem.utils.IntentAction
 import org.saudigitus.semis.core.form.data.model.FormFieldData
+import org.saudigitus.semis.core.form.ui.FormFieldDefaults
 import org.saudigitus.semis.core.form.data.model.FormFieldState
 import org.saudigitus.semis.core.form.utils.toKeyBoardInputType
 
@@ -54,6 +55,7 @@ fun InputField(
 
     TextField(
         modifier = modifier,
+        shape = FormFieldDefaults.Shape,
         enabled = enable ?: field.enabled,
         value = field.value ?: formFieldData?.value.orEmpty(),
         onValueChange = onValueChange,
