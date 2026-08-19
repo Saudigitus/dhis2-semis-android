@@ -147,4 +147,34 @@ class AttendanceStatusCountsTest {
 
         assertEquals("#E57373", counts.single().color)
     }
+
+    @Test
+    fun `another unconfigured option does not take over the present counter`() {
+        val counts = attendanceStatusCounts(
+            statusOptions = listOf(option("ABSENT", "absent")),
+            optionLabels = mapOf(
+                "LATE" to "Late",
+                "EXCUSED" to "Excused",
+                "PRESENT" to "Present",
+            ),
+            recordedStatusCodes = listOf("PRESENT", "LATE", "ABSENT"),
+            derivePresent = true,
+        )
+
+        assertEquals("Present", counts.first().label)
+        assertEquals(2, counts.first().count)
+    }
+
+    @Test
+    fun `the present option is recognised by its name when its code is opaque`() {
+        val counts = attendanceStatusCounts(
+            statusOptions = listOf(option("2", "absent")),
+            optionLabels = mapOf("3" to "Late", "1" to "Present"),
+            recordedStatusCodes = listOf("1"),
+            derivePresent = true,
+        )
+
+        assertEquals("Present", counts.first().label)
+        assertEquals("1", counts.first().code)
+    }
 }

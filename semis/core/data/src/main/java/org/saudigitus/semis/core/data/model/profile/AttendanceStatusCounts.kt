@@ -41,14 +41,21 @@ fun attendanceStatusCounts(
     if (configured.isEmpty() || !derivePresent) return configured
 
     val configuredCodes = configured.mapTo(mutableSetOf()) { it.code }
-    // The option the configuration leaves out is the present one, so it names the counter
-    // when the option set has it.
-    val leftoverOption = optionLabels.entries.firstOrNull { it.key !in configuredCodes }
+    // Named after the present option of the option set, matched on its own code or name.
+    // Picking whichever option the configuration happens to leave out is not enough: an
+    // option set commonly carries more of them, and the first one is rarely present.
+    val presentOption = optionLabels.entries.firstOrNull { (code, label) ->
+        code !in configuredCodes &&
+            (
+                code.equals(PRESENT_STATUS_KEY, ignoreCase = true) ||
+                    label.equals(PRESENT_STATUS_KEY, ignoreCase = true)
+                )
+    }
 
     val present = AttendanceStatusCount(
         key = PRESENT_STATUS_KEY,
-        code = leftoverOption?.key ?: PRESENT_STATUS_KEY,
-        label = leftoverOption?.value ?: fallbackPresentLabel,
+        code = presentOption?.key ?: PRESENT_STATUS_KEY,
+        label = presentOption?.value ?: fallbackPresentLabel,
         color = null,
         count = recordedStatusCodes.count { it !in configuredCodes },
     )
