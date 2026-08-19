@@ -16,6 +16,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import org.hisp.dhis.mobile.ui.designsystem.theme.Spacing
+import org.saudigitus.campaign.core.designsystem.theme.FormSurfaces
 import org.saudigitus.campaign.core.designsystem.utils.Utils
 import org.saudigitus.campaign.core.form.R
 import org.saudigitus.campaign.core.form.data.models.FormFieldModel
@@ -31,6 +32,7 @@ fun PhoneNumberField(
     colors: TextFieldColors = Utils.inputColors(),
 ) {
     TextField(
+        shape = FormSurfaces.FieldShape,
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(Spacing.Spacing0, 300.dp)

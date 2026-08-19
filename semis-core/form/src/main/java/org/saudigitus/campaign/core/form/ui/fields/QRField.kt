@@ -28,6 +28,7 @@ import org.dhis2.composetable.model.extensions.keyboardCapitalization
 import org.dhis2.composetable.model.extensions.toKeyboardType
 import org.hisp.dhis.mobile.ui.designsystem.theme.Spacing
 import org.saudigitus.campaign.core.data.models.QrResult
+import org.saudigitus.campaign.core.designsystem.theme.FormSurfaces
 import org.saudigitus.campaign.core.designsystem.utils.Utils
 import org.saudigitus.campaign.core.form.data.models.FormFieldModel
 import org.saudigitus.campaign.core.form.utils.toKeyBoardInputType
@@ -55,6 +56,7 @@ fun QRField(
 
 
     TextField(
+        shape = FormSurfaces.FieldShape,
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(Spacing.Spacing0, 300.dp)

@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.toSize
 import androidx.compose.ui.window.PopupProperties
 import org.hisp.dhis.mobile.ui.designsystem.theme.Spacing
 import org.hisp.dhis.mobile.ui.designsystem.theme.SurfaceColor
+import org.saudigitus.campaign.core.designsystem.theme.FormSurfaces
 import org.saudigitus.campaign.core.form.data.models.FormFieldModel
 import org.saudigitus.campaign.core.form.utils.Utils
 
@@ -71,6 +72,7 @@ fun SearchableDropdown(
 
     Column {
         TextField(
+            shape = FormSurfaces.FieldShape,
             value = selectedText,
             onValueChange = {
                 selectedText = it

@@ -20,6 +20,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import org.hisp.dhis.mobile.ui.designsystem.theme.Spacing
+import org.saudigitus.campaign.core.designsystem.theme.FormSurfaces
 import org.saudigitus.campaign.core.designsystem.theme.dark_warning
 import org.saudigitus.campaign.core.designsystem.theme.light_green
 import org.saudigitus.campaign.core.designsystem.theme.light_success
@@ -49,6 +50,7 @@ fun CoordinateField(
         horizontalAlignment = Alignment.Start
     ) {
         TextField(
+            shape = FormSurfaces.FieldShape,
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(Spacing.Spacing0, 300.dp)

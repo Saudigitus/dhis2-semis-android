@@ -8,6 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import org.saudigitus.campaign.core.data.models.OrgUnit
+import org.saudigitus.campaign.core.designsystem.theme.FormSurfaces
 import org.saudigitus.campaign.core.designsystem.utils.Utils
 import org.saudigitus.campaign.core.form.data.models.FormFieldModel
 
@@ -22,6 +23,7 @@ fun OuField(
     onItemClick: (OrgUnit) -> Unit,
 ) {
     TextField(
+        shape = FormSurfaces.FieldShape,
         modifier = Modifier.fillMaxWidth().then(modifier),
         value = selectedOrgUnit?.displayName.orEmpty(),
         onValueChange = {},
@@ -39,6 +41,7 @@ fun OuField(
     onValueChange: (String) -> Unit,
 ) {
     TextField(
+        shape = FormSurfaces.FieldShape,
         modifier = Modifier.fillMaxWidth().then(modifier),
         value = field.value.orEmpty(),
         onValueChange = onValueChange,
