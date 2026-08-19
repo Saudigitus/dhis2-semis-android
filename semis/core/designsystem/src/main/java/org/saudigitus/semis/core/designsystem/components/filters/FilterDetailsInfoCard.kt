@@ -1,4 +1,4 @@
-package org.saudigitus.semis.attendance.ui.components
+package org.saudigitus.semis.core.designsystem.components.filters
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
@@ -9,31 +9,38 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import org.saudigitus.semis.core.designsystem.R
 import org.saudigitus.semis.core.designsystem.components.FilterDetailsState
-import org.saudigitus.semis.core.designsystem.components.filters.FilterInfoCard
-import org.saudigitus.semis.core.designsystem.components.filters.FilterInfoItem
 import org.saudigitus.semis.core.designsystem.theme.SemisPalette
 
 /**
- * Filter context the attendance list is scoped to, laid over the screen header on the
- * same translucent surface as the header actions. Grade and class are only rendered when
- * the program configuration provides them.
+ * The selection a screen is scoped to — academic year, school, grade and class — rendered
+ * over a colored header on the same translucent surface as the header actions.
+ *
+ * Grade and class are dropped when the program configuration does not provide them, so the
+ * remaining entries widen instead of leaving gaps.
  */
 @Composable
-internal fun AttendanceFilterInfo(
+fun FilterDetailsInfoCard(
     state: FilterDetailsState,
     modifier: Modifier = Modifier,
+    containerColor: Color = SemisPalette.HeaderSurface,
+    accentColor: Color = Color.White,
+    iconContainerColor: Color = SemisPalette.HeaderSurface,
+    labelColor: Color = SemisPalette.OnHeaderSecondary,
+    valueColor: Color = SemisPalette.OnHeaderPrimary,
+    elevation: Dp = 0.dp,
 ) {
     FilterInfoCard(
         modifier = modifier,
-        containerColor = SemisPalette.HeaderSurface,
-        accentColor = Color.White,
-        iconContainerColor = SemisPalette.HeaderSurface,
-        labelColor = SemisPalette.OnHeaderSecondary,
-        valueColor = SemisPalette.OnHeaderPrimary,
-        elevation = 0.dp,
+        containerColor = containerColor,
+        accentColor = accentColor,
+        iconContainerColor = iconContainerColor,
+        labelColor = labelColor,
+        valueColor = valueColor,
+        elevation = elevation,
         items = listOf(
             FilterInfoItem(
                 label = stringResource(R.string.academic_year),

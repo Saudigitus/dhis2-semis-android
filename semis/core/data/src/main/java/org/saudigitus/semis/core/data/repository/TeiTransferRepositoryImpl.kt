@@ -8,8 +8,8 @@ import org.hisp.dhis.android.core.event.Event
 import org.hisp.dhis.android.core.event.EventStatus
 import org.saudigitus.semis.core.data.R
 import org.saudigitus.semis.core.data.model.app_config.Transfer
-import org.saudigitus.semis.core.data.model.app_config.isIncomingEnabledAndConfigured
 import org.saudigitus.semis.core.data.model.app_config.approvedStatusCode
+import org.saudigitus.semis.core.data.model.app_config.isIncomingEnabledAndConfigured
 import org.saudigitus.semis.core.data.model.app_config.pendingStatusCode
 import org.saudigitus.semis.core.data.model.app_config.rejectedStatusCode
 import org.saudigitus.semis.core.data.model.transfer.IncomingTeiTransfer
@@ -120,8 +120,6 @@ class TeiTransferRepositoryImpl @Inject constructor(
             ?.takeIf { it.isIncomingEnabledAndConfigured() }
             ?: return@withContext emptyList()
 
-        // The transfer event is created at the destination school, so an outgoing request
-        // is recognised by its origin data value rather than by the event organisation unit.
         d2.eventModule().events()
             .byProgramUid().eq(program)
             .byProgramStageUid().eq(transfer.programStage.orEmpty())
@@ -174,8 +172,6 @@ class TeiTransferRepositoryImpl @Inject constructor(
                 ?: error(resourceManager.getString(R.string.transfer_rejected_status_missing))
         }
 
-        // A refused transfer has to hand the learner back before the request is closed,
-        // otherwise they would stay enrolled at the school that turned them down.
         if (decision == TransferDecision.REJECT) {
             returnLearnerToOrigin(event, program, transfer)
         }
@@ -346,8 +342,6 @@ class TeiTransferRepositoryImpl @Inject constructor(
             destinationOrgUnit = destinationOrgUnit,
             destinationSchoolName = destinationSchoolName,
             statusCode = statusCode,
-            // Approving a transfer only completes the event, so a request stops being
-            // pending either when the status value changes or when the event is closed.
             isPending = event.status() == EventStatus.ACTIVE &&
                 statusCode == transfer.pendingStatusCode(),
             effectiveDate = event.eventDate() ?: java.util.Date(),

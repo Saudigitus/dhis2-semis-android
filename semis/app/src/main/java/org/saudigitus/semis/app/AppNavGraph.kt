@@ -17,6 +17,9 @@ import org.saudigitus.semis.app.presentation.tei.TeiListScreen
 import org.saudigitus.semis.attendance.ui.AttendanceUi
 import org.saudigitus.semis.attendance.ui.AttendanceViewModel
 import org.saudigitus.semis.enrollment.ui.EnrollmentScreen
+import org.saudigitus.semis.enrollment.ui.profile.StudentProfileEvent
+import org.saudigitus.semis.enrollment.ui.profile.StudentProfileScreen
+import org.saudigitus.semis.enrollment.ui.profile.StudentProfileViewModel
 import org.saudigitus.semis.enrollment.ui.form.SemisCoreEnrollmentFormScreen
 import org.saudigitus.semis.enrollment.ui.form.initializeSemisCoreForm
 import org.saudigitus.semis.core.designsystem.utils.mapper.TEICardMapper
@@ -58,12 +61,41 @@ fun AppNavGraph(
                         is TeiListEvent.OnBack -> navController.navigateUp()
                         is TeiListEvent.OnSyncClick -> syncData()
                         is TeiListEvent.OnTeiClick -> {
-
+                            navController.navigate(AppRoutes.studentProfile(it.tei))
                         }
 
                         is TeiListEvent.DisplayImageDetail -> displayImageDetail(it.imagePath)
                     }
                 }
+            )
+        }
+        composable(route = AppRoutes.STUDENT_PROFILE_ROUTE) { entry ->
+            val homeState by viewModel.uiState.collectAsStateWithLifecycle()
+            val profileViewModel = hiltViewModel<StudentProfileViewModel>()
+            val teiUid = entry.arguments
+                ?.getString(AppRoutes.STUDENT_PROFILE_ARG_TEI)
+                .orEmpty()
+
+            LaunchedEffect(key1 = teiUid, key2 = homeState.program) {
+                if (teiUid.isNotBlank() && homeState.program.isNotBlank()) {
+                    profileViewModel.initialize(
+                        teiUid = teiUid,
+                        program = homeState.program,
+                        filterDetailsState = homeState.filterState.filterDetailsState,
+                    )
+                }
+            }
+
+            val profileState by profileViewModel.uiState.collectAsStateWithLifecycle()
+
+            StudentProfileScreen(
+                state = profileState,
+                onEvent = { event ->
+                    when (event) {
+                        is StudentProfileEvent.OnBack -> navController.navigateUp()
+                        else -> profileViewModel.handleEvent(event)
+                    }
+                },
             )
         }
         composable(route = AppRoutes.ATTENDANCE) {
@@ -101,6 +133,9 @@ fun AppNavGraph(
                 onNewEnrollment = {
                     initializeSemisCoreForm()
                     navController.navigate(AppRoutes.ENROLLMENT_FORM)
+                },
+                onTeiClick = { teiUid ->
+                    navController.navigate(AppRoutes.studentProfile(teiUid))
                 },
             )
         }
