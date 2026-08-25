@@ -15,6 +15,7 @@ val campaignFormModule = module {
             optionRepository = get(),
             programRepository = get(),
             enrollmentRepository = get(),
+            resourceManager = ResourceManager(androidContext(), get()),
         )
     }
     viewModel {

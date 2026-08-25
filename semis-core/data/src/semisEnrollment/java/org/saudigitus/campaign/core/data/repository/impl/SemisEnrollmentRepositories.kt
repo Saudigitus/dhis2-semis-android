@@ -97,12 +97,13 @@ class SemisEnrollmentProgramRepository(private val d2: D2) : ProgramRepository {
                 ?: return@mapNotNull null
             val attribute = attributesByUid[attributeUid] ?: return@mapNotNull null
             TrackedEntityAttributeModel(
-                attribute.uid(),
-                attribute.displayFormName(),
-                attribute.code(),
-                attribute.optionSet()?.uid(),
-                attribute.valueType(),
-                programAttribute.mandatory() ?: false,
+                uid = attribute.uid(),
+                displayFormName = attribute.displayFormName(),
+                code = attribute.code(),
+                optionSetUid = attribute.optionSet()?.uid(),
+                valueType = attribute.valueType(),
+                mandatory = programAttribute.mandatory() ?: false,
+                generated = attribute.generated() ?: false,
             )
         }
     }
@@ -119,15 +120,37 @@ class SemisEnrollmentProgramRepository(private val d2: D2) : ProgramRepository {
             .blockingGet()
             .associateBy { it.trackedEntityAttribute()?.uid() }
 
+        // The attributes linked to a section carry only what the link table holds, so the full
+        // records are read separately to reach the flags the form depends on, such as generated.
+        val sectionAttributeUids = sections.flatMap { section ->
+            section.attributes().orEmpty().map { it.uid() }
+        }.distinct()
+        val attributesByUid = if (sectionAttributeUids.isEmpty()) {
+            emptyMap()
+        } else {
+            d2.trackedEntityModule().trackedEntityAttributes()
+                .byUid().`in`(sectionAttributeUids)
+                .blockingGet()
+                .associateBy { it.uid() }
+        }
+
         sections.map { section ->
             TrackedEntityAttributeSectionModel(
                 uid = section.uid(), code = section.code(), displayName = section.displayName(),
                 description = section.description(), sortOrder = section.sortOrder(),
-                attributes = section.attributes().orEmpty().mapNotNull { attribute ->
-                    val programAttribute = programAttributesByAttribute[attribute.uid()]
+                attributes = section.attributes().orEmpty().mapNotNull { sectionAttribute ->
+                    val programAttribute = programAttributesByAttribute[sectionAttribute.uid()]
                         ?: return@mapNotNull null
-                    TrackedEntityAttributeModel(attribute.uid(), attribute.displayFormName(), attribute.code(),
-                        attribute.optionSet()?.uid(), attribute.valueType(), programAttribute.mandatory() ?: false)
+                    val attribute = attributesByUid[sectionAttribute.uid()] ?: sectionAttribute
+                    TrackedEntityAttributeModel(
+                        uid = attribute.uid(),
+                        displayFormName = attribute.displayFormName(),
+                        code = attribute.code(),
+                        optionSetUid = attribute.optionSet()?.uid(),
+                        valueType = attribute.valueType(),
+                        mandatory = programAttribute.mandatory() ?: false,
+                        generated = attribute.generated() ?: false,
+                    )
                 },
             )
         }.sortedBy { it.sortOrder }

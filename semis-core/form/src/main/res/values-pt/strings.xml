@@ -15,4 +15,5 @@
     <string name="num_of_mandatory_field">Campo(s) obrigatório(s): %s campo(s)</string>
     <string name="semis_form_yes">Sim</string>
     <string name="semis_form_no">Não</string>
+    <string name="reserved_value_unavailable">Nenhum valor disponível. Sincronize os dados para obter novos valores.</string>
 </resources>
