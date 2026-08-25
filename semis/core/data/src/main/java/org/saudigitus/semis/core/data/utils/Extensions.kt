@@ -42,36 +42,27 @@ fun D2.optionByOptionSet(
     .orderBySortOrder(RepositoryScope.OrderByDirection.ASC)
     .blockingGet()
 
-fun D2.optionsNotInOptionsSets(
-    options: List<String>,
-    optionSet: String?,
-): List<Option> = optionModule()
-    .options()
-    .byUid().notIn(options)
-    .byOptionSetUid().eq(optionSet)
-    .orderByDisplayName(RepositoryScope.OrderByDirection.ASC)
-
-    .blockingGet()
-
-fun D2.optionsNotInOptionGroup(
+/**
+ * Uids of every option that belongs to any of [optionGroups].
+ *
+ * Option level program rules address whole groups while the list they restrict is made of single
+ * options, so the membership has to be resolved before a rule can be applied to an option list.
+ */
+fun D2.optionUidsInOptionGroups(
     optionGroups: List<String>,
-    optionSet: String?,
-): List<Option> = optionModule()
-    .optionGroups()
-    .byUid().notIn(optionGroups)
-    .byOptionSetUid().eq(optionSet)
-    .withOptions()
-    .orderByDisplayName(RepositoryScope.OrderByDirection.ASC)
-    .blockingGet()
-    .flatMap {
-        it.options() ?: emptyList()
-    }.flatMap {
-        optionModule()
-            .options()
-            .byUid().eq(it.uid())
-            .orderBySortOrder(RepositoryScope.OrderByDirection.ASC)
-            .blockingGet()
-    }
+): Set<String> {
+    if (optionGroups.isEmpty()) return emptySet()
+
+    return optionModule()
+        .optionGroups()
+        .byUid().`in`(optionGroups)
+        .withOptions()
+        .blockingGet()
+        .flatMap { optionGroup ->
+            optionGroup.options()?.map { it.uid() } ?: emptyList()
+        }
+        .toSet()
+}
 
 fun D2.optionsByOptionSetAndCode(
     optionSet: String?,
