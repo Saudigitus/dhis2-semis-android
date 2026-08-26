@@ -17,7 +17,6 @@ import org.dhis2.commons.resources.ResourceManager
 import org.saudigitus.semis.core.data.model.Module
 import org.saudigitus.semis.core.data.model.OrgUnit
 import org.saudigitus.semis.core.data.model.app_config.Registration
-import org.saudigitus.semis.core.data.model.schoolcalendar_config.AcademicYear
 import org.saudigitus.semis.core.data.repository.AppConfigRepository
 import org.saudigitus.semis.core.data.repository.AppModulesRepository
 import org.saudigitus.semis.core.data.repository.FilterRepository
@@ -52,7 +51,6 @@ class HomeViewModel @Inject constructor(
     private val isAutoHideFilters = MutableStateFlow(true)
 
     private val registration = MutableStateFlow<Registration?>(null)
-    private val academicYear = MutableStateFlow<AcademicYear?>(null)
     private val academicYearDL = MutableStateFlow<String>("")
 
     val uiState: StateFlow<HomeUIState> = combine(
@@ -104,14 +102,19 @@ class HomeViewModel @Inject constructor(
     }
 
     private suspend fun setAcademicYear() {
-        val schoolCalendar = appConfigRepository.getSchoolCalendar()
-        val default = schoolCalendar?.defaults?.academicYear
-        academicYearDL.value = schoolCalendar?.academicYear.orEmpty()
-
-        academicYear.value = schoolCalendar?.schoolCalendar?.find {
-            it?.academicYear?.code == default
-        }?.academicYear
+        academicYearDL.value = appConfigRepository.getSchoolCalendar()?.academicYear.orEmpty()
     }
+
+    /**
+     * The academic year the user is working in.
+     *
+     * Read from what is selected rather than from the year the configuration names as the default.
+     * The default is where the screen starts, not where the user may have moved to since, and
+     * anything that reads it instead of the selection asks the server, or the device, about a year
+     * other than the one on screen.
+     */
+    private fun selectedAcademicYearCode(): String? =
+        uiState.value.filterState.getAcademicYearSelection()?.code
 
     private suspend fun loadFilters(program: String): List<DropdownState> =
         try {
@@ -219,7 +222,7 @@ class HomeViewModel @Inject constructor(
                         registration.value?.section
                     ),
                     dataValues = listOfNotNull(
-                        academicYear.value?.code,
+                        selectedAcademicYearCode(),
                         uiState.value.filterState.selectedFilters[FilterType.GRADE]?.code,
                         uiState.value.filterState.selectedFilters[FilterType.SECTION]?.code
                     )
@@ -247,7 +250,7 @@ class HomeViewModel @Inject constructor(
                 registration.value?.section
             ),
             dataValues = listOfNotNull(
-                academicYear.value?.code,
+                selectedAcademicYearCode(),
                 uiState.value.filterState.selectedFilters[FilterType.GRADE]?.code,
                 uiState.value.filterState.selectedFilters[FilterType.SECTION]?.code
             )
