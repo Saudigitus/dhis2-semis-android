@@ -1,13 +1,19 @@
 package org.saudigitus.campaign.core.form.ui.component
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
@@ -26,6 +32,7 @@ import org.saudigitus.campaign.core.form.R
 internal fun FormPrimaryButton(
     text: String,
     modifier: Modifier = Modifier,
+    imageVector: ImageVector? = null,
     enabled: Boolean = true,
     onClick: () -> Unit,
 ) {
@@ -40,11 +47,24 @@ internal fun FormPrimaryButton(
         ),
         contentPadding = PaddingValues(vertical = 14.dp, horizontal = 16.dp),
     ) {
-        Text(
-            text = text,
-            fontSize = 15.sp,
-            maxLines = 1,
-            fontFamily = FontFamily(Font(R.font.rubik_medium)),
-        )
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            imageVector?.let { icon ->
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                )
+            }
+
+            Text(
+                text = text,
+                fontSize = 15.sp,
+                maxLines = 1,
+                fontFamily = FontFamily(Font(R.font.rubik_medium)),
+            )
+        }
     }
 }

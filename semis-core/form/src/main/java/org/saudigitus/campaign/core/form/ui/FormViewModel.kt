@@ -30,7 +30,6 @@ import org.saudigitus.campaign.core.form.utils.CustomValueType
 import org.saudigitus.campaign.core.form.utils.hasBlockingFields
 import org.saudigitus.campaign.core.form.utils.phone.MozambiquePhoneValidator
 import org.saudigitus.campaign.core.navigation.AppRoute
-import org.saudigitus.campaign.core.navigation.FormType
 import org.saudigitus.campaign.core.utils.DateHelper
 import org.saudigitus.campaign.core.utils.formatBoolean
 import org.saudigitus.campaign.core.utils.formatTrueOnly
@@ -85,6 +84,20 @@ class FormViewModel @Inject constructor(
     )
     val stepCompleted = _stepCompleted.asSharedFlow()
 
+    /**
+     * Date the user set for the record, so that whoever drives a longer flow records it once and
+     * applies it to everything the flow produces.
+     */
+    private val _dateChanged = MutableSharedFlow<String>(replay = 1, extraBufferCapacity = 1)
+    val dateChanged = _dateChanged.asSharedFlow()
+
+    /**
+     * School the user set for the record, so that whoever drives a longer flow records it once and
+     * writes everything the flow produces against it.
+     */
+    private val _orgUnitChanged = MutableSharedFlow<OrgUnit>(replay = 1, extraBufferCapacity = 1)
+    val orgUnitChanged = _orgUnitChanged.asSharedFlow()
+
     /** Message to show when the form could not be saved, already resolved for display. */
     private val _errorEvent = MutableSharedFlow<String>(
         replay = 0,
@@ -110,6 +123,9 @@ class FormViewModel @Inject constructor(
     /** Guards against a second submission while the first is still running. */
     private var submitting = false
 
+    /** Values already known for some fields, keyed by field, to be filled in on load. */
+    private var prefillValues: Map<String, String> = emptyMap()
+
     /**
      * Prepares the form.
      *
@@ -122,10 +138,12 @@ class FormViewModel @Inject constructor(
         collectOnly: Boolean = false,
         restoredSections: List<FormSectionModel>? = null,
         confirmOnComplete: Boolean = false,
+        prefill: Map<String, String> = emptyMap(),
     ) {
         _uiState.value = FormSectionUiState.Loading
         collectsOnly = collectOnly
         confirmsOnComplete = confirmOnComplete
+        prefillValues = prefill
         submitting = false
         when (formSection) {
             is FormSection.NewEnrollment -> {
@@ -166,7 +184,7 @@ class FormViewModel @Inject constructor(
                 programStages = arrayOf(programStage),
                 tei = eventForm.trackerUid,
                 enrollment = eventForm.enrollment
-            )
+            ).withPrefill()
 
             if (sections.isEmpty()) {
                 _uiState.value = FormSectionUiState.Idle
@@ -196,7 +214,7 @@ class FormViewModel @Inject constructor(
             val sections = restoredSections ?: formRepository.getFormSections(
                 enrollmentForm.orgUnit,
                 enrollmentForm.program
-            )
+            ).withPrefill()
 
             if (sections.isEmpty()) {
                 _uiState.value = FormSectionUiState.Idle
@@ -252,26 +270,20 @@ class FormViewModel @Inject constructor(
     }
 
     private fun setOrgUnit(orgUnit: OrgUnit) {
-        when (val current = uiState.value) {
-            is FormSectionUiState.HasFormSection -> {
-                _uiState.update {
-                    current.copy(orgUnit = orgUnit)
-                }
-            }
+        _orgUnitChanged.tryEmit(orgUnit)
 
-            else -> {}
+        _uiState.update { latest ->
+            val state = latest as? FormSectionUiState.HasFormSection ?: return@update latest
+            state.copy(orgUnit = orgUnit)
         }
     }
 
     private fun setDate(date: String) {
-        when (val current = uiState.value) {
-            is FormSectionUiState.HasFormSection -> {
-                _uiState.update {
-                    current.copy(date = date)
-                }
-            }
+        _dateChanged.tryEmit(date)
 
-            else -> {}
+        _uiState.update { latest ->
+            val state = latest as? FormSectionUiState.HasFormSection ?: return@update latest
+            state.copy(date = date)
         }
     }
 
@@ -335,6 +347,31 @@ class FormViewModel @Inject constructor(
                     formSections = state.formSections.withRuleOutcome(evaluatedSections),
                 )
             }
+        }
+    }
+
+    /**
+     * Fills in the values already known before the form is shown.
+     *
+     * What the user picked to get here, such as the class they are enrolling into, is not asked
+     * again. Only fields still empty are filled, so nothing that came with a value of its own,
+     * including a value already stored for the record, is overwritten.
+     */
+    private fun List<FormSectionModel>.withPrefill(): List<FormSectionModel> {
+        if (prefillValues.isEmpty()) return this
+
+        return map { section ->
+            section.copy(
+                formFields = section.formFields.map { field ->
+                    val known = prefillValues[field.uid]?.takeIf { it.isNotBlank() }
+
+                    if (known == null || !field.value.isNullOrBlank()) {
+                        field
+                    } else {
+                        field.copy(value = known)
+                    }
+                },
+            )
         }
     }
 
@@ -649,6 +686,7 @@ class FormViewModel @Inject constructor(
         formType.value = FormSectionType.NEW_ENROLLMENT
         collectsOnly = false
         submitting = false
+        prefillValues = emptyMap()
     }
 
 }

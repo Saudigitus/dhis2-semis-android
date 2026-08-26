@@ -21,4 +21,5 @@
     <string name="reserved_value_unavailable">No value available. Sync the data to get new values.</string>
     <string name="form_step_continue">Continue</string>
     <string name="form_step_progress">Step %1$d of %2$d</string>
+    <string name="form_record_details">Record details</string>
 </resources>

@@ -22,6 +22,7 @@ import org.saudigitus.semis.enrollment.ui.profile.StudentProfileScreen
 import org.saudigitus.semis.enrollment.ui.profile.StudentProfileViewModel
 import org.saudigitus.semis.enrollment.ui.form.SemisCoreEnrollmentFormScreen
 import org.saudigitus.semis.enrollment.ui.form.initializeSemisCoreForm
+import org.saudigitus.semis.core.designsystem.components.model.FilterType
 import org.saudigitus.semis.core.designsystem.utils.mapper.TEICardMapper
 import org.saudigitus.semis.core.form.ui.FormViewModel
 import org.saudigitus.semis.performance.route.PerformanceNavGraph
@@ -143,11 +144,18 @@ fun AppNavGraph(
             val homeState by viewModel.uiState.collectAsStateWithLifecycle()
             val orgUnit = homeState.filterState.orgUnit
 
+            // What the user picked to get here is carried into the form so the same questions are
+            // not asked twice.
+            val selectedFilters = homeState.filterState.selectedFilters
+
             SemisCoreEnrollmentFormScreen(
                 activity = activity,
                 program = homeState.program,
                 orgUnit = orgUnit?.uid.orEmpty(),
                 orgUnitName = orgUnit?.displayName.orEmpty(),
+                academicYear = selectedFilters[FilterType.ACADEMIC_YEAR]?.code,
+                grade = selectedFilters[FilterType.GRADE]?.code,
+                section = selectedFilters[FilterType.SECTION]?.code,
                 navController = navController,
                 onSaved = {
                     viewModel.refreshTeis()

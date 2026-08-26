@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.dhis2.commons.resources.ResourceManager
+import org.saudigitus.campaign.core.data.models.OrgUnit
 import org.saudigitus.campaign.core.form.data.models.FormSectionModel
 import org.saudigitus.campaign.core.form.data.repository.FormRepository
 import org.saudigitus.campaign.core.navigation.FormType
@@ -29,6 +30,13 @@ data class EnrollmentCreationUiState(
     val completed: Boolean = false,
     val tei: String? = null,
     val enrollment: String? = null,
+    val prefill: Map<String, String> = emptyMap(),
+    val registrationStage: String? = null,
+    val date: String? = null,
+    val orgUnit: String = "",
+    val orgUnitName: String? = null,
+    val orgUnitLabel: String = "",
+    val dateLabel: String = "",
     val errorMessage: String? = null,
 ) {
     /** The step being filled in, or null once the plan has been walked through. */
@@ -58,16 +66,42 @@ data class EnrollmentCreationUiState(
         }
 
     /**
-     * The identifiers the server minted for this learner, as label and value pairs.
+     * Everything captured about the learner, in the order it was configured.
      *
-     * These are shown back once the record is written so the user can note down or read out the
-     * number the learner is known by, which is the whole point of the enrollment producing one.
+     * The confirmation reads a learner out of this the same way the listings do, so that the same
+     * person is recognised the same way in both places.
      */
-    val generatedIdentifiers: List<Pair<String, String>>
+    val learnerAttributes: List<Pair<String, String>>
         get() = captured[0].orEmpty()
             .flatMap { section -> section.formFields }
-            .filter { field -> field.generated && !field.value.isNullOrBlank() }
+            .filter { field -> !field.value.isNullOrBlank() }
             .map { field -> field.label to field.value.orEmpty() }
+
+    /**
+     * What was captured on the registration stage, to be reported back on the confirmation.
+     *
+     * Which step that is comes from the configuration, so a deployment that orders its stages
+     * differently still summarises the right one.
+     */
+    val registrationDetails: List<Pair<String, String>>
+        get() {
+            val index = plan.steps.indexOfFirst {
+                it is EnrollmentStep.Stage && it.programStage == registrationStage
+            }
+            if (index == -1) return emptyList()
+
+            val stageDetails = captured[index].orEmpty()
+                .flatMap { section -> section.formFields }
+                .filter { field -> !field.value.isNullOrBlank() }
+                .map { field -> field.label to field.value.orEmpty() }
+
+            // Where the record belongs and when it happened were settled on the way in, so they are
+            // reported here rather than being left out of what the registration recorded.
+            return listOfNotNull(
+                orgUnitName?.takeIf { it.isNotBlank() }?.let { orgUnitLabel to it },
+                date?.takeIf { it.isNotBlank() }?.let { dateLabel to it },
+            ) + stageDetails
+        }
 }
 
 /**
@@ -88,23 +122,66 @@ class EnrollmentCreationViewModel @Inject constructor(
     val uiState: StateFlow<EnrollmentCreationUiState> = _uiState.asStateFlow()
 
     private var program: String = ""
-    private var orgUnit: String = ""
 
-    fun initialize(program: String, orgUnit: String) {
+    /**
+     * Prepares the flow.
+     *
+     * [academicYear], [grade] and [section] are what the user already picked to reach this screen.
+     * They are carried in so the fields that ask for the same things arrive filled instead of
+     * asking again for something that was just chosen.
+     */
+    fun initialize(
+        program: String,
+        orgUnit: String,
+        orgUnitName: String? = null,
+        academicYear: String? = null,
+        grade: String? = null,
+        section: String? = null,
+    ) {
         if (_uiState.value.initialized) return
         this.program = program
-        this.orgUnit = orgUnit
 
         viewModelScope.launch {
-            val plan = runCatching { appConfigRepository.getAppConfig(program) }
-                .map(::enrollmentPlan)
+            val config = runCatching { appConfigRepository.getAppConfig(program) }
                 .getOrElse {
                     fail(resourceManager.getString(R.string.enrollment_config_unavailable))
                     return@launch
                 }
 
-            _uiState.update { it.copy(initialized = true, plan = plan) }
+            // Which field holds each of these is configured, never assumed, so a deployment that
+            // maps them to other data elements keeps working without a change here.
+            val academicYearField = runCatching { appConfigRepository.getSchoolCalendar() }
+                .getOrNull()
+                ?.academicYear
+
+            val prefill = buildMap {
+                academicYearField.putValue(this, academicYear)
+                config?.registration?.grade.putValue(this, grade)
+                config?.registration?.section.putValue(this, section)
+            }
+
+            _uiState.update {
+                it.copy(
+                    initialized = true,
+                    plan = enrollmentPlan(config),
+                    prefill = prefill,
+                    orgUnit = orgUnit,
+                    orgUnitName = orgUnitName,
+                    orgUnitLabel = resourceManager.getString(R.string.enrollment_summary_org_unit),
+                    dateLabel = resourceManager.getString(R.string.enrollment_summary_date),
+                    registrationStage = config?.registration?.programStage
+                        ?.trim()
+                        ?.takeIf(String::isNotEmpty),
+                )
+            }
         }
+    }
+
+    /** Records [value] under this field, skipping anything the configuration left unset. */
+    private fun String?.putValue(target: MutableMap<String, String>, value: String?) {
+        val field = this?.trim()?.takeIf(String::isNotEmpty) ?: return
+        val known = value?.trim()?.takeIf(String::isNotEmpty) ?: return
+        target[field] = known
     }
 
     /**
@@ -132,6 +209,28 @@ class EnrollmentCreationViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Records the date the user set for the record.
+     *
+     * It is settled once and applied to the enrollment and to every event the flow produces, so
+     * that a record made for a past day is dated for that day throughout.
+     */
+    fun onDateSelected(date: String) {
+        _uiState.update { it.copy(date = date.takeIf(String::isNotBlank)) }
+    }
+
+    /**
+     * Records the school the user set for the record.
+     *
+     * Like the date, it is settled once and everything the flow produces is written against it, so
+     * the enrollment lands where the user said rather than where they happened to come from.
+     */
+    fun onOrgUnitSelected(orgUnit: OrgUnit) {
+        val uid = orgUnit.uid.takeIf(String::isNotBlank) ?: return
+
+        _uiState.update { it.copy(orgUnit = uid, orgUnitName = orgUnit.displayName) }
+    }
+
     /** Surfaces a failure raised while a step was being filled in. */
     fun onStepError(message: String) = fail(message)
 
@@ -154,6 +253,7 @@ class EnrollmentCreationViewModel @Inject constructor(
                 completed = false,
                 tei = null,
                 enrollment = null,
+                date = null,
                 errorMessage = null,
             )
         }
@@ -174,9 +274,10 @@ class EnrollmentCreationViewModel @Inject constructor(
 
             runCatching {
                 formRepository.saveEnrollment(
-                    orgUnit = orgUnit,
+                    orgUnit = _uiState.value.orgUnit,
                     program = program,
-                    date = DateHelper.formatDate(System.currentTimeMillis()).orEmpty(),
+                    date = _uiState.value.date
+                        ?: DateHelper.formatDate(System.currentTimeMillis()).orEmpty(),
                     attributes = attributes,
                     stages = stages,
                     backgroundStages = plan.backgroundStages,

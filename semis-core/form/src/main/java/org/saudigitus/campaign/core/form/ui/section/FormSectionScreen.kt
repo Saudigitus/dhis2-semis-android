@@ -9,6 +9,7 @@ import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import org.koin.compose.viewmodel.koinViewModel
+import org.saudigitus.campaign.core.data.models.OrgUnit
 import org.saudigitus.campaign.core.designsystem.components.bottomsheets.launchDhis2BottomSheet
 import org.saudigitus.campaign.core.designsystem.components.bottomsheets.launchDiscardBottomSheet
 import org.saudigitus.campaign.core.form.R
@@ -39,6 +40,9 @@ fun FormSectionScreen(
     onError: ((String) -> Unit)? = null,
     restoredSections: List<FormSectionModel>? = null,
     stepProgress: FormStepProgress? = null,
+    prefill: Map<String, String> = emptyMap(),
+    onDateChanged: ((String) -> Unit)? = null,
+    onOrgUnitChanged: ((OrgUnit) -> Unit)? = null,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
@@ -46,13 +50,14 @@ fun FormSectionScreen(
     // the values and hands them over, and whoever drives the flow decides when anything is written.
     val collectOnly = onStepCompleted != null
 
-    LaunchedEffect(formNav, collectOnly, stepProgress?.isLast) {
+    LaunchedEffect(formNav, collectOnly, stepProgress?.isLast, prefill) {
         viewModel.initialize(
             formSection = formNav?.toFormSection(),
             ouName = formNav?.orgUnitName,
             collectOnly = collectOnly,
             restoredSections = restoredSections,
             confirmOnComplete = stepProgress?.isLast == true,
+            prefill = prefill,
         )
     }
 
@@ -62,6 +67,18 @@ fun FormSectionScreen(
         viewModel.stepCompleted.collect { formSections ->
             onStepCompleted(formSections)
         }
+    }
+
+    LaunchedEffect(onDateChanged) {
+        if (onDateChanged == null) return@LaunchedEffect
+
+        viewModel.dateChanged.collect { date -> onDateChanged(date) }
+    }
+
+    LaunchedEffect(onOrgUnitChanged) {
+        if (onOrgUnitChanged == null) return@LaunchedEffect
+
+        viewModel.orgUnitChanged.collect { orgUnit -> onOrgUnitChanged(orgUnit) }
     }
 
     LaunchedEffect(onError) {

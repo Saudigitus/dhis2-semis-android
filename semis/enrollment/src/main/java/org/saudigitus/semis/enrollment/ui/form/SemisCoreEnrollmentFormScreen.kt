@@ -20,7 +20,7 @@ import org.saudigitus.campaign.core.form.di.campaignFormModule
 import org.saudigitus.campaign.core.form.ui.section.FormSectionScreen
 import org.saudigitus.campaign.core.form.ui.state.FormStepProgress
 import org.saudigitus.campaign.core.navigation.AppRoute
-import org.saudigitus.semis.enrollment.ui.form.components.EnrollmentCompletedScreen
+import org.saudigitus.semis.enrollment.ui.form.summary.EnrollmentSummaryScreen
 
 private var semisCoreFormInitialized = false
 
@@ -48,14 +48,17 @@ fun SemisCoreEnrollmentFormScreen(
     program: String,
     orgUnit: String,
     orgUnitName: String,
+    academicYear: String?,
+    grade: String?,
+    section: String?,
     navController: NavController,
     onSaved: () -> Unit,
     viewModel: EnrollmentCreationViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
-    LaunchedEffect(program, orgUnit) {
-        viewModel.initialize(program, orgUnit)
+    LaunchedEffect(program, orgUnit, academicYear, grade, section) {
+        viewModel.initialize(program, orgUnit, orgUnitName, academicYear, grade, section)
     }
 
     // Back walks the steps in reverse, and only leaves the flow from the first one.
@@ -65,10 +68,13 @@ fun SemisCoreEnrollmentFormScreen(
 
     when {
         state.completed -> {
-            EnrollmentCompletedScreen(
-                identifiers = state.generatedIdentifiers,
-                onRegisterAnother = viewModel::registerAnother,
-                onDone = onSaved,
+            EnrollmentSummaryScreen(
+                learnerAttributes = state.learnerAttributes,
+                registrationDetails = state.registrationDetails,
+                teiUid = state.tei.orEmpty(),
+                stepCount = state.plan.stepCount,
+                onAddAnother = viewModel::registerAnother,
+                onBackToList = onSaved,
             )
         }
 
@@ -91,13 +97,16 @@ fun SemisCoreEnrollmentFormScreen(
                 formNav = AppRoute.FormRoute(
                     formType = state.currentFormType,
                     programUid = program,
-                    orgUnitUid = orgUnit,
-                    orgUnitName = orgUnitName,
+                    orgUnitUid = state.orgUnit,
+                    orgUnitName = state.orgUnitName.orEmpty(),
                     programStageUid = state.currentProgramStage,
                 ),
                 onStepCompleted = viewModel::onStepCompleted,
                 onError = viewModel::onStepError,
                 restoredSections = state.currentStepSections,
+                prefill = state.prefill,
+                onDateChanged = viewModel::onDateSelected,
+                onOrgUnitChanged = viewModel::onOrgUnitSelected,
                 stepProgress = FormStepProgress(
                     stepNumber = state.stepNumber,
                     stepCount = state.plan.stepCount,
