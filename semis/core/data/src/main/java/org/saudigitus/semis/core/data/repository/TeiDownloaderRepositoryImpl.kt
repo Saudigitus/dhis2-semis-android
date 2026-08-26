@@ -31,7 +31,7 @@ class TeiDownloaderRepositoryImpl
             val teiUids = searchTrackedEntityInstances(ou, program, dataElementIds, dataValues)
 
             if (teiUids.isEmpty()) {
-                Result.Failure(
+                return@withContext Result.Failure(
                     Exception(
                         resourceManager
                             .getString(R.string.tei_not_found)
@@ -51,7 +51,7 @@ class TeiDownloaderRepositoryImpl
                 .blockingIsEmpty()
 
             if (downloadedTeis) {
-                Result.Failure(
+                return@withContext Result.Failure(
                     IllegalStateException(
                         resourceManager
                             .getString(R.string.download_completed_not_found)
