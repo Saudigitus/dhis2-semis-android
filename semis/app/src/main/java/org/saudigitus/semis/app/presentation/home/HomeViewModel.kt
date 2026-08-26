@@ -14,6 +14,9 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.dhis2.commons.resources.ResourceManager
+import org.saudigitus.semis.app.presentation.home.model.restoredOrgUnit
+import org.saudigitus.semis.app.presentation.home.model.restoredSelectedFilters
+import org.saudigitus.semis.app.presentation.home.model.storedFilterSelection
 import org.saudigitus.semis.core.data.model.Module
 import org.saudigitus.semis.core.data.model.OrgUnit
 import org.saudigitus.semis.core.data.model.app_config.Registration
@@ -21,6 +24,8 @@ import org.saudigitus.semis.core.data.model.schoolcalendar_config.AcademicYear
 import org.saudigitus.semis.core.data.repository.AppConfigRepository
 import org.saudigitus.semis.core.data.repository.AppModulesRepository
 import org.saudigitus.semis.core.data.repository.FilterRepository
+import org.saudigitus.semis.core.data.repository.FilterSelectionRepository
+import org.saudigitus.semis.core.data.repository.OrgUnitRepository
 import org.saudigitus.semis.core.data.repository.TeiDownloaderRepository
 import org.saudigitus.semis.core.data.repository.TeiRepository
 import org.saudigitus.semis.core.designsystem.R
@@ -45,7 +50,9 @@ class HomeViewModel @Inject constructor(
     private val appModulesRepository: AppModulesRepository,
     private val resourceManager: ResourceManager,
     private val teiDownloaderRepository: TeiDownloaderRepository,
-    private val teiRepository: TeiRepository
+    private val teiRepository: TeiRepository,
+    private val filterSelectionRepository: FilterSelectionRepository,
+    private val orgUnitRepository: OrgUnitRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUIState())
@@ -72,30 +79,98 @@ class HomeViewModel @Inject constructor(
 
     private var loadJob: Job? = null
 
+    /**
+     * Guards against building the filters again over a selection the user is already working with.
+     *
+     * The screen initialises this from an effect that runs again whenever it is recreated, while
+     * this holds its state across that, so without the guard a rotation would rebuild the filters
+     * and discard the current choice, remembered or not.
+     */
+    private var initialized = false
+
     fun initialize(program: String, programName: String? = null) {
+        if (initialized) return
+        initialized = true
+
         viewModelScope.launch {
             val filters = loadFilters(program).sortedBy { it.order }
             val modules = loadModules(program)
             setRegistration(program)
             setAcademicYear()
 
+            val academicYearDropdown = getAcademicYearDropdown()
+
             _uiState.update {
                 it.copy(
                     program = program,
                     programName = programName.orEmpty(),
                     filterState = FilterComponentState(
-                        academicYear = getAcademicYearDropdown().first,
+                        academicYear = academicYearDropdown.first,
                         filters = filters,
-                        selectedFilters = if (getAcademicYearDropdown().second != null) {
-                            mapOf(
-                                FilterType.ACADEMIC_YEAR to getAcademicYearDropdown().second!!
-                            )
-                        } else emptyMap()
+                        selectedFilters = academicYearDropdown.second
+                            ?.let { default -> mapOf(FilterType.ACADEMIC_YEAR to default) }
+                            .orEmpty()
                     ),
                     modules = modules
                 )
             }
+
+            restoreSelection(program, academicYearDropdown.first.data)
         }
+    }
+
+    /**
+     * Puts back the class the user was last working on, as far as it still exists.
+     *
+     * The school comes first, because the lists that describe a class are read under it, and only
+     * then are the remembered values looked for in those lists. Anything that no longer exists is
+     * left unchosen rather than guessed at, so what is restored is always a selection the user
+     * could have made by hand.
+     *
+     * Only what is already on the device is read. Opening a module never reaches the server on its
+     * own, which would surprise the user and fail outright with no connection.
+     */
+    private suspend fun restoreSelection(program: String, academicYearOptions: List<DropdownItem>) {
+        val stored = filterSelectionRepository.read(program)
+        if (stored.isEmpty) return
+
+        val orgUnit = restoredOrgUnit(stored, orgUnitRepository.captureOrgUnits(program))
+
+        var filterState = uiState.value.filterState
+        if (orgUnit != null) {
+            filterState = filterState.copy(orgUnit = orgUnit)
+            _uiState.update { it.copy(filterState = filterState) }
+            filterState = filterState.withOUAndFilters(orgUnit, reloadFilters())
+        }
+
+        val restored = restoredSelectedFilters(
+            stored = stored,
+            orgUnitRestored = orgUnit != null,
+            academicYearOptions = academicYearOptions,
+            filters = filterState.filters,
+        )
+        if (orgUnit == null && restored.isEmpty()) return
+
+        filterState = updateFilterDetails(
+            filterState.copy(selectedFilters = filterState.selectedFilters + restored),
+        )
+
+        _uiState.update { it.copy(isLoading = true, filterState = filterState) }
+        updateToolbarHeader(filterState)
+        autoHideFilters()
+
+        loadJob?.cancel()
+        loadJob = viewModelScope.launch { loadTeis() }
+    }
+
+    /** Records the class the user is on, so that the next opening can start from it. */
+    private suspend fun rememberSelection(filterState: FilterComponentState) {
+        val program = uiState.value.program.takeIf { it.isNotBlank() } ?: return
+
+        filterSelectionRepository.save(
+            program = program,
+            selection = storedFilterSelection(filterState.orgUnit, filterState.selectedFilters),
+        )
     }
 
     private suspend fun setRegistration(program: String) {
@@ -296,6 +371,7 @@ class HomeViewModel @Inject constructor(
             }
             updateToolbarHeader(updatedFilterState)
             autoHideFilters()
+            rememberSelection(lastUpdatedFilterState)
 
             loadJob = launch { loadTeis() }
         }
