@@ -36,6 +36,7 @@ fun FormSectionScreen(
     onNavigateBack: (() -> Unit)? = null,
     onStepCompleted: ((List<FormSectionModel>) -> Unit)? = null,
     onError: ((String) -> Unit)? = null,
+    restoredSections: List<FormSectionModel>? = null,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
@@ -48,6 +49,7 @@ fun FormSectionScreen(
             formSection = formNav?.toFormSection(),
             ouName = formNav?.orgUnitName,
             collectOnly = collectOnly,
+            restoredSections = restoredSections,
         )
     }
 

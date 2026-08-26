@@ -102,17 +102,24 @@ class FormViewModel @Inject constructor(
     /** Guards against a second submission while the first is still running. */
     private var submitting = false
 
+    /**
+     * Prepares the form.
+     *
+     * [restoredSections] carries values already captured for this form, so that returning to a step
+     * of a longer flow shows what was typed instead of a blank form reloaded from configuration.
+     */
     fun initialize(
         formSection: FormSection?,
         ouName: String? = null,
         collectOnly: Boolean = false,
+        restoredSections: List<FormSectionModel>? = null,
     ) {
         _uiState.value = FormSectionUiState.Loading
         collectsOnly = collectOnly
         submitting = false
         when (formSection) {
             is FormSection.NewEnrollment -> {
-                newEnrollment(formSection, ouName)
+                newEnrollment(formSection, ouName, restoredSections)
             }
 
             is FormSection.EditEnrollment -> {
@@ -120,14 +127,18 @@ class FormViewModel @Inject constructor(
             }
 
             is FormSection.NewEvent -> {
-                newEvent(formSection, ouName)
+                newEvent(formSection, ouName, restoredSections)
             }
 
             else -> Unit
         }
     }
 
-    private fun newEvent(eventForm: FormSection.NewEvent, ouName: String? = null) {
+    private fun newEvent(
+        eventForm: FormSection.NewEvent,
+        ouName: String? = null,
+        restoredSections: List<FormSectionModel>? = null,
+    ) {
         viewModelScope.launch {
             formType.value = eventForm.formType
             enrollmentUid.value = eventForm.enrollment
@@ -139,7 +150,7 @@ class FormViewModel @Inject constructor(
                 program = eventForm.program
             )
 
-            val sections = formRepository.getFormSections(
+            val sections = restoredSections ?: formRepository.getFormSections(
                 orgUnit = eventForm.orgUnit,
                 program = eventForm.program,
                 programStages = arrayOf(programStage),
@@ -165,10 +176,14 @@ class FormViewModel @Inject constructor(
         }
     }
 
-    private fun newEnrollment(enrollmentForm: FormSection.NewEnrollment, ouName: String? = null) {
+    private fun newEnrollment(
+        enrollmentForm: FormSection.NewEnrollment,
+        ouName: String? = null,
+        restoredSections: List<FormSectionModel>? = null,
+    ) {
         viewModelScope.launch {
             formType.value = enrollmentForm.formType
-            val sections = formRepository.getFormSections(
+            val sections = restoredSections ?: formRepository.getFormSections(
                 enrollmentForm.orgUnit,
                 enrollmentForm.program
             )
