@@ -307,16 +307,58 @@ class FormViewModel @Inject constructor(
 
             delay(300.milliseconds)
 
-            val currentState = _uiState.value as? FormSectionUiState.HasFormSection
+            val evaluatedState = _uiState.value as? FormSectionUiState.HasFormSection
                 ?: return@launch
 
-            val updatedSections = withContext(Dispatchers.IO) {
-                applyRules(eventUid, currentState.formSections)
+            val evaluatedSections = withContext(Dispatchers.IO) {
+                applyRules(eventUid, evaluatedState.formSections)
             }
 
-            _uiState.update {
-                currentState.copy(formSections = updatedSections)
+            _uiState.update { latest ->
+                val state = latest as? FormSectionUiState.HasFormSection ?: return@update latest
+
+                // Whatever was typed while the rules were being evaluated lives in the state that
+                // is current now, not in the snapshot they ran against. Writing that snapshot back
+                // would silently drop those keystrokes, so only the outcome of the rules is taken
+                // and the values are kept as they stand.
+                state.copy(
+                    formSections = state.formSections.withRuleOutcome(evaluatedSections),
+                )
             }
+        }
+    }
+
+    /**
+     * Applies the outcome of a rule evaluation to these sections without touching their values.
+     *
+     * The rules decide what is shown, what is required and what is flagged; the values belong to
+     * the user and are the one thing an evaluation that started earlier must not be allowed to
+     * revert.
+     */
+    private fun List<FormSectionModel>.withRuleOutcome(
+        evaluated: List<FormSectionModel>,
+    ): List<FormSectionModel> {
+        val evaluatedFields = evaluated
+            .flatMap { section -> section.formFields }
+            .associateBy { field -> field.uid }
+        val evaluatedSections = evaluated.associateBy { section -> section.uid }
+
+        return map { section ->
+            section.copy(
+                rendered = evaluatedSections[section.uid]?.rendered ?: section.rendered,
+                formFields = section.formFields.map { field ->
+                    val outcome = evaluatedFields[field.uid] ?: return@map field
+                    field.copy(
+                        rendered = outcome.rendered,
+                        mandatory = outcome.mandatory,
+                        enabled = outcome.enabled,
+                        hasError = outcome.hasError,
+                        errorMessage = outcome.errorMessage,
+                        hasWarning = outcome.hasWarning,
+                        warningMessage = outcome.warningMessage,
+                    )
+                },
+            )
         }
     }
 
@@ -326,7 +368,11 @@ class FormViewModel @Inject constructor(
                 ?: return@update current
 
             val updatedSections = state.formSections.map { currentSection ->
-                if (currentSection != section) return@map currentSection
+                // Matched by identity rather than by comparing the whole section: the section the
+                // screen hands back was captured when it was last drawn, so while someone types
+                // faster than the screen redraws it no longer matches the one held here, and every
+                // keystroke after the first would be dropped without a trace.
+                if (currentSection.uid != section.uid) return@map currentSection
 
                 val updatedFields = currentSection.formFields.map { field ->
                     val cleanedValue = when (field.valueType) {
@@ -375,7 +421,9 @@ class FormViewModel @Inject constructor(
             val currentState = _uiState.value as? FormSectionUiState.HasFormSection
                 ?: return@launch
 
-            val sectionIndex = currentState.formSections.indexOf(section)
+            // Found by identity for the same reason the field update is: the section handed back
+            // by the screen goes stale as soon as anything in it changes.
+            val sectionIndex = currentState.formSections.indexOfFirst { it.uid == section.uid }
             if (sectionIndex == -1) return@launch
 
             val targetSection = currentState.formSections[sectionIndex]
