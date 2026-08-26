@@ -103,9 +103,10 @@ class SemisEnrollmentProgramRepository(private val d2: D2) : ProgramRepository {
                 optionSetUid = attribute.optionSet()?.uid(),
                 valueType = attribute.valueType(),
                 mandatory = programAttribute.mandatory() ?: false,
+                sortOrder = programAttribute.sortOrder(),
                 generated = attribute.generated() ?: false,
             )
-        }
+        }.sortedBy { it.sortOrder ?: Int.MAX_VALUE }
     }
 
     override suspend fun getTrackedEntityAttributeWithSection(program: String): List<TrackedEntityAttributeSectionModel> = withContext(Dispatchers.IO) {
@@ -138,6 +139,9 @@ class SemisEnrollmentProgramRepository(private val d2: D2) : ProgramRepository {
             TrackedEntityAttributeSectionModel(
                 uid = section.uid(), code = section.code(), displayName = section.displayName(),
                 description = section.description(), sortOrder = section.sortOrder(),
+                // The order the attributes come back in is not the order they were configured in,
+                // so the configured position is carried over and applied. Without it the learner
+                // details appear shuffled, and differently from one reading to the next.
                 attributes = section.attributes().orEmpty().mapNotNull { sectionAttribute ->
                     val programAttribute = programAttributesByAttribute[sectionAttribute.uid()]
                         ?: return@mapNotNull null
@@ -149,11 +153,12 @@ class SemisEnrollmentProgramRepository(private val d2: D2) : ProgramRepository {
                         optionSetUid = attribute.optionSet()?.uid(),
                         valueType = attribute.valueType(),
                         mandatory = programAttribute.mandatory() ?: false,
+                        sortOrder = programAttribute.sortOrder(),
                         generated = attribute.generated() ?: false,
                     )
-                },
+                }.sortedBy { it.sortOrder ?: Int.MAX_VALUE },
             )
-        }.sortedBy { it.sortOrder }
+        }.sortedBy { it.sortOrder ?: Int.MAX_VALUE }
     }
 
     override suspend fun getPrograms() = d2.programModule().programs().blockingGet()
