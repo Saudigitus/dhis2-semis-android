@@ -14,6 +14,8 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.dhis2.commons.resources.ResourceManager
+import org.saudigitus.semis.app.presentation.home.model.autoSelectedFilters
+import org.saudigitus.semis.app.presentation.home.model.onlyOrgUnit
 import org.saudigitus.semis.app.presentation.home.model.restoredOrgUnit
 import org.saudigitus.semis.app.presentation.home.model.restoredSelectedFilters
 import org.saudigitus.semis.app.presentation.home.model.storedFilterSelection
@@ -115,26 +117,31 @@ class HomeViewModel @Inject constructor(
                 )
             }
 
-            restoreSelection(program, academicYearDropdown.first.data)
+            settleInitialSelection(program, academicYearDropdown.first.data)
         }
     }
 
     /**
-     * Puts back the class the user was last working on, as far as it still exists.
+     * Settles the class the user starts on, from what was remembered and from what has no
+     * alternative.
      *
      * The school comes first, because the lists that describe a class are read under it, and only
      * then are the remembered values looked for in those lists. Anything that no longer exists is
-     * left unchosen rather than guessed at, so what is restored is always a selection the user
-     * could have made by hand.
+     * left unchosen rather than guessed at, so what comes back is always a selection the user could
+     * have made by hand. Whatever is still unanswered and offers a single value is then filled in,
+     * since one possibility is not a choice.
+     *
+     * This runs as a single ordered pass rather than by reacting to the state as it changes, which
+     * is how resolving one field that reveals the next turns into a loop.
      *
      * Only what is already on the device is read. Opening a module never reaches the server on its
      * own, which would surprise the user and fail outright with no connection.
      */
-    private suspend fun restoreSelection(program: String, academicYearOptions: List<DropdownItem>) {
+    private suspend fun settleInitialSelection(program: String, academicYearOptions: List<DropdownItem>) {
+        val available = orgUnitRepository.captureOrgUnits(program)
         val stored = filterSelectionRepository.read(program)
-        if (stored.isEmpty) return
 
-        val orgUnit = restoredOrgUnit(stored, orgUnitRepository.captureOrgUnits(program))
+        val orgUnit = restoredOrgUnit(stored, available) ?: onlyOrgUnit(available)
 
         var filterState = uiState.value.filterState
         if (orgUnit != null) {
@@ -143,21 +150,26 @@ class HomeViewModel @Inject constructor(
             filterState = filterState.withOUAndFilters(orgUnit, reloadFilters())
         }
 
-        val restored = restoredSelectedFilters(
+        val restored = filterState.selectedFilters + restoredSelectedFilters(
             stored = stored,
             orgUnitRestored = orgUnit != null,
             academicYearOptions = academicYearOptions,
             filters = filterState.filters,
         )
-        if (orgUnit == null && restored.isEmpty()) return
-
-        filterState = updateFilterDetails(
-            filterState.copy(selectedFilters = filterState.selectedFilters + restored),
+        val resolved = restored + autoSelectedFilters(
+            filters = filterState.filters,
+            selected = restored,
+            excluded = NEVER_RESOLVED_WITHOUT_THE_USER,
         )
+
+        if (orgUnit == null && resolved == filterState.selectedFilters) return
+
+        filterState = updateFilterDetails(filterState.copy(selectedFilters = resolved))
 
         _uiState.update { it.copy(isLoading = true, filterState = filterState) }
         updateToolbarHeader(filterState)
         autoHideFilters()
+        rememberSelection(filterState)
 
         loadJob?.cancel()
         loadJob = viewModelScope.launch { loadTeis() }
@@ -397,6 +409,19 @@ class HomeViewModel @Inject constructor(
         )
 
         return filterState.withFilterDetails(updatedFilterDetailsState)
+    }
+
+    private companion object {
+        /**
+         * The filters that are never settled without the user looking at them.
+         *
+         * The academic year already arrives chosen from the school calendar, and a second rule
+         * competing for it would make the outcome depend on ordering. The section is served by a
+         * list that is built before any school is known and is never rebuilt afterwards, so what it
+         * offers cannot be trusted enough to choose from on the user's behalf. It joins the rest
+         * once that list is rebuilt under the chosen school and grade.
+         */
+        val NEVER_RESOLVED_WITHOUT_THE_USER = setOf(FilterType.ACADEMIC_YEAR, FilterType.SECTION)
     }
 
     private fun autoHideFilters() {

@@ -122,5 +122,79 @@ class FilterSelectionRestoreTest {
         assertTrue(selection.filterCodes.isEmpty())
     }
 
+    @Test
+    fun `the only school there is becomes the school`() {
+        assertEquals(albion, onlyOrgUnit(listOf(albion)))
+    }
+
+    @Test
+    fun `more than one school is left to the user`() {
+        assertNull(onlyOrgUnit(listOf(albion, banjul)))
+    }
+
+    @Test
+    fun `no school at all resolves to nothing`() {
+        assertNull(onlyOrgUnit(emptyList()))
+    }
+
+    @Test
+    fun `a filter offering a single value is answered on the user behalf`() {
+        val single = DropdownState(filterType = FilterType.GRADE, data = listOf(item("G1")))
+
+        val resolved = autoSelectedFilters(listOf(single), emptyMap(), emptySet())
+
+        assertEquals("G1", resolved[FilterType.GRADE]?.code)
+    }
+
+    @Test
+    fun `a filter offering several values is left to the user`() {
+        val resolved = autoSelectedFilters(listOf(grades), emptyMap(), emptySet())
+
+        assertTrue(resolved.isEmpty())
+    }
+
+    @Test
+    fun `a filter offering nothing is left alone rather than emptied`() {
+        val empty = DropdownState(filterType = FilterType.GRADE, data = emptyList())
+
+        assertTrue(autoSelectedFilters(listOf(empty), emptyMap(), emptySet()).isEmpty())
+    }
+
+    @Test
+    fun `a filter that was already answered is never overwritten`() {
+        val single = DropdownState(filterType = FilterType.GRADE, data = listOf(item("G1")))
+        val alreadyChosen = mapOf(FilterType.GRADE to item("G2"))
+
+        val resolved = autoSelectedFilters(listOf(single), alreadyChosen, emptySet())
+
+        assertTrue(resolved.isEmpty())
+    }
+
+    @Test
+    fun `an excluded filter is not answered even when it offers a single value`() {
+        val single = DropdownState(filterType = FilterType.SECTION, data = listOf(item("A")))
+
+        val resolved = autoSelectedFilters(
+            filters = listOf(single),
+            selected = emptyMap(),
+            excluded = setOf(FilterType.SECTION),
+        )
+
+        assertTrue(resolved.isEmpty())
+    }
+
+    @Test
+    fun `resolving one filter does not stop the next from being resolved`() {
+        val filters = listOf(
+            DropdownState(filterType = FilterType.GRADE, data = listOf(item("G1"))),
+            DropdownState(filterType = FilterType.SECTION, data = listOf(item("A"))),
+        )
+
+        val resolved = autoSelectedFilters(filters, emptyMap(), emptySet())
+
+        assertEquals("G1", resolved[FilterType.GRADE]?.code)
+        assertEquals("A", resolved[FilterType.SECTION]?.code)
+    }
+
     private fun item(code: String) = DropdownItem(id = code, itemName = code, code = code)
 }

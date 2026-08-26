@@ -49,6 +49,41 @@ internal fun restoredSelectedFilters(
     }
 }
 
+/**
+ * The school when it is the only one the user may capture into.
+ *
+ * A user attached to a single school is asked, at every opening, to choose between one option.
+ * Where there is one possibility there is no decision to take, so the app takes it. Where there is
+ * more than one, or none at all, it takes nothing.
+ */
+internal fun onlyOrgUnit(available: List<OrgUnit>): OrgUnit? = available.singleOrNull()
+
+/**
+ * Fills in the filters that offer a single value and have not been chosen yet.
+ *
+ * The same reasoning as for the school: one possibility is not a choice. A filter that offers
+ * nothing is left alone rather than resolved to an empty value, and a filter the user or the
+ * remembered selection already answered is never overwritten.
+ *
+ * [excluded] carries the filters that must not be resolved this way. It is not an oversight that
+ * some are excluded: the academic year already arrives chosen from configuration, and a second rule
+ * competing for it would make the outcome depend on ordering, while the section is served by a list
+ * that is loaded before any school is known and never reloaded, so what it offers cannot be trusted
+ * enough to choose from without the user looking at it.
+ */
+internal fun autoSelectedFilters(
+    filters: List<DropdownState>,
+    selected: Map<FilterType, DropdownItem>,
+    excluded: Set<FilterType>,
+): Map<FilterType, DropdownItem> = buildMap {
+    filters.forEach { filter ->
+        if (filter.filterType in excluded) return@forEach
+        if (selected.containsKey(filter.filterType)) return@forEach
+
+        filter.data.singleOrNull()?.let { put(filter.filterType, it) }
+    }
+}
+
 /** Reduces the chosen values back to the identifiers worth remembering. */
 internal fun storedFilterSelection(
     orgUnit: OrgUnit?,
