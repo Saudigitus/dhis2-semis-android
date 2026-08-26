@@ -48,6 +48,7 @@ import org.saudigitus.campaign.core.designsystem.theme.FormSurfaces
 import org.saudigitus.campaign.core.designsystem.theme.light_success
 import org.saudigitus.campaign.core.form.R
 import org.saudigitus.campaign.core.form.ui.component.FormInfo
+import org.saudigitus.campaign.core.form.ui.component.FormStepIndicator
 import org.saudigitus.campaign.core.form.ui.component.MandatoryFieldWrapper
 import org.saudigitus.campaign.core.form.ui.fields.DateField
 import org.saudigitus.campaign.core.form.ui.fields.OuField
@@ -201,9 +202,12 @@ internal fun FormSectionUi(
                                 ),
                                 style = MaterialTheme.typography.bodyMedium,
                             )
-                        }
 
-                        if (hasVisibleSections || stepProgress != null) {
+                            FormStepIndicator(
+                                progress = stepProgress,
+                                modifier = Modifier.padding(top = 6.dp),
+                            )
+                        } else if (hasVisibleSections) {
                             LinearProgressIndicator(
                                 modifier = Modifier.fillMaxWidth(),
                                 trackColor = Color.White,

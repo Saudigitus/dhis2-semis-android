@@ -46,12 +46,13 @@ fun FormSectionScreen(
     // the values and hands them over, and whoever drives the flow decides when anything is written.
     val collectOnly = onStepCompleted != null
 
-    LaunchedEffect(formNav, collectOnly) {
+    LaunchedEffect(formNav, collectOnly, stepProgress?.isLast) {
         viewModel.initialize(
             formSection = formNav?.toFormSection(),
             ouName = formNav?.orgUnitName,
             collectOnly = collectOnly,
             restoredSections = restoredSections,
+            confirmOnComplete = stepProgress?.isLast == true,
         )
     }
 

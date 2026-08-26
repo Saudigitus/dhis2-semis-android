@@ -99,6 +99,14 @@ class FormViewModel @Inject constructor(
     /** True while this form only gathers values for a caller that saves later. */
     private var collectsOnly = false
 
+    /**
+     * True when finishing this form commits the whole flow, so the user is asked to confirm.
+     *
+     * The steps before it write nothing and move on, and asking to confirm those would be asking
+     * about something that has not happened yet.
+     */
+    private var confirmsOnComplete = false
+
     /** Guards against a second submission while the first is still running. */
     private var submitting = false
 
@@ -113,9 +121,11 @@ class FormViewModel @Inject constructor(
         ouName: String? = null,
         collectOnly: Boolean = false,
         restoredSections: List<FormSectionModel>? = null,
+        confirmOnComplete: Boolean = false,
     ) {
         _uiState.value = FormSectionUiState.Loading
         collectsOnly = collectOnly
+        confirmsOnComplete = confirmOnComplete
         submitting = false
         when (formSection) {
             is FormSection.NewEnrollment -> {
@@ -609,8 +619,8 @@ class FormViewModel @Inject constructor(
                 }
 
                 is FormEvent.ConfirmSave -> {
-                    if (collectsOnly) {
-                        // A step of a longer flow writes nothing, so there is nothing to confirm.
+                    if (collectsOnly && !confirmsOnComplete) {
+                        // A step that only moves on writes nothing, so there is nothing to confirm.
                         save()
                     } else {
                         _handleSave.tryEmit(true)
