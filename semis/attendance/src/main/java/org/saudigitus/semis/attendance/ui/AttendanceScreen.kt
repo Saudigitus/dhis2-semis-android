@@ -24,6 +24,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import org.saudigitus.semis.attendance.ui.components.AttendanceBulkBar
+import org.saudigitus.semis.attendance.ui.components.AttendanceClassSummary
 import org.saudigitus.semis.attendance.ui.components.AttendanceCompletionNotice
 import org.saudigitus.semis.attendance.ui.components.AttendanceHeader
 import org.saudigitus.semis.attendance.ui.components.AttendanceSaveBar
@@ -96,14 +97,6 @@ fun AttendanceScreen(
         header = {
             AttendanceHeader(
                 headers = state.toolbarHeaders,
-                tiles = attendanceStatTiles(
-                    totalLabel = stringResource(AttendanceRes.string.attendance_total),
-                    totalLearners = state.teis.size,
-                    summaries = state.attendanceSummaryState.bottomSheetModels,
-                    hasAttendanceRecord = state.hasAttendanceRecord,
-                ),
-                pendingSyncCount = state.pendingSyncCount,
-                filterDetailsState = state.attendanceSummaryState.filterDetailsState,
                 dateValidator = { state.dateValidator(it) },
                 onNavigateBack = { onEvent(AttendanceUiEvent.NavBack) },
                 onSync = { onEvent(AttendanceUiEvent.OnSyncClicked) },
@@ -154,6 +147,17 @@ fun AttendanceScreen(
             )
         },
     ) {
+        AttendanceClassSummary(
+            filterDetailsState = state.attendanceSummaryState.filterDetailsState,
+            totalLearners = state.teis.size,
+            tiles = attendanceStatTiles(
+                totalLabel = stringResource(AttendanceRes.string.attendance_total),
+                totalLearners = state.teis.size,
+                summaries = state.attendanceSummaryState.bottomSheetModels,
+                hasAttendanceRecord = state.hasAttendanceRecord,
+            ),
+        )
+
         if (isEditing) {
             AttendanceBulkBar(
                 buttons = formState.attendanceButtonState.buttons,

@@ -9,9 +9,13 @@
     <string name="attendance_synced">Synced</string>
     <string name="attendance_unsynced_count">%1$d unsynced</string>
     <string name="attendance_all_recorded">All students recorded</string>
-    <string name="attendance_not_recorded">No attendance has been recorded for this day yet.</string>
+    <plurals name="attendance_students_count">
+        <item quantity="one">%1$d student</item>
+        <item quantity="other">%1$d students</item>
+    </plurals>
+    <string name="attendance_not_recorded">No records, please take attendance!</string>
     <string name="attendance_reset_warning">Resetting deletes the attendance already recorded for this day. This cannot be undone.</string>
-    <string name="attendance_completed">Attendance completed for this day</string>
+    <string name="attendance_completed">Attendance completed</string>
     <string name="attendance_incomplete">Incomplete attendance</string>
     <string name="select_attendance_date">Select attendance date</string>
     <string name="reset_attendance">Reset attendance</string>
