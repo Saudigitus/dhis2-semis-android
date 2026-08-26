@@ -4,9 +4,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.dhis2.commons.resources.ResourceManager
 import org.hisp.dhis.android.core.D2
+import org.hisp.dhis.android.core.common.State
 import org.hisp.dhis.android.core.common.ValueType
 import org.hisp.dhis.android.core.event.EventCreateProjection
 import org.hisp.dhis.android.core.event.EventStatus
+import org.saudigitus.campaign.core.data.models.FormFieldEntity
 import org.saudigitus.campaign.core.data.models.OptionModel
 import org.saudigitus.campaign.core.data.models.OrgUnit
 import org.saudigitus.campaign.core.data.models.OuHideStrategy
@@ -121,6 +123,113 @@ class SemisEnrollmentFormRepository @Inject constructor(
             }
         }
     }
+
+    override suspend fun saveEnrollment(
+        orgUnit: String,
+        program: String,
+        date: String,
+        attributes: List<FormSectionModel>,
+        stages: Map<String, List<FormSectionModel>>,
+        backgroundStages: List<String>,
+    ): FormResult = withContext(Dispatchers.IO) {
+        val (enrollmentUid, teiUid) = enrollmentRepository.create(
+            orgUnit = orgUnit,
+            program = program,
+            date = date,
+            fields = attributes.capturedFields(),
+        )
+
+        try {
+            stages.forEach { (programStage, sections) ->
+                createStageEvent(
+                    orgUnit = orgUnit,
+                    program = program,
+                    programStage = programStage,
+                    enrollment = enrollmentUid,
+                    date = date,
+                    fields = sections.capturedFields(),
+                )
+            }
+
+            backgroundStages.forEach { programStage ->
+                createStageEvent(
+                    orgUnit = orgUnit,
+                    program = program,
+                    programStage = programStage,
+                    enrollment = enrollmentUid,
+                    date = date,
+                    fields = emptyList(),
+                )
+            }
+        } catch (error: Throwable) {
+            discardEnrollment(teiUid, enrollmentUid)
+            throw error
+        }
+
+        FormResult(enrollment = enrollmentUid, tei = teiUid)
+    }
+
+    /**
+     * Creates the event for [programStage] and fills in whatever was captured for it.
+     *
+     * The completed status is deliberate and configured: an event produced by an enrollment is not
+     * left open for later editing.
+     */
+    private fun createStageEvent(
+        orgUnit: String,
+        program: String,
+        programStage: String,
+        enrollment: String,
+        date: String,
+        fields: List<FormFieldEntity>,
+    ) {
+        val eventUid = d2.eventModule().events().blockingAdd(
+            EventCreateProjection.builder()
+                .organisationUnit(orgUnit)
+                .program(program)
+                .programStage(programStage)
+                .enrollment(enrollment)
+                .attributeOptionCombo(defaultAttributeOptionCombo())
+                .build(),
+        )
+
+        fields.forEach { field ->
+            d2.trackedEntityModule().trackedEntityDataValues()
+                .value(eventUid, field.uid)
+                .blockingSet(field.value)
+        }
+
+        d2.eventModule().events().uid(eventUid).apply {
+            setEventDate(Date.valueOf(date))
+            setStatus(EventStatus.COMPLETED)
+        }
+    }
+
+    /**
+     * Removes an enrollment that could not be written in full.
+     *
+     * A learner created during this transaction has never reached the server, so the whole record is
+     * dropped. Should it somehow already have been uploaded, only the enrollment is removed, because
+     * deleting the learner would then take away someone the server still knows about.
+     */
+    private fun discardEnrollment(tei: String, enrollment: String) {
+        runCatching {
+            val teiRepository = d2.trackedEntityModule().trackedEntityInstances().uid(tei)
+
+            if (teiRepository.blockingGet()?.syncState() == State.TO_POST) {
+                teiRepository.blockingDelete()
+            } else {
+                d2.enrollmentModule().enrollments().uid(enrollment).blockingDelete()
+            }
+        }
+    }
+
+    /** The fields a step actually presented, in the shape the data layer stores. */
+    private fun List<FormSectionModel>.capturedFields(): List<FormFieldEntity> = this
+        .filter { it.rendered }
+        .flatMap { it.formFields }
+        .filter { it.rendered == true }
+        .toEntities()
 
     override suspend fun getFormSections(
         orgUnit: String,
