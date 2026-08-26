@@ -54,6 +54,7 @@ import org.saudigitus.campaign.core.form.ui.fields.OuField
 import org.saudigitus.campaign.core.form.ui.state.FormEvent
 import org.saudigitus.campaign.core.form.ui.state.FormSectionType
 import org.saudigitus.campaign.core.form.ui.state.FormSectionUiState
+import org.saudigitus.campaign.core.form.ui.state.FormStepProgress
 import org.saudigitus.campaign.core.form.utils.completionPercentage
 import org.saudigitus.campaign.core.form.utils.firstBlockingFieldIndex
 import org.saudigitus.campaign.core.utils.location.rememberCoordinateState
@@ -64,6 +65,7 @@ import org.saudigitus.campaign.core.utils.location.state.CoordinateState
 internal fun FormSectionUi(
     modifier: Modifier = Modifier,
     state: FormSectionUiState.HasFormSection,
+    stepProgress: FormStepProgress? = null,
     onEvent: (FormEvent) -> Unit,
 ) {
     val visibleSections = state.formSections.filter { section ->
@@ -73,8 +75,10 @@ internal fun FormSectionUi(
     val listState = rememberLazyListState()
     val scrollScope = rememberCoroutineScope()
 
+    // Within a flow the bar reports how far along the steps the user is, which is the progress that
+    // matters there. On a form standing on its own it keeps reporting how much of it is filled in.
     val animatedProgress by animateFloatAsState(
-        targetValue = visibleSections.completionPercentage(),
+        targetValue = stepProgress?.fraction ?: visibleSections.completionPercentage(),
         animationSpec = ProgressIndicatorDefaults.ProgressAnimationSpec,
     )
 
@@ -188,7 +192,18 @@ internal fun FormSectionUi(
                             style = MaterialTheme.typography.titleLarge
                         )
 
-                        if (hasVisibleSections) {
+                        if (stepProgress != null) {
+                            Text(
+                                text = stringResource(
+                                    R.string.form_step_progress,
+                                    stepProgress.stepNumber,
+                                    stepProgress.stepCount,
+                                ),
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
+                        }
+
+                        if (hasVisibleSections || stepProgress != null) {
                             LinearProgressIndicator(
                                 modifier = Modifier.fillMaxWidth(),
                                 trackColor = Color.White,
@@ -232,7 +247,17 @@ internal fun FormSectionUi(
                         }
                     }
                 ) {
-                    Text(stringResource(R.string.save))
+                    // Nothing is written until the last step, so every step before it offers to
+                    // move on rather than promising to save.
+                    Text(
+                        stringResource(
+                            if (stepProgress?.isLast == false) {
+                                R.string.form_step_continue
+                            } else {
+                                R.string.save
+                            },
+                        ),
+                    )
                 }
             }
         },

@@ -20,6 +20,7 @@ import org.saudigitus.campaign.core.form.ui.screens.FormShimmerScreen
 import org.saudigitus.campaign.core.form.ui.state.FormEvent
 import org.saudigitus.campaign.core.form.ui.state.FormSectionType
 import org.saudigitus.campaign.core.form.ui.state.FormSectionUiState
+import org.saudigitus.campaign.core.form.ui.state.FormStepProgress
 import org.saudigitus.campaign.core.form.utils.completionPercentage
 import org.saudigitus.campaign.core.form.utils.toFormSection
 import org.saudigitus.campaign.core.navigation.AppRoute
@@ -37,6 +38,7 @@ fun FormSectionScreen(
     onStepCompleted: ((List<FormSectionModel>) -> Unit)? = null,
     onError: ((String) -> Unit)? = null,
     restoredSections: List<FormSectionModel>? = null,
+    stepProgress: FormStepProgress? = null,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
@@ -173,6 +175,7 @@ fun FormSectionScreen(
             FormSectionUi(
                 modifier = modifier,
                 state = formSection,
+                stepProgress = stepProgress,
             ) { event ->
                 when (event) {
                     is FormEvent.NavigateBack -> {

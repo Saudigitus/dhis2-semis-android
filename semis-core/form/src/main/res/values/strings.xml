@@ -19,4 +19,6 @@
     <string name="semis_form_yes">Yes</string>
     <string name="semis_form_no">No</string>
     <string name="reserved_value_unavailable">No value available. Sync the data to get new values.</string>
+    <string name="form_step_continue">Continue</string>
+    <string name="form_step_progress">Step %1$d of %2$d</string>
 </resources>

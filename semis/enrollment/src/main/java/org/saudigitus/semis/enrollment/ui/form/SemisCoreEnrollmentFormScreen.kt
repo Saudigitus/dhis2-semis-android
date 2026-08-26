@@ -18,6 +18,7 @@ import org.koin.core.context.loadKoinModules
 import org.saudigitus.campaign.core.data.di.campaignDataModule
 import org.saudigitus.campaign.core.form.di.campaignFormModule
 import org.saudigitus.campaign.core.form.ui.section.FormSectionScreen
+import org.saudigitus.campaign.core.form.ui.state.FormStepProgress
 import org.saudigitus.campaign.core.navigation.AppRoute
 
 private var semisCoreFormInitialized = false
@@ -91,6 +92,10 @@ fun SemisCoreEnrollmentFormScreen(
                 onStepCompleted = viewModel::onStepCompleted,
                 onError = viewModel::onStepError,
                 restoredSections = state.currentStepSections,
+                stepProgress = FormStepProgress(
+                    stepNumber = state.stepNumber,
+                    stepCount = state.plan.stepCount,
+                ),
                 onNavigateBack = {
                     if (state.canGoBack) viewModel.onBack() else navController.navigateUp()
                 },
