@@ -4,6 +4,7 @@
     <string name="not_saved">Not saved</string>
     <string name="attendance_not_saved">You have unsaved attendance changes. If you go back now, your data will be discarded.</string>
     <string name="home_modules">Modules</string>
+    <string name="home_select_all_filters">Please select all filters to continue.</string>
     <string name="home_stat_enrolled">Enrolled</string>
     <string name="home_stat_modules">Modules</string>
     <string name="home_stat_status">Status</string>

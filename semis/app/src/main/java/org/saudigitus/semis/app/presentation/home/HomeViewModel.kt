@@ -207,6 +207,8 @@ class HomeViewModel @Inject constructor(
 
     private fun downloadTei() {
         viewModelScope.launch {
+            // An incomplete selection has nothing to download, and the screen is already showing
+            // the notice that asks for the filters that are still missing.
             if (uiState.value.filterState.isFilterSelectionNotEmpty()) {
                 _uiState.update { it.copy(isLoading = true) }
 
@@ -230,8 +232,6 @@ class HomeViewModel @Inject constructor(
                 }.onFailure { f ->
                     _uiState.update { it.copy(isLoading = false, errorMessage = f.message) }
                 }
-            } else {
-                _uiState.update { it.copy(errorMessage = resourceManager.getString(R.string.apply_filters)) }
             }
         }
     }
@@ -291,7 +291,10 @@ class HomeViewModel @Inject constructor(
                 it.copy(
                     isLoading = true,
                     filterState = lastUpdatedFilterState,
-                    tei = emptyList()
+                    tei = emptyList(),
+                    // The message describes the selection that was in place when it was raised, so
+                    // changing the selection has to retire it or it goes on describing the past.
+                    errorMessage = null
                 )
             }
             updateToolbarHeader(updatedFilterState)
