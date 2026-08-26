@@ -13,6 +13,7 @@ import org.saudigitus.campaign.core.designsystem.components.bottomsheets.launchD
 import org.saudigitus.campaign.core.designsystem.components.bottomsheets.launchDiscardBottomSheet
 import org.saudigitus.campaign.core.form.R
 import org.saudigitus.campaign.core.form.data.models.FormResult
+import org.saudigitus.campaign.core.form.data.models.FormSectionModel
 import org.saudigitus.campaign.core.form.ui.FormViewModel
 import org.saudigitus.campaign.core.form.ui.screens.FormLoadErrorScreen
 import org.saudigitus.campaign.core.form.ui.screens.FormShimmerScreen
@@ -33,14 +34,37 @@ fun FormSectionScreen(
     onNewEnrollmentSaved: (() -> Unit)? = null,
     onFormSaved: ((FormSectionType, FormResult) -> Unit)? = null,
     onNavigateBack: (() -> Unit)? = null,
+    onStepCompleted: ((List<FormSectionModel>) -> Unit)? = null,
+    onError: ((String) -> Unit)? = null,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
-    LaunchedEffect(formNav) {
+    // Supplying a step handler is what turns this form into one leg of a longer flow: it gathers
+    // the values and hands them over, and whoever drives the flow decides when anything is written.
+    val collectOnly = onStepCompleted != null
+
+    LaunchedEffect(formNav, collectOnly) {
         viewModel.initialize(
             formSection = formNav?.toFormSection(),
             ouName = formNav?.orgUnitName,
+            collectOnly = collectOnly,
         )
+    }
+
+    LaunchedEffect(onStepCompleted) {
+        if (onStepCompleted == null) return@LaunchedEffect
+
+        viewModel.stepCompleted.collect { formSections ->
+            onStepCompleted(formSections)
+        }
+    }
+
+    LaunchedEffect(onError) {
+        if (onError == null) return@LaunchedEffect
+
+        viewModel.errorEvent.collect { message ->
+            onError(message)
+        }
     }
 
     LaunchedEffect(onFormSaved, onNewEnrollmentSaved) {

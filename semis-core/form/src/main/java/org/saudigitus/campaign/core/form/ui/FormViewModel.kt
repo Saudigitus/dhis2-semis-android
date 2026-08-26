@@ -72,13 +72,44 @@ class FormViewModel @Inject constructor(
     )
     val handleSave = _handleSave.asSharedFlow()
 
+    /**
+     * Fields captured on a step that is part of a longer flow, handed to whoever drives that flow.
+     *
+     * Nothing is written when this is emitted: the caller accumulates the steps and decides when the
+     * whole thing is committed, which is what keeps an interrupted flow from leaving a half made
+     * record behind.
+     */
+    private val _stepCompleted = MutableSharedFlow<List<FormSectionModel>>(
+        replay = 0,
+        extraBufferCapacity = 1
+    )
+    val stepCompleted = _stepCompleted.asSharedFlow()
+
+    /** Message to show when the form could not be saved, already resolved for display. */
+    private val _errorEvent = MutableSharedFlow<String>(
+        replay = 0,
+        extraBufferCapacity = 1
+    )
+    val errorEvent = _errorEvent.asSharedFlow()
+
     private var ruleJob: Job? = null
 
     private var enrollmentUid = MutableStateFlow<String?>(null)
 
+    /** True while this form only gathers values for a caller that saves later. */
+    private var collectsOnly = false
 
-    fun initialize(formSection: FormSection?, ouName: String? = null) {
+    /** Guards against a second submission while the first is still running. */
+    private var submitting = false
+
+    fun initialize(
+        formSection: FormSection?,
+        ouName: String? = null,
+        collectOnly: Boolean = false,
+    ) {
         _uiState.value = FormSectionUiState.Loading
+        collectsOnly = collectOnly
+        submitting = false
         when (formSection) {
             is FormSection.NewEnrollment -> {
                 newEnrollment(formSection, ouName)
@@ -223,10 +254,13 @@ class FormViewModel @Inject constructor(
         event: String,
         formSections: List<FormSectionModel>,
     ): List<FormSectionModel> {
+        // The form can be torn down between the debounce and this call, so the state is read
+        // defensively and the sections are handed back untouched rather than crashing.
         return when (formType.value) {
             FormSectionType.NEW_EVENT_WITH_REGISTRATION,
             FormSectionType.NEW_EVENT_WITHOUT_REGISTRATION -> {
-                val current = uiState.value as FormSectionUiState.HasFormSection
+                val current = uiState.value as? FormSectionUiState.HasFormSection
+                    ?: return formSections
 
                 formRepository.applyProgramRules(
                     orgUnit = current.orgUnit?.uid.orEmpty(),
@@ -239,7 +273,8 @@ class FormViewModel @Inject constructor(
             }
 
             else -> {
-                val current = uiState.value as FormSectionUiState.HasFormSection
+                val current = uiState.value as? FormSectionUiState.HasFormSection
+                    ?: return formSections
 
                 formRepository.applyProgramRules(
                     orgUnit = current.orgUnit?.uid.orEmpty(),
@@ -375,15 +410,30 @@ class FormViewModel @Inject constructor(
     }
 
     private fun save() {
+        // A repeated tap must not start a second submission: on this form that would create a
+        // second learner, so the guard is checked before any work begins.
+        if (submitting) return
+        submitting = true
+
         viewModelScope.launch {
             val current = uiState.value as? FormSectionUiState.HasFormSection
-                ?: return@launch
-
-            if (current.formSections.hasBlockingFields()) {
+            if (current == null) {
+                submitting = false
                 return@launch
             }
 
-            val result =
+            if (current.formSections.hasBlockingFields()) {
+                submitting = false
+                return@launch
+            }
+
+            if (collectsOnly) {
+                _stepCompleted.tryEmit(current.formSections)
+                submitting = false
+                return@launch
+            }
+
+            runCatching {
                 if (formResult.value != null &&
                     !formResult.value?.tei.isNullOrEmpty() &&
                     !formResult.value?.enrollment.isNullOrEmpty()
@@ -406,10 +456,19 @@ class FormViewModel @Inject constructor(
                         formSections = current.formSections,
                     )
                 }
-
-            formResult.value = result
-
-            navigate(result, current)
+            }.onSuccess { result ->
+                formResult.value = result
+                submitting = false
+                navigate(result, current)
+            }.onFailure { error ->
+                // Without this the failure would reach the coroutine scope uncaught and take the
+                // app down instead of telling the user the record was not saved.
+                submitting = false
+                _errorEvent.tryEmit(
+                    error.message?.takeIf(String::isNotBlank)
+                        ?: resourceManager.getString(R.string.something_went_wrong_loading_form),
+                )
+            }
         }
     }
 
@@ -487,7 +546,12 @@ class FormViewModel @Inject constructor(
                 }
 
                 is FormEvent.ConfirmSave -> {
-                    _handleSave.tryEmit(true)
+                    if (collectsOnly) {
+                        // A step of a longer flow writes nothing, so there is nothing to confirm.
+                        save()
+                    } else {
+                        _handleSave.tryEmit(true)
+                    }
                 }
 
                 is FormEvent.SaveEvent -> {
@@ -500,12 +564,18 @@ class FormViewModel @Inject constructor(
     }
 
     fun reset() {
+        // The rule job reads the state a moment after the fact, so it has to stop before the state
+        // is torn down, otherwise it wakes to a form that is no longer there.
+        ruleJob?.cancel()
+        ruleJob = null
+
         deleteEventOnDiscard()
 
         _uiState.value = FormSectionUiState.Idle
         formResult.value = null
         formType.value = FormSectionType.NEW_ENROLLMENT
-        ruleJob = null
+        collectsOnly = false
+        submitting = false
     }
 
 }
