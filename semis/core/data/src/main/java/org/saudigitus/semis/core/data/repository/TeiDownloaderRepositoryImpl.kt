@@ -59,7 +59,7 @@ class TeiDownloaderRepositoryImpl
                 )
             }
 
-            Result.Success(true)
+            Result.Success(teiUids.size)
         } catch (e: Exception) {
             Result.Failure(
                 IllegalStateException(

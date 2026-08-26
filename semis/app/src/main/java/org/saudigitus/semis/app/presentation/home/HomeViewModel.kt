@@ -4,8 +4,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
@@ -35,6 +37,7 @@ import org.saudigitus.semis.core.designsystem.utils.withSelectedFilter
 import org.saudigitus.semis.core.designsystem.utils.withSubtitle
 import org.saudigitus.semis.core.utils.onFailure
 import org.saudigitus.semis.core.utils.onSuccess
+import org.saudigitus.semis.app.R as AppR
 import javax.inject.Inject
 
 @HiltViewModel
@@ -67,6 +70,16 @@ class HomeViewModel @Inject constructor(
             SharingStarted.WhileSubscribed(5000),
             HomeUIState()
         )
+
+    /**
+     * What to tell the user once a download has finished.
+     *
+     * A one-shot message rather than something held in the state, because a download that worked is
+     * an event and not a condition: kept in the state it would be shown again on every
+     * recomposition, and there would be no moment at which it is over.
+     */
+    private val _downloadFeedback = MutableSharedFlow<String>()
+    val downloadFeedback: SharedFlow<String> = _downloadFeedback
 
     private var loadJob: Job? = null
 
@@ -228,7 +241,15 @@ class HomeViewModel @Inject constructor(
                     )
                 )
 
-                result.onSuccess {
+                result.onSuccess { downloaded ->
+                    _uiState.update { it.copy(errorMessage = null) }
+                    _downloadFeedback.emit(
+                        resourceManager.getPlural(
+                            AppR.plurals.home_records_downloaded,
+                            downloaded,
+                            downloaded,
+                        ),
+                    )
                     loadTeis()
                 }.onFailure { f ->
                     _uiState.update { it.copy(isLoading = false, errorMessage = f.message) }
