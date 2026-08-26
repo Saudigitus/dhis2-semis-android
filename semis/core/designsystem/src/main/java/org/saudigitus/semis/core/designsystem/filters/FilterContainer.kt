@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -16,6 +17,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.rounded.FilterAltOff
+import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
@@ -27,10 +29,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.saudigitus.semis.core.designsystem.R
-import org.saudigitus.semis.core.designsystem.components.buttons.RoundedSyncButton
 import org.saudigitus.semis.core.designsystem.components.fields.DropDown
 import org.saudigitus.semis.core.designsystem.components.fields.OuField
 import org.saudigitus.semis.core.designsystem.components.model.FilterType
@@ -100,68 +104,97 @@ fun FilterContainer(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            ResetFiltersButton(
-                modifier = Modifier.weight(RESET_WEIGHT),
-                onClick = { onEvent(FilterComponentEvent.ResetFilters) },
-            )
-            RoundedSyncButton(
+            FilterActionButton(
                 modifier = Modifier.weight(DOWNLOAD_WEIGHT),
                 label = stringResource(R.string.filters_download_records),
-                leadingIcon = Icons.Default.Download,
-                onClick = {
-                    onEvent(FilterComponentEvent.Sync)
-                }
+                icon = Icons.Default.Download,
+                filled = true,
+                onClick = { onEvent(FilterComponentEvent.Sync) },
+            )
+            FilterActionButton(
+                modifier = Modifier.weight(RESET_WEIGHT),
+                label = stringResource(R.string.filters_reset),
+                icon = Icons.Rounded.FilterAltOff,
+                filled = false,
+                onClick = { onEvent(FilterComponentEvent.ResetFilters) },
             )
         }
     }
 }
 
 /**
- * Clears the class the user is on.
+ * One of the two actions that close the filters.
  *
- * Drawn as the quieter of the two actions on its line, because clearing what was chosen is a way
- * back rather than a step forward, and it sits beside an action that is the point of the screen.
+ * Both are drawn by the same composable so that they cannot drift apart in height, shape or type:
+ * side by side, any difference between them reads as meaning rather than as an accident. What does
+ * separate them is weight, filled for the action the screen is there for and outlined for the way
+ * back.
+ *
+ * The corner follows the fields of the enrollment form rather than the pill the filters used, so
+ * that a form and a filter look like parts of the same app.
  */
 @Composable
-private fun ResetFiltersButton(
+private fun FilterActionButton(
     modifier: Modifier = Modifier,
+    label: String,
+    icon: ImageVector,
+    filled: Boolean,
     onClick: () -> Unit,
 ) {
-    OutlinedButton(
-        modifier = modifier.height(54.dp),
-        onClick = onClick,
-        shape = RoundedCornerShape(30.dp),
-        contentPadding = PaddingValues(horizontal = 8.dp),
-        colors = ButtonDefaults.outlinedButtonColors(
-            containerColor = Color.Transparent,
-            contentColor = Color.White,
-        ),
-        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.6f)),
-    ) {
+    val content: @Composable RowScope.() -> Unit = {
         Row(
-            horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
+            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
-                modifier = Modifier.size(16.dp),
-                imageVector = Icons.Rounded.FilterAltOff,
+                modifier = Modifier.size(18.dp),
+                imageVector = icon,
                 contentDescription = null,
             )
             Text(
-                text = stringResource(R.string.filters_reset),
-                fontSize = 12.sp,
+                text = label,
+                fontSize = 14.sp,
                 maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                fontFamily = FontFamily(Font(R.font.rubik_medium)),
             )
         }
     }
+
+    if (filled) {
+        Button(
+            modifier = modifier.height(ACTION_HEIGHT),
+            onClick = onClick,
+            shape = FilterActionShape,
+            contentPadding = ACTION_PADDING,
+            content = content,
+        )
+    } else {
+        OutlinedButton(
+            modifier = modifier.height(ACTION_HEIGHT),
+            onClick = onClick,
+            shape = FilterActionShape,
+            contentPadding = ACTION_PADDING,
+            colors = ButtonDefaults.outlinedButtonColors(
+                containerColor = Color.Transparent,
+                contentColor = Color.White,
+            ),
+            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.6f)),
+            content = content,
+        )
+    }
 }
+
+/** The corner of the fields in the enrollment form, kept here so the two trees stay apart. */
+private val FilterActionShape = RoundedCornerShape(12.dp)
+private val ACTION_HEIGHT = 52.dp
+private val ACTION_PADDING = PaddingValues(horizontal = 10.dp)
 
 /**
  * How the line is divided between the two actions.
  *
- * The clearing action takes the smaller share, being the way back rather than the point of the
- * screen, but enough of it to name what it clears instead of leaving the user to guess from an
- * icon.
+ * The download comes first and takes the larger share, being what the screen is there for, and the
+ * way back follows it with enough room to name what it clears.
  */
-private const val RESET_WEIGHT = 2f
 private const val DOWNLOAD_WEIGHT = 3f
+private const val RESET_WEIGHT = 2f
