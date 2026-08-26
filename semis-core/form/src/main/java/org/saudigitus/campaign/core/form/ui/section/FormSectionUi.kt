@@ -48,6 +48,7 @@ import org.saudigitus.campaign.core.designsystem.theme.FormSurfaces
 import org.saudigitus.campaign.core.designsystem.theme.light_success
 import org.saudigitus.campaign.core.form.R
 import org.saudigitus.campaign.core.form.ui.component.FormInfo
+import org.saudigitus.campaign.core.form.ui.component.FormPrimaryButton
 import org.saudigitus.campaign.core.form.ui.component.FormStepIndicator
 import org.saudigitus.campaign.core.form.ui.component.MandatoryFieldWrapper
 import org.saudigitus.campaign.core.form.ui.fields.DateField
@@ -194,8 +195,13 @@ internal fun FormSectionUi(
                         )
 
                         if (stepProgress != null) {
+                            // The markers below already say which step this is, so the line above
+                            // them names it instead of repeating the count.
+                            val stepName = visibleSections.firstOrNull()?.name
+                                ?.takeIf { it.isNotBlank() }
+
                             Text(
-                                text = stringResource(
+                                text = stepName ?: stringResource(
                                     R.string.form_step_progress,
                                     stepProgress.stepNumber,
                                     stepProgress.stepCount,
@@ -243,26 +249,23 @@ internal fun FormSectionUi(
                 horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Button(
+                // Nothing is written until the last step, so every step before it offers to move on
+                // rather than promising to save.
+                FormPrimaryButton(
+                    text = stringResource(
+                        if (stepProgress?.isLast == false) {
+                            R.string.form_step_continue
+                        } else {
+                            R.string.save
+                        },
+                    ),
                     modifier = Modifier.fillMaxWidth(),
                     onClick = {
                         if (isFormValid()) {
                             onEvent(FormEvent.ConfirmSave)
                         }
-                    }
-                ) {
-                    // Nothing is written until the last step, so every step before it offers to
-                    // move on rather than promising to save.
-                    Text(
-                        stringResource(
-                            if (stepProgress?.isLast == false) {
-                                R.string.form_step_continue
-                            } else {
-                                R.string.save
-                            },
-                        ),
-                    )
-                }
+                    },
+                )
             }
         },
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
