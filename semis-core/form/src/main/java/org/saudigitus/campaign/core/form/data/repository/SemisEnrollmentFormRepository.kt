@@ -347,6 +347,7 @@ class SemisEnrollmentFormRepository @Inject constructor(
                         value = storedValue ?: reserved?.value,
                         // A generated value belongs to the server, so it is shown but not typed over.
                         enabled = !attribute.generated,
+                        generated = attribute.generated,
                         hasWarning = reserved?.warning != null,
                         warningMessage = reserved?.warning,
                         mandatory = attribute.mandatory,

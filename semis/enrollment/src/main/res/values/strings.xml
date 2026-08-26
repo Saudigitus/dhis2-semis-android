@@ -29,4 +29,8 @@
 
     <string name="enrollment_config_unavailable">The enrollment setup could not be read. Sync the data and try again.</string>
     <string name="enrollment_not_saved">The enrollment could not be saved. Nothing was recorded, please try again.</string>
+    <string name="enrollment_complete_title">Enrollment complete</string>
+    <string name="enrollment_complete_subtitle">The learner has been enrolled.</string>
+    <string name="enrollment_complete_done">Done</string>
+    <string name="enrollment_register_another">Register another learner</string>
 </resources>

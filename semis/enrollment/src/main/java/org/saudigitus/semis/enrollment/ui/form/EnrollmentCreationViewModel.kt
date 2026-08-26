@@ -56,6 +56,18 @@ data class EnrollmentCreationUiState(
             is EnrollmentStep.Stage -> FormType.NEW_EVENT_WITH_REGISTRATION
             else -> FormType.NEW_ENROLLMENT
         }
+
+    /**
+     * The identifiers the server minted for this learner, as label and value pairs.
+     *
+     * These are shown back once the record is written so the user can note down or read out the
+     * number the learner is known by, which is the whole point of the enrollment producing one.
+     */
+    val generatedIdentifiers: List<Pair<String, String>>
+        get() = captured[0].orEmpty()
+            .flatMap { section -> section.formFields }
+            .filter { field -> field.generated && !field.value.isNullOrBlank() }
+            .map { field -> field.label to field.value.orEmpty() }
 }
 
 /**
@@ -126,6 +138,25 @@ class EnrollmentCreationViewModel @Inject constructor(
     /** Clears a reported failure so the user can carry on from the step they were on. */
     fun onErrorDismissed() {
         _uiState.update { it.copy(errorMessage = null) }
+    }
+
+    /**
+     * Starts a fresh enrollment, keeping the plan that was already resolved.
+     *
+     * Registering learners tends to happen in a sitting, one after another, so the flow returns to
+     * the first step rather than making the user leave and come back for each one.
+     */
+    fun registerAnother() {
+        _uiState.update {
+            it.copy(
+                stepIndex = 0,
+                captured = emptyMap(),
+                completed = false,
+                tei = null,
+                enrollment = null,
+                errorMessage = null,
+            )
+        }
     }
 
     private fun commit(captured: Map<Int, List<FormSectionModel>>) {

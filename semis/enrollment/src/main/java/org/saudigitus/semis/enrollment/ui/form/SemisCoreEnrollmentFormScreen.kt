@@ -20,6 +20,7 @@ import org.saudigitus.campaign.core.form.di.campaignFormModule
 import org.saudigitus.campaign.core.form.ui.section.FormSectionScreen
 import org.saudigitus.campaign.core.form.ui.state.FormStepProgress
 import org.saudigitus.campaign.core.navigation.AppRoute
+import org.saudigitus.semis.enrollment.ui.form.components.EnrollmentCompletedScreen
 
 private var semisCoreFormInitialized = false
 
@@ -56,9 +57,6 @@ fun SemisCoreEnrollmentFormScreen(
     LaunchedEffect(program, orgUnit) {
         viewModel.initialize(program, orgUnit)
     }
-    LaunchedEffect(state.completed) {
-        if (state.completed) onSaved()
-    }
 
     // Back walks the steps in reverse, and only leaves the flow from the first one.
     BackHandler(enabled = state.canGoBack) {
@@ -66,6 +64,14 @@ fun SemisCoreEnrollmentFormScreen(
     }
 
     when {
+        state.completed -> {
+            EnrollmentCompletedScreen(
+                identifiers = state.generatedIdentifiers,
+                onRegisterAnother = viewModel::registerAnother,
+                onDone = onSaved,
+            )
+        }
+
         state.errorMessage != null -> {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text(text = state.errorMessage.orEmpty())
@@ -78,7 +84,7 @@ fun SemisCoreEnrollmentFormScreen(
             }
         }
 
-        !state.completed && state.initialized -> {
+        state.initialized -> {
             FormSectionScreen(
                 activity = activity,
                 navController = navController,
