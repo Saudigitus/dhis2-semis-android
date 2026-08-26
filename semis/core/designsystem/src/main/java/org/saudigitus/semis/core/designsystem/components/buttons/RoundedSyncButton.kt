@@ -2,9 +2,7 @@ package org.saudigitus.semis.core.designsystem.components.buttons
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
@@ -17,6 +15,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 
+/**
+ * Main action under the filters, drawn as a wide rounded button.
+ *
+ * Width and outer spacing are left to the caller, because this now shares its line with the action
+ * that clears the filters and the two have to be laid out against each other.
+ */
 @Composable
 fun RoundedSyncButton(
     modifier: Modifier = Modifier,
@@ -27,8 +31,6 @@ fun RoundedSyncButton(
 ) {
     Button(
         modifier = modifier.then(Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp)
             .height(54.dp)
             .shadow(
                 elevation = 2.dp,

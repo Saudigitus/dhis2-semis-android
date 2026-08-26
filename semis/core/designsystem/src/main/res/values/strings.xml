@@ -4,6 +4,9 @@
     <string name="grade">Grade</string>
     <string name="cls">Section/class</string>
     <string name="school">School</string>
+    <string name="filters_download_records">Download records</string>
+    <string name="filters_reset">Reset</string>
+    <string name="filters_reset_description">Reset filters</string>
     <string name="unknown">Unknown</string>
     <string name="calendar">Calendar</string>
     <string name="filters">Filters</string>

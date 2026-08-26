@@ -21,6 +21,7 @@ import org.saudigitus.semis.app.presentation.home.model.restoredSelectedFilters
 import org.saudigitus.semis.app.presentation.home.model.storedFilterSelection
 import org.saudigitus.semis.core.data.model.Module
 import org.saudigitus.semis.core.data.model.OrgUnit
+import org.saudigitus.semis.core.data.model.StoredFilterSelection
 import org.saudigitus.semis.core.data.model.app_config.Registration
 import org.saudigitus.semis.core.data.model.schoolcalendar_config.AcademicYear
 import org.saudigitus.semis.core.data.repository.AppConfigRepository
@@ -288,7 +289,54 @@ class HomeViewModel @Inject constructor(
     fun handleFilterEvent(event: FilterComponentEvent) {
         when (event) {
             is FilterComponentEvent.Sync -> downloadTei()
+            is FilterComponentEvent.ResetFilters -> resetFilters()
             is FilterComponentEvent.FilterValueChange<*> -> handleFilterValueChange(event)
+        }
+    }
+
+    /**
+     * Puts the filters back to how a first opening finds them.
+     *
+     * What was remembered is forgotten as well, otherwise the next opening would put back exactly
+     * what the user has just asked to be rid of. The academic year keeps its configured default,
+     * which is where it starts from anyway.
+     *
+     * Nothing is settled again on the user's behalf here, not even a value that has no
+     * alternative: they asked for a clean sheet and they get one. The next opening resolves it
+     * afresh, as it always does.
+     */
+    private fun resetFilters() {
+        viewModelScope.launch {
+            loadJob?.cancel()
+
+            val current = uiState.value.filterState
+            val cleared = updateFilterDetails(
+                current.copy(
+                    orgUnit = null,
+                    selectedFilters = current.selectedFilters
+                        .filterKeys { it == FilterType.ACADEMIC_YEAR },
+                    // The details are recomputed from the cleared state below, but the count comes
+                    // from the records that were loaded and has to be dropped here.
+                    filterDetailsState = current.filterDetailsState.copy(
+                        grade = null,
+                        section = null,
+                        count = 0,
+                        enable = false,
+                    ),
+                ),
+            )
+
+            filterSelectionRepository.save(uiState.value.program, StoredFilterSelection())
+
+            _uiState.update {
+                it.copy(
+                    isLoading = false,
+                    filterState = cleared,
+                    tei = emptyList(),
+                    errorMessage = null,
+                )
+            }
+            updateToolbarHeader(cleared)
         }
     }
 
