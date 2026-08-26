@@ -97,6 +97,11 @@ fun DropDown(
         if (item != null) {
             onItemClick.invoke(item)
         }
+    } else {
+        // Without this the field goes on showing the last value after the caller has cleared the
+        // selection, since what it displays is only ever written while there is one.
+        selectedItemIndex = -1
+        selectedItem = ""
     }
 
     val paddingValue = if (selectedItemIndex >= 0) {
