@@ -143,19 +143,25 @@ private fun ResetFiltersButton(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
-                modifier = Modifier.size(18.dp),
+                modifier = Modifier.size(16.dp),
                 imageVector = Icons.Rounded.FilterAltOff,
-                contentDescription = stringResource(R.string.filters_reset_description),
+                contentDescription = null,
             )
             Text(
                 text = stringResource(R.string.filters_reset),
-                fontSize = 13.sp,
+                fontSize = 12.sp,
                 maxLines = 1,
             )
         }
     }
 }
 
-/** The clearing action takes a quarter of the line and the download the remaining three. */
-private const val RESET_WEIGHT = 1f
+/**
+ * How the line is divided between the two actions.
+ *
+ * The clearing action takes the smaller share, being the way back rather than the point of the
+ * screen, but enough of it to name what it clears instead of leaving the user to guess from an
+ * icon.
+ */
+private const val RESET_WEIGHT = 2f
 private const val DOWNLOAD_WEIGHT = 3f
