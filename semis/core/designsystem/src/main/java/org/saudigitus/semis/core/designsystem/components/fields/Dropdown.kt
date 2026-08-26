@@ -44,14 +44,15 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toSize
+import kotlin.collections.find
+import kotlin.collections.forEachIndexed
 import org.dhis2.ui.theme.colorPrimary
 import org.saudigitus.semis.core.designsystem.R
 import org.saudigitus.semis.core.designsystem.components.model.DropdownItem
 import org.saudigitus.semis.core.designsystem.components.model.FilterType
+import org.saudigitus.semis.core.designsystem.theme.SemisFieldShape
 import org.saudigitus.semis.core.designsystem.utils.icon
 import org.saudigitus.semis.core.designsystem.utils.placeholder
-import kotlin.collections.find
-import kotlin.collections.forEachIndexed
 
 @Stable
 data class DropdownState(
@@ -128,11 +129,11 @@ fun DropDown(
                 .shadow(
                     elevation = elevation,
                     ambientColor = Color.Black.copy(alpha = 0.1f),
-                    shape = RoundedCornerShape(30.dp),
+                    shape = SemisFieldShape,
                     clip = false,
                 )
-                .background(color = Color.White, shape = RoundedCornerShape(30.dp)),
-            shape = RoundedCornerShape(30.dp),
+                .background(color = Color.White, shape = SemisFieldShape),
+            shape = SemisFieldShape,
             value = selectedItem,
             onValueChange = {
                 selectedItem = it

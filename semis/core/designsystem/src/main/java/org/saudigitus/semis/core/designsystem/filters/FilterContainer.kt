@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.rounded.FilterAltOff
@@ -38,6 +37,7 @@ import org.saudigitus.semis.core.designsystem.R
 import org.saudigitus.semis.core.designsystem.components.fields.DropDown
 import org.saudigitus.semis.core.designsystem.components.fields.OuField
 import org.saudigitus.semis.core.designsystem.components.model.FilterType
+import org.saudigitus.semis.core.designsystem.theme.SemisFieldShape
 
 @Composable
 fun FilterContainer(
@@ -130,8 +130,8 @@ fun FilterContainer(
  * separate them is weight, filled for the action the screen is there for and outlined for the way
  * back.
  *
- * The corner follows the fields of the enrollment form rather than the pill the filters used, so
- * that a form and a filter look like parts of the same app.
+ * The corner is the one every field in SEMIS is drawn with, so that a filter, a form field and
+ * the action that follows them read as parts of the same app.
  */
 @Composable
 private fun FilterActionButton(
@@ -165,7 +165,7 @@ private fun FilterActionButton(
         Button(
             modifier = modifier.height(ACTION_HEIGHT),
             onClick = onClick,
-            shape = FilterActionShape,
+            shape = SemisFieldShape,
             contentPadding = ACTION_PADDING,
             content = content,
         )
@@ -173,7 +173,7 @@ private fun FilterActionButton(
         OutlinedButton(
             modifier = modifier.height(ACTION_HEIGHT),
             onClick = onClick,
-            shape = FilterActionShape,
+            shape = SemisFieldShape,
             contentPadding = ACTION_PADDING,
             colors = ButtonDefaults.outlinedButtonColors(
                 containerColor = Color.Transparent,
@@ -185,8 +185,6 @@ private fun FilterActionButton(
     }
 }
 
-/** The corner of the fields in the enrollment form, kept here so the two trees stay apart. */
-private val FilterActionShape = RoundedCornerShape(12.dp)
 private val ACTION_HEIGHT = 52.dp
 private val ACTION_PADDING = PaddingValues(horizontal = 10.dp)
 
