@@ -3,10 +3,11 @@ package org.saudigitus.semis.attendance.ui.repository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.hisp.dhis.android.core.D2
-import org.hisp.dhis.android.core.event.Event
 import org.hisp.dhis.android.core.event.EventCreateProjection
 import org.hisp.dhis.android.core.event.EventStatus
 import org.saudigitus.semis.attendance.ui.model.AttendanceStatus
+import org.saudigitus.semis.attendance.ui.model.AttendanceStatusCandidate
+import org.saudigitus.semis.attendance.ui.model.chooseAttendanceStatus
 import org.saudigitus.semis.attendance.ui.model.attendanceStatusSummaryValues
 import org.saudigitus.semis.attendance.ui.model.attendanceSummaryCounts
 import org.saudigitus.semis.attendance.ui.model.isPresent
@@ -162,7 +163,7 @@ class AttendanceRepositoryImpl(
         if (eventProgram.isEmpty() || programStage.isEmpty()) return@withContext null
 
         val contextValues = contextValues(program, filterDetailsState)
-        val event = d2.eventModule().events()
+        val candidates = d2.eventModule().events()
             .byOrganisationUnitUid().eq(orgUnit)
             .byProgramUid().eq(eventProgram)
             .byProgramStageUid().eq(programStage)
@@ -170,7 +171,20 @@ class AttendanceRepositoryImpl(
             .byDeleted().isFalse
             .withTrackedEntityDataValues()
             .blockingGet()
-            .firstOrNull { it.matches(contextValues) }
+            .map { event ->
+                AttendanceStatusCandidate(
+                    event = event,
+                    status = event.status(),
+                    lastUpdated = event.lastUpdated()?.time ?: 0L,
+                    contextValues = event.trackedEntityDataValues().orEmpty().mapNotNull {
+                        val dataElement = it.dataElement() ?: return@mapNotNull null
+                        val value = it.value() ?: return@mapNotNull null
+                        dataElement to value
+                    },
+                )
+            }
+
+        val event = chooseAttendanceStatus(candidates, contextValues)?.event
             ?: return@withContext null
 
         AttendanceStatus(
@@ -228,13 +242,6 @@ class AttendanceRepositoryImpl(
             counts = summaryCounts,
         )
     }
-
-    private fun Event.matches(contextValues: List<Pair<String, String>>) =
-        contextValues.all { (dataElement, value) ->
-            trackedEntityDataValues().orEmpty().any {
-                it.dataElement() == dataElement && it.value() == value
-            }
-        }
 
     private fun contextValue(dataElement: String?, value: String?): Pair<String, String>? =
         if (dataElement.isNullOrBlank() || value.isNullOrBlank()) {
