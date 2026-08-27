@@ -11,10 +11,16 @@ interface AttendanceEventRepository {
 
     val attendanceButtonStateFlow: StateFlow<AttendanceButtonState>
 
+    /**
+     * @param contextValues the configured values saying which class the records belong to, written
+     * on each learner event where the stage holds them. What the app counts on the device does not
+     * depend on them; they are stored so that a report built elsewhere can group by them.
+     */
     suspend fun saveAttendance(
         program: String,
         programStage: String,
-        attendanceEvents: List<AttendanceEventWithDecorator>
+        attendanceEvents: List<AttendanceEventWithDecorator>,
+        contextValues: List<Pair<String, String>> = emptyList(),
     )
 
     suspend fun saveAttendanceStatus(

@@ -395,7 +395,8 @@ class FormRepositoryImpl @Inject constructor(
     override suspend fun saveAttendance(
         program: String,
         programStage: String,
-        attendanceEvents: List<AttendanceEventWithDecorator>
+        attendanceEvents: List<AttendanceEventWithDecorator>,
+        contextValues: List<Pair<String, String>>,
     ) = withContext(Dispatchers.IO) {
         // A learner dropped from the form no longer holds a status, so the record loaded
         // for them has to go with it rather than linger as a stale event.
@@ -423,7 +424,8 @@ class FormRepositoryImpl @Inject constructor(
                         attendanceEvent.event?.reasonOfAbsence.orEmpty()
                     ),
                 ),
-                eventDate = attendanceEvent.event?.date
+                eventDate = attendanceEvent.event?.date,
+                contextValues = contextValues,
             )
         }
     }

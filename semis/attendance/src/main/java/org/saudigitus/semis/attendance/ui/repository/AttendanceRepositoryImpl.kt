@@ -181,6 +181,11 @@ class AttendanceRepositoryImpl(
         )
     }
 
+    override suspend fun classContextValues(
+        program: String,
+        filterDetailsState: FilterDetailsState,
+    ): List<Pair<String, String>> = contextValues(program, filterDetailsState)
+
     private suspend fun contextValues(
         program: String,
         filterDetailsState: FilterDetailsState,
