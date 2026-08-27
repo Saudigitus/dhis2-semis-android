@@ -91,6 +91,12 @@ class HomeViewModel @Inject constructor(
      */
     private var initialized = false
 
+    /**
+     * Whether what was remembered has been read back. Until it has, the selection on screen is
+     * not the user's and must not replace what is stored.
+     */
+    private var selectionSettled = false
+
     fun initialize(program: String, programName: String? = null) {
         if (initialized) return
         initialized = true
@@ -141,6 +147,7 @@ class HomeViewModel @Inject constructor(
     private suspend fun settleInitialSelection(program: String, academicYearOptions: List<DropdownItem>) {
         val available = orgUnitRepository.captureOrgUnits(program)
         val stored = filterSelectionRepository.read(program)
+        selectionSettled = true
 
         val orgUnit = restoredOrgUnit(stored, available) ?: onlyOrgUnit(available)
 
@@ -176,8 +183,16 @@ class HomeViewModel @Inject constructor(
         loadJob = viewModelScope.launch { loadTeis() }
     }
 
-    /** Records the class the user is on, so that the next opening can start from it. */
+    /**
+     * Records the class the user is on, so that the next opening can start from it.
+     *
+     * Nothing is recorded before the remembered selection has been read back. The filter
+     * component announces the values it starts with, and those announcements arrive while the
+     * screen is still empty: recording them would overwrite what the user chose last time with
+     * a blank school and no filters, and the reading that follows would then find nothing.
+     */
     private suspend fun rememberSelection(filterState: FilterComponentState) {
+        if (!selectionSettled) return
         val program = uiState.value.program.takeIf { it.isNotBlank() } ?: return
 
         filterSelectionRepository.save(
