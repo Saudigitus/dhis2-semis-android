@@ -7,6 +7,7 @@ import org.hisp.dhis.android.core.D2
 import org.hisp.dhis.android.core.event.EventCreateProjection
 import org.hisp.dhis.android.core.event.EventStatus
 import org.saudigitus.semis.core.data.model.SearchTeiModel
+import org.saudigitus.semis.core.data.model.contextValuesHeldBy
 import org.saudigitus.semis.core.utils.Constants
 import org.saudigitus.semis.core.utils.DateHelper
 import timber.log.Timber
@@ -140,7 +141,8 @@ class EventRepositoryImpl @Inject constructor(
         programStage: String,
         tei: SearchTeiModel?,
         data: Map<String, Pair<String, String>>,
-        eventDate: String?
+        eventDate: String?,
+        contextValues: List<Pair<String, String>>
     ) {
         withContext(Dispatchers.IO) {
             val date = eventDate ?: DateHelper.formatDate(System.currentTimeMillis())!!
@@ -171,6 +173,17 @@ class EventRepositoryImpl @Inject constructor(
                         .blockingSet(secondaryDataValue.second.takeIf { it.isNotEmpty() })
                 }
 
+                // The class context is rewritten on every save, not only on the first, so that a
+                // record edited after the class was corrected does not keep the old one.
+                contextValuesHeldBy(
+                    stageDataElements = stageDataElements(programStage),
+                    contextValues = contextValues,
+                ).forEach { (dataElement, value) ->
+                    d2.trackedEntityModule().trackedEntityDataValues()
+                        .value(uid, dataElement)
+                        .blockingSet(value)
+                }
+
                 val repository = d2.eventModule().events().uid(uid)
                 repository.setEventDate(Date.valueOf(date))
                 repository.setStatus(EventStatus.COMPLETED)
@@ -179,6 +192,13 @@ class EventRepositoryImpl @Inject constructor(
             }
         }
     }
+
+    /** The data elements a program stage is configured with. */
+    private fun stageDataElements(programStage: String): List<String> =
+        d2.programModule().programStageDataElements()
+            .byProgramStage().eq(programStage)
+            .blockingGet()
+            .mapNotNull { it.dataElement()?.uid() }
 
     override suspend fun saveEvent(
         event: String?,
