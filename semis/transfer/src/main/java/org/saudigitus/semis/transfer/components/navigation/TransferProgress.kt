@@ -115,7 +115,7 @@ internal fun TransferProgress(step: TransferStep) {
 }
 
 private fun TransferStep.shortLabel(): Int = when (this) {
-    TransferStep.SELECT_LEARNERS -> R.string.step_learners_short
+    TransferStep.ENTITIES -> R.string.step_entities_short
     TransferStep.DESTINATION -> R.string.step_destination_short
     TransferStep.REVIEW -> R.string.step_review_short
 }

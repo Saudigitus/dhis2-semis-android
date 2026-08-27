@@ -11,13 +11,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.flow.collectLatest
-import org.saudigitus.semis.transfer.event.TransferUiEvent
-import org.saudigitus.semis.transfer.model.TransferMessageType
-import org.saudigitus.semis.transfer.model.TransferStep
-import org.saudigitus.semis.core.form.data.model.FormType
 import org.saudigitus.semis.core.form.ui.FormViewModel
 import org.saudigitus.semis.core.form.ui.state.FormBuilderState
-import org.saudigitus.semis.core.form.ui.state.FormEvent
+import org.saudigitus.semis.transfer.event.TransferUiEvent
+import org.saudigitus.semis.transfer.model.TransferMessageType
 
 @Composable
 fun TransferUi(
@@ -70,12 +67,16 @@ fun TransferUi(
                     lockedDataElements = setOf(state.statusDataElement)
                         .filter(String::isNotBlank)
                         .toSet(),
-                )
+                ),
             )
             formViewModel.enableForm()
         }
     }
 
+    /**
+     * The pending status is never shown, so it is kept applied rather than left to the
+     * form: the request has to reach the server carrying it.
+     */
     LaunchedEffect(
         formState.fields,
         formState.isLoading,
@@ -97,26 +98,10 @@ fun TransferUi(
 
     LaunchedEffect(
         formState.fields,
-        state.originSchoolDataElement,
-        state.sourceOrgUnit?.uid,
+        formState.isLoading,
+        state.destinationSchoolDataElement,
+        state.statusDataElement,
     ) {
-        val sourceUid = state.sourceOrgUnit?.uid.orEmpty()
-        val originField = formState.fields.find {
-            it.dataElementUid == state.originSchoolDataElement
-        }
-        if (originField != null && originField.value != sourceUid) {
-            formViewModel.handleUiEvent(
-                FormEvent.UpdateField(
-                    formType = FormType.DEFAULT,
-                    tei = "",
-                    dataElementUid = originField.dataElementUid,
-                    value = sourceUid,
-                )
-            )
-        }
-    }
-
-    LaunchedEffect(formState.fields, formState.isLoading, state.destinationSchoolDataElement) {
         val destinationField = formState.fields.find {
             it.dataElementUid == state.destinationSchoolDataElement
         }
@@ -125,20 +110,20 @@ fun TransferUi(
                 it.rendered &&
                     it.enabled &&
                     it.mandatory &&
-                    it.dataElementUid != state.originSchoolDataElement
+                    it.dataElementUid != state.statusDataElement
             }
             .all { !it.value.isNullOrBlank() }
-        viewModel.updateTransferForm(
+        viewModel.updateRequestForm(
             destinationOrgUnit = destinationField?.selectedOrgUnit,
             isValid = isValid,
         )
     }
 
     fun handleBack() {
-        if (state.step == TransferStep.SELECT_LEARNERS) {
-            navigateBack()
+        if (state.isRequesting) {
+            viewModel.handleUiEvent(TransferUiEvent.Back)
         } else {
-            viewModel.handleEvent(TransferUiEvent.Back)
+            navigateBack()
         }
     }
 
@@ -149,7 +134,7 @@ fun TransferUi(
         formState = formState,
         snackbarHostState = snackbarHostState,
         snackbarMessageType = snackbarMessageType,
-        onEvent = viewModel::handleEvent,
+        onEvent = viewModel::handleUiEvent,
         onFormEvent = formViewModel::handleUiEvent,
         navigateBack = ::handleBack,
     )

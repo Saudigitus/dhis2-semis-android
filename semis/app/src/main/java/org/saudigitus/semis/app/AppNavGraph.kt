@@ -178,7 +178,7 @@ fun AppNavGraph(
                     transferViewModel.initialize(
                         program = homeState.program,
                         sourceOrgUnit = sourceOrgUnit,
-                        learners = homeState.tei,
+                        records = homeState.tei,
                         originFilterDetails = homeState.filterState.filterDetailsState,
                     )
                 }

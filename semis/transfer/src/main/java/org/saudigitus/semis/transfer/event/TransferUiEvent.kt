@@ -1,28 +1,34 @@
 package org.saudigitus.semis.transfer.event
 
 import org.saudigitus.semis.core.data.model.transfer.TransferDecision
+import org.saudigitus.semis.transfer.model.TransferStatusFilter
 import org.saudigitus.semis.transfer.model.TransferTab
 
 sealed interface TransferUiEvent {
     data class SelectTab(val tab: TransferTab) : TransferUiEvent
-    data class ToggleLearner(val teiUid: String) : TransferUiEvent
 
-    /** Approves or rejects a single incoming request. */
-    data class DecideIncoming(
+    /** Selecting the chip already applied clears the filter and shows every request. */
+    data class SelectStatusFilter(val filter: TransferStatusFilter) : TransferUiEvent
+
+    data object RefreshIncoming : TransferUiEvent
+
+    /** Asks for the decision to be confirmed rather than applying it. */
+    data class AskDecision(
         val eventUid: String,
         val decision: TransferDecision,
     ) : TransferUiEvent
 
-    /** Adds or removes an incoming request from the bulk selection. */
-    data class ToggleIncomingSelection(val eventUid: String) : TransferUiEvent
+    data object ConfirmDecision : TransferUiEvent
 
-    /** Applies [decision] to every selected incoming request. */
-    data class DecideSelectedIncoming(val decision: TransferDecision) : TransferUiEvent
+    data object DismissDecision : TransferUiEvent
 
-    /** Approves every incoming request currently listed. */
-    data object ApproveAllIncoming : TransferUiEvent
+    data object StartRequest : TransferUiEvent
 
-    data object ClearIncomingSelection : TransferUiEvent
+    data object CancelRequest : TransferUiEvent
+
+    data class ToggleRecord(val teiUid: String) : TransferUiEvent
+
     data object Continue : TransferUiEvent
+
     data object Back : TransferUiEvent
 }

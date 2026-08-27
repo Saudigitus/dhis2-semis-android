@@ -14,19 +14,29 @@ import kotlinx.coroutines.launch
 import org.dhis2.commons.resources.ResourceManager
 import org.saudigitus.semis.core.data.model.OrgUnit
 import org.saudigitus.semis.core.data.model.SearchTeiModel
-import org.saudigitus.semis.core.data.model.transfer.TeiTransferLearner
-import org.saudigitus.semis.core.data.model.transfer.TransferDecision
+import org.saudigitus.semis.core.data.model.transfer.TeiTransferRecord
 import org.saudigitus.semis.core.data.model.transfer.TeiTransferRequest
+import org.saudigitus.semis.core.data.model.transfer.TransferDecision
 import org.saudigitus.semis.core.data.repository.TeiTransferRepository
 import org.saudigitus.semis.core.designsystem.components.FilterDetailsState
 import org.saudigitus.semis.transfer.event.TransferUiEvent
+import org.saudigitus.semis.transfer.model.PendingTransferDecision
 import org.saudigitus.semis.transfer.model.TransferMessage
 import org.saudigitus.semis.transfer.model.TransferMessageType
+import org.saudigitus.semis.transfer.model.TransferStatusFilter
 import org.saudigitus.semis.transfer.model.TransferStep
 import org.saudigitus.semis.transfer.model.TransferTab
 import org.saudigitus.semis.transfer.state.TransferUiState
+import java.util.Date
 import javax.inject.Inject
 
+/**
+ * Drives the two transfer lists and the request form.
+ *
+ * Raising a request moves nothing: the learner keeps belonging to this school until the
+ * destination approves. Deciding is the only operation that hands a learner over, and it
+ * is only ever offered on the incoming tab.
+ */
 @HiltViewModel
 class TransferViewModel @Inject constructor(
     private val repository: TeiTransferRepository,
@@ -50,7 +60,7 @@ class TransferViewModel @Inject constructor(
     fun initialize(
         program: String,
         sourceOrgUnit: OrgUnit,
-        learners: List<SearchTeiModel>,
+        records: List<SearchTeiModel>,
         originFilterDetails: FilterDetailsState,
     ) {
         if (initialized) return
@@ -60,44 +70,54 @@ class TransferViewModel @Inject constructor(
             it.copy(
                 program = program,
                 sourceOrgUnit = sourceOrgUnit,
-                learners = learners,
-                originFilterDetails = originFilterDetails.copy(
-                    enable = false,
-                    enableCounter = false,
-                ),
+                records = records,
+                originFilterDetails = originFilterDetails.copy(enable = false),
                 isLoadingMetadata = true,
             )
         }
         loadTransferMetadata(program)
-        loadIncomingTransfers()
         loadOutgoingTransfers()
+        refreshIncomingTransfers()
     }
 
-    fun handleEvent(event: TransferUiEvent) {
+    fun handleUiEvent(event: TransferUiEvent) {
         when (event) {
             is TransferUiEvent.SelectTab -> selectTab(event.tab)
-            is TransferUiEvent.ToggleLearner -> toggleLearner(event.teiUid)
-            is TransferUiEvent.DecideIncoming -> decideIncoming(event.eventUid, event.decision)
-            is TransferUiEvent.ToggleIncomingSelection -> toggleIncomingSelection(event.eventUid)
-            is TransferUiEvent.DecideSelectedIncoming -> decideSelectedIncoming(event.decision)
-            TransferUiEvent.ApproveAllIncoming -> approveAllIncoming()
-            TransferUiEvent.ClearIncomingSelection -> clearIncomingSelection()
+            is TransferUiEvent.SelectStatusFilter -> selectStatusFilter(event.filter)
+            TransferUiEvent.RefreshIncoming -> refreshIncomingTransfers()
+            is TransferUiEvent.AskDecision -> askDecision(event.eventUid, event.decision)
+            TransferUiEvent.ConfirmDecision -> confirmDecision()
+            TransferUiEvent.DismissDecision -> dismissDecision()
+            TransferUiEvent.StartRequest -> startRequest()
+            TransferUiEvent.CancelRequest -> cancelRequest()
+            is TransferUiEvent.ToggleRecord -> toggleRecord(event.teiUid)
             TransferUiEvent.Continue -> continueFlow()
             TransferUiEvent.Back -> previousStep()
         }
     }
 
-    fun updateTransferForm(destinationOrgUnit: OrgUnit?, isValid: Boolean) {
+    /**
+     * The destination step is the configured transfer form, so the selected school and
+     * the form validity are reported back from the composable that renders it.
+     */
+    fun updateRequestForm(destinationOrgUnit: OrgUnit?, isValid: Boolean) {
         _uiState.update {
             it.copy(
                 destinationOrgUnit = destinationOrgUnit,
-                isTransferFormValid = isValid,
+                isRequestFormValid = isValid,
             )
         }
     }
 
     private fun selectTab(tab: TransferTab) {
-        _uiState.update { it.copy(selectedTab = tab) }
+        _uiState.update { it.copy(selectedTab = tab, statusFilter = null) }
+        if (tab == TransferTab.INCOMING) refreshIncomingTransfers()
+    }
+
+    private fun selectStatusFilter(filter: TransferStatusFilter) {
+        _uiState.update {
+            it.copy(statusFilter = filter.takeIf { chosen -> chosen != it.statusFilter })
+        }
     }
 
     private fun loadTransferMetadata(program: String) {
@@ -108,7 +128,6 @@ class TransferViewModel @Inject constructor(
                         it.copy(
                             isLoadingMetadata = false,
                             transferProgramStage = metadata.programStage,
-                            originSchoolDataElement = metadata.originSchoolDataElement,
                             destinationSchoolDataElement = metadata.destinationSchoolDataElement,
                             statusDataElement = metadata.statusDataElement,
                             pendingStatusCode = metadata.pendingStatusCode,
@@ -116,10 +135,26 @@ class TransferViewModel @Inject constructor(
                     }
                 }.onFailure { error ->
                     _uiState.update { it.copy(isLoadingMetadata = false) }
-                    emitError(
-                        error.message
-                            ?: resourceManager.getString(R.string.transfer_form_load_failed),
-                    )
+                    emitError(error, R.string.transfer_form_load_failed)
+                }
+        }
+    }
+
+    private fun loadOutgoingTransfers() {
+        val current = _uiState.value
+        val orgUnit = current.sourceOrgUnit ?: return
+        if (current.isLoadingOutgoing) return
+
+        _uiState.update { it.copy(isLoadingOutgoing = true) }
+        viewModelScope.launch {
+            runCatching { repository.getOutgoingTransfers(current.program, orgUnit.uid) }
+                .onSuccess { outgoing ->
+                    _uiState.update {
+                        it.copy(isLoadingOutgoing = false, outgoingTransfers = outgoing)
+                    }
+                }.onFailure { error ->
+                    _uiState.update { it.copy(isLoadingOutgoing = false) }
+                    emitError(error, R.string.outgoing_transfer_load_failed)
                 }
         }
     }
@@ -138,126 +173,123 @@ class TransferViewModel @Inject constructor(
                     }
                 }.onFailure { error ->
                     _uiState.update { it.copy(isLoadingIncoming = false) }
-                    emitError(
-                        error.message
-                            ?: resourceManager.getString(R.string.incoming_transfer_load_failed),
-                    )
+                    emitError(error, R.string.incoming_transfer_load_failed)
                 }
         }
-    }
-
-    private fun loadOutgoingTransfers() {
-        val current = _uiState.value
-        val orgUnit = current.sourceOrgUnit ?: return
-        if (current.isLoadingOutgoingTransfers) return
-
-        _uiState.update { it.copy(isLoadingOutgoingTransfers = true) }
-        viewModelScope.launch {
-            runCatching {
-                repository.getOutgoingTransfers(current.program, orgUnit.uid)
-            }.onSuccess { outgoing ->
-                _uiState.update {
-                    it.copy(isLoadingOutgoingTransfers = false, outgoingTransfers = outgoing)
-                }
-            }.onFailure { error ->
-                _uiState.update { it.copy(isLoadingOutgoingTransfers = false) }
-                emitError(
-                    error.message
-                        ?: resourceManager.getString(R.string.pending_outgoing_load_failed),
-                )
-            }
-        }
-    }
-
-    private fun toggleIncomingSelection(eventUid: String) {
-        _uiState.update { current ->
-            val selected = current.selectedIncomingEventUids.toMutableSet()
-            if (!selected.add(eventUid)) selected.remove(eventUid)
-            current.copy(selectedIncomingEventUids = selected)
-        }
-    }
-
-    private fun clearIncomingSelection() {
-        _uiState.update { it.copy(selectedIncomingEventUids = emptySet()) }
-    }
-
-    private fun approveAllIncoming() {
-        decideIncoming(
-            eventUids = _uiState.value.incomingTransfers.map { it.eventUid },
-            decision = TransferDecision.APPROVE,
-        )
-    }
-
-    private fun decideSelectedIncoming(decision: TransferDecision) {
-        decideIncoming(
-            eventUids = _uiState.value.selectedIncomingTransfers.map { it.eventUid },
-            decision = decision,
-        )
-    }
-
-    private fun decideIncoming(eventUid: String, decision: TransferDecision) {
-        decideIncoming(eventUids = listOf(eventUid), decision = decision)
     }
 
     /**
-     * Applies [decision] to each request in turn so one failure leaves the others decided,
-     * and reports how many went through.
+     * A request addressed to this school lives in the school that raised it, so it is
+     * outside what this device downloads for itself. It is fetched first and read from
+     * the local store afterwards, which keeps the list usable once it has been seen.
      */
-    private fun decideIncoming(eventUids: List<String>, decision: TransferDecision) {
+    private fun refreshIncomingTransfers() {
         val current = _uiState.value
         val orgUnit = current.sourceOrgUnit ?: return
-        val pending = eventUids.filterNot { it in current.processingEventUids }
-        if (pending.isEmpty()) return
+        if (current.isDownloadingIncoming) return
 
-        _uiState.update { it.copy(processingEventUids = it.processingEventUids + pending) }
+        _uiState.update { it.copy(isDownloadingIncoming = true) }
+        viewModelScope.launch {
+            runCatching {
+                repository.downloadIncomingTransfers(current.program, orgUnit.uid)
+            }.onFailure { error ->
+                emitError(error, R.string.incoming_transfer_load_failed)
+            }
+            _uiState.update { it.copy(isDownloadingIncoming = false) }
+            loadIncomingTransfers()
+        }
+    }
+
+    /**
+     * Holds the decision until it is confirmed. Neither approving nor rejecting can be
+     * undone from this screen, so neither is applied on a single tap.
+     */
+    private fun askDecision(eventUid: String, decision: TransferDecision) {
+        val transfer = _uiState.value.incomingTransfers
+            .firstOrNull { it.eventUid == eventUid }
+            ?: return
+
+        _uiState.update {
+            it.copy(
+                pendingDecision = PendingTransferDecision(
+                    eventUid = eventUid,
+                    recordName = transfer.recordName,
+                    decision = decision,
+                ),
+            )
+        }
+    }
+
+    private fun dismissDecision() {
+        _uiState.update { it.copy(pendingDecision = null) }
+    }
+
+    private fun confirmDecision() {
+        val pending = _uiState.value.pendingDecision ?: return
+        _uiState.update { it.copy(pendingDecision = null) }
+        decide(pending.eventUid, pending.decision)
+    }
+
+    private fun decide(eventUid: String, decision: TransferDecision) {
+        val current = _uiState.value
+        val orgUnit = current.sourceOrgUnit ?: return
+        if (eventUid in current.processingEventUids) return
+
+        _uiState.update { it.copy(processingEventUids = it.processingEventUids + eventUid) }
 
         viewModelScope.launch {
-            val decided = mutableListOf<String>()
-            val failures = mutableListOf<String>()
-
-            pending.forEach { eventUid ->
-                runCatching {
-                    repository.decideIncomingTransfer(
-                        program = current.program,
-                        currentOrgUnit = orgUnit.uid,
-                        eventUid = eventUid,
-                        decision = decision,
-                    )
-                }.onSuccess {
-                    decided += eventUid
-                }.onFailure { error ->
-                    failures += error.message
-                        ?: resourceManager.getString(decision.failureMessage())
+            runCatching {
+                repository.decideIncomingTransfer(
+                    program = current.program,
+                    currentOrgUnit = orgUnit.uid,
+                    eventUid = eventUid,
+                    decision = decision,
+                )
+            }.onSuccess {
+                _uiState.update {
+                    it.copy(processingEventUids = it.processingEventUids - eventUid)
                 }
-            }
-
-            _uiState.update { state ->
-                state.copy(
-                    processingEventUids = state.processingEventUids - pending.toSet(),
-                    selectedIncomingEventUids = state.selectedIncomingEventUids - decided.toSet(),
-                    incomingTransfers = state.incomingTransfers.filterNot {
-                        it.eventUid in decided
-                    },
-                )
-            }
-
-            if (decided.isNotEmpty()) {
-                emitSuccess(
-                    resourceManager.getString(decision.successMessage(), decided.size),
-                )
+                emitSuccess(resourceManager.getString(decision.successMessage()))
                 _syncEvent.emit(Unit)
-            }
-            if (failures.isNotEmpty()) {
-                emitError(failures.distinct().joinToString(separator = "\n"))
+                loadIncomingTransfers()
+            }.onFailure { error ->
+                _uiState.update {
+                    it.copy(processingEventUids = it.processingEventUids - eventUid)
+                }
+                emitError(error, decision.failureMessage())
             }
         }
     }
 
-    private fun toggleLearner(teiUid: String) {
+    private fun startRequest() {
+        _uiState.update {
+            it.copy(
+                requestStep = TransferStep.ENTITIES,
+                selectedRecordUids = emptySet(),
+                destinationOrgUnit = null,
+                isRequestFormValid = false,
+                effectiveDate = Date(),
+            )
+        }
+    }
+
+    private fun cancelRequest() {
+        _uiState.update {
+            it.copy(
+                requestStep = null,
+                selectedRecordUids = emptySet(),
+                destinationOrgUnit = null,
+                isRequestFormValid = false,
+            )
+        }
+        viewModelScope.launch { _formResetEvent.emit(Unit) }
+    }
+
+    private fun toggleRecord(teiUid: String) {
         _uiState.update { current ->
-            val selected = current.selectedLearnerUids.toMutableSet()
+            val selected = current.selectedRecordUids.toMutableSet()
             if (!selected.add(teiUid)) selected.remove(teiUid)
-            current.copy(selectedLearnerUids = selected)
+            current.copy(selectedRecordUids = selected)
         }
     }
 
@@ -265,71 +297,60 @@ class TransferViewModel @Inject constructor(
         val current = _uiState.value
         if (!current.canContinue) return
 
-        when (current.step) {
-            TransferStep.SELECT_LEARNERS -> _uiState.update {
-                it.copy(step = TransferStep.DESTINATION)
+        when (current.requestStep) {
+            TransferStep.ENTITIES -> _uiState.update {
+                it.copy(requestStep = TransferStep.DESTINATION)
             }
+
             TransferStep.DESTINATION -> _uiState.update {
-                it.copy(step = TransferStep.REVIEW)
+                it.copy(requestStep = TransferStep.REVIEW)
             }
-            TransferStep.REVIEW -> submitTransfer()
+
+            TransferStep.REVIEW -> submitRequest()
+            null -> Unit
         }
     }
 
+    /** Backing out of the first step closes the request and returns to the lists. */
     private fun previousStep() {
-        _uiState.update { current ->
-            current.copy(
-                step = when (current.step) {
-                    TransferStep.SELECT_LEARNERS -> TransferStep.SELECT_LEARNERS
-                    TransferStep.DESTINATION -> TransferStep.SELECT_LEARNERS
-                    TransferStep.REVIEW -> TransferStep.DESTINATION
-                }
-            )
+        val current = _uiState.value
+        when (current.requestStep) {
+            TransferStep.ENTITIES, null -> cancelRequest()
+            TransferStep.DESTINATION -> _uiState.update {
+                it.copy(requestStep = TransferStep.ENTITIES)
+            }
+
+            TransferStep.REVIEW -> _uiState.update {
+                it.copy(requestStep = TransferStep.DESTINATION)
+            }
         }
     }
 
-    private fun submitTransfer() {
+    private fun submitRequest() {
         val current = _uiState.value
         val destination = current.destinationOrgUnit ?: return
-        val selectedLearners = current.learners
-            .filter { it.tei.uid() in current.selectedLearnerUids }
-            .mapNotNull { learner ->
-                learner.selectedEnrollment?.uid()?.let { enrollmentUid ->
-                    TeiTransferLearner(
-                        teiUid = learner.tei.uid(),
-                        enrollmentUid = enrollmentUid,
-                    )
-                }
+        val records = current.selectedRecords.mapNotNull { record ->
+            record.selectedEnrollment?.uid()?.let { enrollmentUid ->
+                TeiTransferRecord(
+                    teiUid = record.tei.uid(),
+                    enrollmentUid = enrollmentUid,
+                )
             }
+        }
 
         viewModelScope.launch {
             _uiState.update { it.copy(isSubmitting = true) }
             runCatching {
-                repository.transfer(
+                repository.requestTransfer(
                     TeiTransferRequest(
                         program = current.program,
                         destinationOrgUnit = destination.uid,
-                        learners = selectedLearners,
+                        records = records,
                         effectiveDate = current.effectiveDate,
-                    )
+                    ),
                 )
             }.onSuccess { result ->
-                _uiState.update { state ->
-                    state.copy(
-                        isSubmitting = false,
-                        selectedTab = TransferTab.TRANSFERS,
-                        selectedLearnerUids = emptySet(),
-                        learners = state.learners.filterNot {
-                            it.tei.uid() in result.transferredTeiUids
-                        },
-                        destinationOrgUnit = null,
-                        isTransferFormValid = false,
-                        transferredCount = state.transferredCount +
-                            result.transferredTeiUids.size,
-                        step = TransferStep.SELECT_LEARNERS,
-                    )
-                }
-                _formResetEvent.emit(Unit)
+                closeRequest()
                 loadOutgoingTransfers()
                 if (result.transferredTeiUids.isNotEmpty()) {
                     emitSuccess(
@@ -346,22 +367,24 @@ class TransferViewModel @Inject constructor(
                     )
                 }
             }.onFailure { error ->
-                _uiState.update {
-                    it.copy(
-                        isSubmitting = false,
-                        selectedTab = TransferTab.TRANSFERS,
-                        selectedLearnerUids = emptySet(),
-                        destinationOrgUnit = null,
-                        isTransferFormValid = false,
-                        step = TransferStep.SELECT_LEARNERS,
-                    )
-                }
-                _formResetEvent.emit(Unit)
-                emitError(
-                    error.message ?: resourceManager.getString(R.string.transfer_failed),
-                )
+                closeRequest()
+                emitError(error, R.string.transfer_failed)
             }
         }
+    }
+
+    private suspend fun closeRequest() {
+        _uiState.update {
+            it.copy(
+                isSubmitting = false,
+                requestStep = null,
+                selectedTab = TransferTab.OUTGOING,
+                selectedRecordUids = emptySet(),
+                destinationOrgUnit = null,
+                isRequestFormValid = false,
+            )
+        }
+        _formResetEvent.emit(Unit)
     }
 
     private suspend fun emitSuccess(message: String) {
@@ -369,13 +392,18 @@ class TransferViewModel @Inject constructor(
     }
 
     private suspend fun emitError(message: String) {
+        _uiState.update { it.copy(errorMessage = message) }
         _messageEvent.emit(TransferMessage(message, TransferMessageType.ERROR))
+    }
+
+    private suspend fun emitError(error: Throwable, fallback: Int) {
+        emitError(error.message ?: resourceManager.getString(fallback))
     }
 }
 
 private fun TransferDecision.successMessage() = when (this) {
-    TransferDecision.APPROVE -> R.string.incoming_transfers_approved
-    TransferDecision.REJECT -> R.string.incoming_transfers_rejected
+    TransferDecision.APPROVE -> R.string.incoming_transfer_approved
+    TransferDecision.REJECT -> R.string.incoming_transfer_rejected
 }
 
 private fun TransferDecision.failureMessage() = when (this) {

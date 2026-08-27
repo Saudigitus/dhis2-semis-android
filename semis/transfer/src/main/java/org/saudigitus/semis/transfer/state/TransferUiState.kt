@@ -1,19 +1,23 @@
 package org.saudigitus.semis.transfer.state
 
+import androidx.compose.runtime.Immutable
 import org.saudigitus.semis.core.data.model.OrgUnit
 import org.saudigitus.semis.core.data.model.SearchTeiModel
-import org.saudigitus.semis.core.data.model.transfer.IncomingTeiTransfer
-import org.saudigitus.semis.core.data.model.transfer.OutgoingTeiTransfer
+import org.saudigitus.semis.core.data.model.transfer.TeiTransfer
 import org.saudigitus.semis.core.designsystem.components.FilterDetailsState
+import org.saudigitus.semis.transfer.model.PendingTransferDecision
+import org.saudigitus.semis.transfer.model.TransferStatusFilter
 import org.saudigitus.semis.transfer.model.TransferStep
 import org.saudigitus.semis.transfer.model.TransferTab
+import org.saudigitus.semis.transfer.model.filterBy
 import java.util.Date
 
+@Immutable
 data class TransferUiState(
-    val isLoading: Boolean = false,
     val isLoadingMetadata: Boolean = false,
+    val isLoadingOutgoing: Boolean = false,
     val isLoadingIncoming: Boolean = false,
-    val isLoadingOutgoingTransfers: Boolean = false,
+    val isDownloadingIncoming: Boolean = false,
     val isSubmitting: Boolean = false,
     val program: String = "",
     val sourceOrgUnit: OrgUnit? = null,
@@ -22,76 +26,77 @@ data class TransferUiState(
         enableCounter = false,
     ),
     val transferProgramStage: String = "",
-    val originSchoolDataElement: String = "",
     val destinationSchoolDataElement: String = "",
     val statusDataElement: String = "",
     val pendingStatusCode: String = "",
-    val destinationOrgUnit: OrgUnit? = null,
-    val isTransferFormValid: Boolean = false,
-    val learners: List<SearchTeiModel> = emptyList(),
-    val incomingTransfers: List<IncomingTeiTransfer> = emptyList(),
-    val outgoingTransfers: List<OutgoingTeiTransfer> = emptyList(),
+    val records: List<SearchTeiModel> = emptyList(),
+    val outgoingTransfers: List<TeiTransfer> = emptyList(),
+    val incomingTransfers: List<TeiTransfer> = emptyList(),
+    val statusFilter: TransferStatusFilter? = null,
+    val selectedTab: TransferTab = TransferTab.OUTGOING,
     val processingEventUids: Set<String> = emptySet(),
-    val selectedIncomingEventUids: Set<String> = emptySet(),
-    val selectedTab: TransferTab = TransferTab.TRANSFERS,
-    val selectedLearnerUids: Set<String> = emptySet(),
+    val pendingDecision: PendingTransferDecision? = null,
+    val requestStep: TransferStep? = null,
+    val selectedRecordUids: Set<String> = emptySet(),
+    val destinationOrgUnit: OrgUnit? = null,
+    val isRequestFormValid: Boolean = false,
     val effectiveDate: Date = Date(),
-    val step: TransferStep = TransferStep.SELECT_LEARNERS,
-    val transferredCount: Int = 0,
+    val errorMessage: String? = null,
 ) {
-    val canContinue: Boolean
-        get() = when (step) {
-            TransferStep.SELECT_LEARNERS -> selectedLearnerUids.isNotEmpty() &&
-                !isLoadingMetadata &&
-                hasTransferMetadata
-            TransferStep.DESTINATION -> !isLoadingMetadata &&
-                isTransferFormValid
-            TransferStep.REVIEW -> !isSubmitting && destinationOrgUnit != null
+
+    /** The request form takes over the screen while a step is active. */
+    val isRequesting: Boolean get() = requestStep != null
+
+    /**
+     * What the lists are being read for, shown on the second row of the bar. Grade and
+     * class are left out: a transfer moves the learner out of the school altogether, so
+     * neither narrows the lists nor changes what a school decides.
+     */
+    val schoolContext: String
+        get() = listOfNotNull(
+            sourceOrgUnit?.displayName,
+            originFilterDetails.academicYear,
+        ).filter { it.isNotBlank() }.joinToString(separator = " · ")
+
+    /** The list behind the selected tab, before the status chips narrow it. */
+    val tabTransfers: List<TeiTransfer>
+        get() = when (selectedTab) {
+            TransferTab.OUTGOING -> outgoingTransfers
+            TransferTab.INCOMING -> incomingTransfers
         }
 
-    private val hasTransferMetadata: Boolean
-        get() = transferProgramStage.isNotBlank() &&
-            originSchoolDataElement.isNotBlank() &&
-            destinationSchoolDataElement.isNotBlank() &&
-            statusDataElement.isNotBlank() &&
-            pendingStatusCode.isNotBlank()
+    val visibleTransfers: List<TeiTransfer> get() = tabTransfers.filterBy(statusFilter)
 
-    val showTransferActions: Boolean
-        get() = selectedTab == TransferTab.TRANSFERS
-
-    /** Whether the incoming tab is showing its own bottom actions. */
-    val showIncomingActions: Boolean
-        get() = step == TransferStep.SELECT_LEARNERS &&
-            selectedTab == TransferTab.INCOMING_STUDENTS &&
-            incomingTransfers.isNotEmpty()
-
-    /** Incoming requests picked for a bulk decision. */
-    val selectedIncomingTransfers: List<IncomingTeiTransfer>
-        get() = incomingTransfers.filter { it.eventUid in selectedIncomingEventUids }
-
-    val hasIncomingSelection: Boolean
-        get() = selectedIncomingTransfers.isNotEmpty()
+    val isLoadingTab: Boolean
+        get() = when (selectedTab) {
+            TransferTab.OUTGOING -> isLoadingOutgoing
+            TransferTab.INCOMING -> isLoadingIncoming || isDownloadingIncoming
+        }
 
     /**
-     * Requests the destination school still has to act on. A transfer that was approved or
-     * rejected is no longer pending and drops off the tab.
+     * Only the destination school decides, so the actions belong to that tab alone.
      */
-    val pendingOutgoingTransfers: List<OutgoingTeiTransfer>
-        get() = outgoingTransfers.filter { it.isPending }
+    val showsDecisionActions: Boolean get() = selectedTab == TransferTab.INCOMING
 
-    private val transferredTeiUids: Set<String>
-        get() = outgoingTransfers.mapTo(mutableSetOf()) { it.teiUid }
+    /** Records already awaiting a decision cannot be part of a second request. */
+    private val recordsAwaitingDecision: Set<String>
+        get() = outgoingTransfers
+            .filter { it.isPending }
+            .mapTo(mutableSetOf()) { it.teiUid }
 
-    /**
-     * Learners still available to transfer. Creating a transfer event takes a learner off
-     * this list whatever the request went on to become, so none can be sent out twice.
-     */
-    val outgoingLearners: List<SearchTeiModel>
-        get() = transferredTeiUids.let { transferred ->
-            if (transferred.isEmpty()) {
-                learners
-            } else {
-                learners.filterNot { it.tei.uid() in transferred }
-            }
+    val availableRecords: List<SearchTeiModel>
+        get() = recordsAwaitingDecision.let { awaiting ->
+            records.filterNot { it.tei.uid() in awaiting }
+        }
+
+    val selectedRecords: List<SearchTeiModel>
+        get() = records.filter { it.tei.uid() in selectedRecordUids }
+
+    val canContinue: Boolean
+        get() = when (requestStep) {
+            TransferStep.ENTITIES -> selectedRecordUids.isNotEmpty()
+            TransferStep.DESTINATION -> isRequestFormValid && destinationOrgUnit != null
+            TransferStep.REVIEW -> !isSubmitting && destinationOrgUnit != null
+            null -> false
         }
 }

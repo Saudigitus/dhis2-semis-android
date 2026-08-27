@@ -7,8 +7,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -18,12 +21,22 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import org.saudigitus.semis.transfer.R
 import org.saudigitus.semis.transfer.model.TransferStep
-import org.saudigitus.semis.transfer.state.TransferUiState
 
+/**
+ * One action at a time: starting a request from the outgoing list, then moving through
+ * the steps until it is confirmed.
+ */
 @Composable
-internal fun TransferBottomBar(state: TransferUiState, onContinue: () -> Unit) {
+internal fun TransferBottomBar(
+    label: String,
+    enabled: Boolean,
+    modifier: Modifier = Modifier,
+    isBusy: Boolean = false,
+    leadingIcon: Boolean = false,
+    onClick: () -> Unit,
+) {
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.surface),
     ) {
@@ -32,30 +45,41 @@ internal fun TransferBottomBar(state: TransferUiState, onContinue: () -> Unit) {
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 14.dp)
                 .height(54.dp),
-            enabled = state.canContinue && !state.isLoading,
+            enabled = enabled,
             shape = RoundedCornerShape(17.dp),
-            onClick = onContinue,
+            onClick = onClick,
         ) {
-            if (state.isSubmitting) {
-                CircularProgressIndicator(
+            when {
+                isBusy -> CircularProgressIndicator(
                     modifier = Modifier.size(22.dp),
                     color = MaterialTheme.colorScheme.onPrimary,
                     strokeWidth = 2.dp,
                 )
-            } else {
-                Text(
-                    text = stringResource(
-                        when (state.step) {
-                            TransferStep.SELECT_LEARNERS,
-                            TransferStep.DESTINATION,
-                                -> R.string.continue_label
-                            TransferStep.REVIEW -> R.string.confirm_transfer
-                        }
-                    ),
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.Bold,
-                )
+
+                else -> {
+                    if (leadingIcon) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = null,
+                            modifier = Modifier
+                                .size(20.dp)
+                                .padding(end = 2.dp),
+                        )
+                    }
+
+                    Text(
+                        text = label,
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
             }
         }
     }
+}
+
+/** Wording of the action that moves a request forward. */
+internal fun TransferStep.continueLabel(): Int = when (this) {
+    TransferStep.ENTITIES, TransferStep.DESTINATION -> R.string.continue_label
+    TransferStep.REVIEW -> R.string.confirm_transfer
 }
