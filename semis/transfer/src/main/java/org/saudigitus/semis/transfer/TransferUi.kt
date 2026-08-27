@@ -113,9 +113,20 @@ fun TransferUi(
                     it.dataElementUid != state.statusDataElement
             }
             .all { !it.value.isNullOrBlank() }
+        // Everything the form collected travels with the request. The destination and
+        // the status are set by the flow itself, so they are left out here.
+        val values = formState.fields
+            .filter { it.rendered }
+            .filterNot { it.dataElementUid == state.statusDataElement }
+            .filterNot { it.dataElementUid == state.destinationSchoolDataElement }
+            .mapNotNull { field ->
+                field.value?.takeIf { it.isNotBlank() }?.let { field.dataElementUid to it }
+            }
+
         viewModel.updateRequestForm(
             destinationOrgUnit = destinationField?.selectedOrgUnit,
             isValid = isValid,
+            values = values,
         )
     }
 

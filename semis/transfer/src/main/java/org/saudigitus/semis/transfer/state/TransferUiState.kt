@@ -40,6 +40,7 @@ data class TransferUiState(
     val selectedRecordUids: Set<String> = emptySet(),
     val destinationOrgUnit: OrgUnit? = null,
     val isRequestFormValid: Boolean = false,
+    val requestValues: List<Pair<String, String>> = emptyList(),
     val effectiveDate: Date = Date(),
     val errorMessage: String? = null,
 ) {

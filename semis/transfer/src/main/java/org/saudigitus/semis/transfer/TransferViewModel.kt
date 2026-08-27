@@ -100,11 +100,16 @@ class TransferViewModel @Inject constructor(
      * The destination step is the configured transfer form, so the selected school and
      * the form validity are reported back from the composable that renders it.
      */
-    fun updateRequestForm(destinationOrgUnit: OrgUnit?, isValid: Boolean) {
+    fun updateRequestForm(
+        destinationOrgUnit: OrgUnit?,
+        isValid: Boolean,
+        values: List<Pair<String, String>>,
+    ) {
         _uiState.update {
             it.copy(
                 destinationOrgUnit = destinationOrgUnit,
                 isRequestFormValid = isValid,
+                requestValues = values,
             )
         }
     }
@@ -268,6 +273,7 @@ class TransferViewModel @Inject constructor(
                 selectedRecordUids = emptySet(),
                 destinationOrgUnit = null,
                 isRequestFormValid = false,
+                requestValues = emptyList(),
                 effectiveDate = Date(),
             )
         }
@@ -347,6 +353,7 @@ class TransferViewModel @Inject constructor(
                         destinationOrgUnit = destination.uid,
                         records = records,
                         effectiveDate = current.effectiveDate,
+                        values = current.requestValues,
                     ),
                 )
             }.onSuccess { result ->

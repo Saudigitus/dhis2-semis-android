@@ -311,16 +311,35 @@ class TeiTransferRepositoryImpl @Inject constructor(
             program = request.program,
             programStage = transfer.programStage.orEmpty(),
             enrollmentUid = learner.enrollmentUid,
-            data = listOf(
-                transfer.destinySchool.orEmpty() to request.destinationOrgUnit,
-                transfer.status.orEmpty() to transfer.pendingStatusCode(),
-            ),
+            data = requestValues(request, transfer),
             eventDate = DateHelper.formatDate(request.effectiveDate.time),
             status = EventStatus.ACTIVE,
         )
     }
 
-    /** A learner already awaiting a decision must not be requested a second time. */
+    /**
+     * What the request writes: the destination and the pending status, which the flow
+     * decides, then whatever else the form collected, the reason among it. A form value
+     * for the destination or the status is dropped rather than allowed to contradict
+     * what was chosen.
+     */
+    private fun requestValues(
+        request: TeiTransferRequest,
+        transfer: Transfer,
+    ): List<Pair<String, String?>> = buildList {
+        add(transfer.destinySchool.orEmpty() to request.destinationOrgUnit)
+        add(transfer.status.orEmpty() to transfer.pendingStatusCode())
+        addAll(
+            request.values
+                .filterNot { (dataElement, _) -> dataElement == transfer.destinySchool }
+                .filterNot { (dataElement, _) -> dataElement == transfer.status }
+                .filter { (dataElement, value) ->
+                    dataElement.isNotBlank() && value.isNotBlank()
+                },
+        )
+    }
+
+    /** A record already awaiting a decision must not be requested a second time. */
     private fun hasPendingRequest(enrollmentUid: String, transfer: Transfer): Boolean =
         d2.eventModule().events()
             .byEnrollmentUid().eq(enrollmentUid)
