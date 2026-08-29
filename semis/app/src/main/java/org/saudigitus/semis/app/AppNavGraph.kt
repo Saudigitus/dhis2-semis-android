@@ -43,6 +43,9 @@ fun AppNavGraph(
         startDestination = AppRoutes.HOME,
     ) {
         composable(route = AppRoutes.HOME) {
+            // Coming back from a module must show what the module changed: an enrollment
+            // adds a learner to the class, and a transfer decision can take one away.
+            LaunchedEffect(Unit) { viewModel.refreshTeis() }
             AppScreen(
                 viewModel = viewModel,
                 navBack = navBack,

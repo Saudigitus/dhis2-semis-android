@@ -6,6 +6,7 @@ import org.dhis2.commons.network.NetworkUtils
 import org.dhis2.commons.resources.ResourceManager
 import org.hisp.dhis.android.core.D2
 import org.hisp.dhis.android.core.event.Event
+import org.hisp.dhis.android.core.common.State
 import org.hisp.dhis.android.core.event.EventStatus
 import org.hisp.dhis.android.core.organisationunit.OrganisationUnitMode
 import org.saudigitus.semis.core.data.R
@@ -161,6 +162,47 @@ class TeiTransferRepositoryImpl @Inject constructor(
         d2.trackedEntityModule().trackedEntityInstanceDownloader()
             .byUid().`in`(teiUids)
             .byProgramUid(program)
+            .blockingDownload()
+
+        teiUids.size
+    }
+
+    override suspend fun refreshOutgoingTransfers(
+        program: String,
+        currentOrgUnit: String,
+    ): Int = withContext(Dispatchers.IO) {
+        val transfer = enabledConfig(program)?.transfer ?: return@withContext 0
+        val stage = transfer.programStage
+            ?.takeIf { it.isNotBlank() }
+            ?: return@withContext 0
+
+        if (!networkUtils.isOnline()) {
+            error(resourceManager.getString(R.string.error_no_internet_connection))
+        }
+
+        // Only a request that was already sent can have news, and refreshing an unsent
+        // one would throw the request itself away.
+        val teiUids = d2.eventModule().events()
+            .byOrganisationUnitUid().eq(currentOrgUnit)
+            .byProgramUid().eq(program)
+            .byProgramStageUid().eq(stage)
+            .byAggregatedSyncState().eq(State.SYNCED)
+            .byDeleted().isFalse
+            .blockingGet()
+            .mapNotNull { event ->
+                event.enrollment()?.let { enrollment ->
+                    d2.enrollmentModule().enrollments().uid(enrollment)
+                        .blockingGet()?.trackedEntityInstance()
+                }
+            }
+            .distinct()
+
+        if (teiUids.isEmpty()) return@withContext 0
+
+        d2.trackedEntityModule().trackedEntityInstanceDownloader()
+            .byUid().`in`(teiUids)
+            .byProgramUid(program)
+            .overwrite(true)
             .blockingDownload()
 
         teiUids.size

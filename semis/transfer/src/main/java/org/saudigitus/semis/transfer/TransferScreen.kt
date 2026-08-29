@@ -70,6 +70,7 @@ fun TransferScreen(
                 requestStep = state.requestStep,
                 onNavigateBack = navigateBack,
                 onRefreshIncoming = { onEvent(TransferUiEvent.RefreshIncoming) },
+                onRefreshOutgoing = { onEvent(TransferUiEvent.RefreshOutgoing) },
             )
         },
         bottomBar = {
