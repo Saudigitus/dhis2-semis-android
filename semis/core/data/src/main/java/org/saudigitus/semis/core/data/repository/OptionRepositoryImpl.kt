@@ -5,10 +5,10 @@ import kotlinx.coroutines.withContext
 import org.dhis2.commons.bindings.dataElement
 import org.hisp.dhis.android.core.D2
 import org.saudigitus.semis.core.data.rules.RuleEngineRepository
+import org.saudigitus.semis.core.data.rules.isOptionVisible
 import org.saudigitus.semis.core.data.utils.optionByOptionSet
+import org.saudigitus.semis.core.data.utils.optionUidsInOptionGroups
 import org.saudigitus.semis.core.data.utils.optionsByOptionSetAndCode
-import org.saudigitus.semis.core.data.utils.optionsNotInOptionGroup
-import org.saudigitus.semis.core.data.utils.optionsNotInOptionsSets
 import javax.inject.Inject
 
 class OptionRepositoryImpl
@@ -22,13 +22,21 @@ class OptionRepositoryImpl
         dataElement: String
     ) = withContext(Dispatchers.IO) {
         val optionSet = d2.dataElement(dataElement)?.optionSetUid()
+        val options = d2.optionByOptionSet(optionSet)
 
-        val hideOptions = ruleEngineRepository.applyOptionRules(ou, program, dataElement)
+        val effects = ruleEngineRepository.applyOptionRules(ou, program, dataElement)
+        if (effects.restrictsNothing) {
+            return@withContext options
+        }
 
-        when {
-            hideOptions.isEmpty() -> d2.optionByOptionSet(optionSet)
-            ou != null -> d2.optionsNotInOptionGroup(hideOptions, optionSet)
-            else -> d2.optionsNotInOptionsSets(hideOptions, optionSet)
+        val optionUidsToHide = effects.optionsToHide.toSet() +
+            d2.optionUidsInOptionGroups(effects.optionGroupsToHide)
+        val optionUidsToShow = effects.optionGroupsToShow
+            .takeIf { it.isNotEmpty() }
+            ?.let { d2.optionUidsInOptionGroups(it) }
+
+        options.filter { option ->
+            isOptionVisible(option.uid(), optionUidsToHide, optionUidsToShow)
         }
     }
 
