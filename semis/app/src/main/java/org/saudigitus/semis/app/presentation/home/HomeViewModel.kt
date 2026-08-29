@@ -65,6 +65,14 @@ class HomeViewModel @Inject constructor(
     private val academicYear = MutableStateFlow<AcademicYear?>(null)
     private val academicYearDL = MutableStateFlow<String>("")
 
+    /**
+     * What the screen renders: the state plus the derived filter visibility.
+     *
+     * This view lags behind [_uiState], since the combine emits asynchronously and starts from an
+     * empty state until the screen subscribes. Everything inside this ViewModel therefore reads
+     * [_uiState], the source of truth, never this: a decision read from here can be taken over a
+     * snapshot that is one step behind the write it follows, or over no state at all.
+     */
     val uiState: StateFlow<HomeUIState> = combine(
         _uiState,
         isAutoHideFilters
@@ -151,7 +159,7 @@ class HomeViewModel @Inject constructor(
 
         val orgUnit = restoredOrgUnit(stored, available) ?: onlyOrgUnit(available)
 
-        var filterState = uiState.value.filterState
+        var filterState = _uiState.value.filterState
         if (orgUnit != null) {
             filterState = filterState.copy(orgUnit = orgUnit)
             _uiState.update { it.copy(filterState = filterState) }
@@ -193,7 +201,7 @@ class HomeViewModel @Inject constructor(
      */
     private suspend fun rememberSelection(filterState: FilterComponentState) {
         if (!selectionSettled) return
-        val program = uiState.value.program.takeIf { it.isNotBlank() } ?: return
+        val program = _uiState.value.program.takeIf { it.isNotBlank() } ?: return
 
         filterSelectionRepository.save(
             program = program,
@@ -257,8 +265,8 @@ class HomeViewModel @Inject constructor(
 
     private suspend fun dropdownItems(dataElement: String): List<DropdownItem> {
         return filterRepository.getOptions(
-            orgUnit = uiState.value.filterState.orgUnit?.uid.orEmpty(),
-            program = uiState.value.program,
+            orgUnit = _uiState.value.filterState.orgUnit?.uid.orEmpty(),
+            program = _uiState.value.program,
             dataElement = dataElement,
         ).map {
             DropdownItem(
@@ -271,7 +279,7 @@ class HomeViewModel @Inject constructor(
     }
 
     private suspend fun reloadFilters(): MutableList<DropdownState> {
-        val filters = uiState.value.filterState.filters.toMutableList()
+        val filters = _uiState.value.filterState.filters.toMutableList()
 
         if (filters.isNotEmpty()) {
             val item = filters.find { it.filterType == FilterType.GRADE }
@@ -324,7 +332,7 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             loadJob?.cancel()
 
-            val current = uiState.value.filterState
+            val current = _uiState.value.filterState
             val cleared = updateFilterDetails(
                 current.copy(
                     orgUnit = null,
@@ -341,7 +349,7 @@ class HomeViewModel @Inject constructor(
                 ),
             )
 
-            filterSelectionRepository.save(uiState.value.program, StoredFilterSelection())
+            filterSelectionRepository.save(_uiState.value.program, StoredFilterSelection())
 
             _uiState.update {
                 it.copy(
@@ -357,12 +365,12 @@ class HomeViewModel @Inject constructor(
 
     private fun downloadTei() {
         viewModelScope.launch {
-            if (uiState.value.filterState.isFilterSelectionNotEmpty()) {
+            if (_uiState.value.filterState.isFilterSelectionNotEmpty()) {
                 _uiState.update { it.copy(isLoading = true) }
 
                 val result = teiDownloaderRepository.downloadTei(
-                    ou = uiState.value.filterState.orgUnit?.uid.orEmpty(),
-                    program = uiState.value.program,
+                    ou = _uiState.value.filterState.orgUnit?.uid.orEmpty(),
+                    program = _uiState.value.program,
                     dataElementIds = listOfNotNull(
                         academicYearDL.value,
                         registration.value?.grade,
@@ -370,8 +378,8 @@ class HomeViewModel @Inject constructor(
                     ),
                     dataValues = listOfNotNull(
                         academicYear.value?.code,
-                        uiState.value.filterState.selectedFilters[FilterType.GRADE]?.code,
-                        uiState.value.filterState.selectedFilters[FilterType.SECTION]?.code
+                        _uiState.value.filterState.selectedFilters[FilterType.GRADE]?.code,
+                        _uiState.value.filterState.selectedFilters[FilterType.SECTION]?.code
                     )
                 )
 
@@ -387,9 +395,29 @@ class HomeViewModel @Inject constructor(
     }
 
     private suspend fun loadTeis() {
+        // The rule that opens the modules is the rule that makes a search meaningful: an
+        // incomplete selection names no class, and querying with only the filters that happen to
+        // be answered would count learners across every grade the school holds. downloadTei()
+        // already follows it, so the local search follows it too.
+        if (!_uiState.value.filterState.isFilterSelectionNotEmpty()) {
+            _uiState.update {
+                it.copy(
+                    isLoading = false,
+                    tei = emptyList(),
+                    filterState = it.filterState.copy(
+                        filterDetailsState = it.filterState.filterDetailsState.copy(
+                            count = 0,
+                            enable = false,
+                        ),
+                    ),
+                )
+            }
+            return
+        }
+
         teiRepository.getTrackerEntities(
-            ou = uiState.value.filterState.orgUnit?.uid.orEmpty(),
-            program = uiState.value.program,
+            ou = _uiState.value.filterState.orgUnit?.uid.orEmpty(),
+            program = _uiState.value.program,
             stage = registration.value?.programStage.orEmpty(),
             dataElementIds = listOfNotNull(
                 academicYearDL.value,
@@ -398,11 +426,11 @@ class HomeViewModel @Inject constructor(
             ),
             dataValues = listOfNotNull(
                 academicYear.value?.code,
-                uiState.value.filterState.selectedFilters[FilterType.GRADE]?.code,
-                uiState.value.filterState.selectedFilters[FilterType.SECTION]?.code
+                _uiState.value.filterState.selectedFilters[FilterType.GRADE]?.code,
+                _uiState.value.filterState.selectedFilters[FilterType.SECTION]?.code
             )
         ).collectLatest { data ->
-            val currentFieldState = uiState.value.filterState
+            val currentFieldState = _uiState.value.filterState
             val current = currentFieldState.filterDetailsState
 
             val updateCount = current.copy(count = data.size, enable = data.isNotEmpty())
@@ -427,7 +455,7 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             loadJob?.cancel()
 
-            val current = uiState.value.filterState
+            val current = _uiState.value.filterState
 
             val updatedFilterState = when (val obj = event.obj) {
                 is OrgUnit -> current.withOUAndFilters(obj, reloadFilters())
@@ -453,7 +481,7 @@ class HomeViewModel @Inject constructor(
     }
 
     private fun updateToolbarHeader(filterState: FilterComponentState) {
-        val toolbarHeader = uiState.value.toolbarHeaders
+        val toolbarHeader = _uiState.value.toolbarHeaders
         val updatedToolbarHeader = toolbarHeader
             .withSubtitle("${filterState.orgUnit?.displayName ?: resourceManager.getString(R.string.school)} | ${filterState.getAcademicYearSelection()?.itemName}")
         _uiState.update { it.copy(toolbarHeaders = updatedToolbarHeader) }
@@ -488,7 +516,7 @@ class HomeViewModel @Inject constructor(
     }
 
     private fun autoHideFilters() {
-        if (uiState.value.filterState.isFilterSelectionNotEmpty() && isAutoHideFilters.value) {
+        if (_uiState.value.filterState.isFilterSelectionNotEmpty() && isAutoHideFilters.value) {
             _uiState.update { it.copy(isLoading = true, displayFilters = false) }
         }
     }
