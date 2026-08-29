@@ -315,6 +315,7 @@ class AttendanceViewModel @Inject constructor(
 
             runCatching {
                 formRepository.saveAttendance(
+                    orgUnit = current.formBuilderState.orgUnit,
                     program = current.program,
                     programStage = attendanceConfig?.programStage.orEmpty(),
                     attendanceEvents = formRepository.attendanceButtonStateFlow.value.attendanceEvents,

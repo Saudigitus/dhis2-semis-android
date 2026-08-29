@@ -108,8 +108,15 @@ class EventRepositoryImpl @Inject constructor(
         uid
     }
 
+    /**
+     * The record a save should update instead of creating a new one, scoped to the school doing
+     * the saving. Without the school in the match, a save for a transferred learner would pick up
+     * the record their previous school wrote for the same day and stage, and the update would
+     * belong to a school the user cannot write into.
+     */
     private fun eventUid(
         tei: String?,
+        orgUnit: String,
         program: String,
         programStage: String,
         date: String?,
@@ -119,6 +126,7 @@ class EventRepositoryImpl @Inject constructor(
         return if (!tei.isNullOrEmpty()) {
             eventsRepo
             .byTrackedEntityInstanceUids(listOf(tei))
+                .byOrganisationUnitUid().eq(orgUnit)
                 .byProgramUid().eq(program)
                 .byProgramStageUid().eq(programStage)
                 .byDeleted().isFalse
@@ -126,6 +134,7 @@ class EventRepositoryImpl @Inject constructor(
                 .one().blockingGet()?.uid()
         } else {
             eventsRepo
+                .byOrganisationUnitUid().eq(orgUnit)
                 .byProgramUid().eq(program)
                 .byProgramStageUid().eq(programStage)
                 .byDeleted().isFalse
@@ -150,6 +159,7 @@ class EventRepositoryImpl @Inject constructor(
             try {
                 val uid = event ?: eventUid(
                     tei?.uid(),
+                    orgUnit,
                     program,
                     programStage,
                     date
@@ -215,6 +225,7 @@ class EventRepositoryImpl @Inject constructor(
             try {
                 val uid = event ?: eventUid(
                     tei?.uid(),
+                    orgUnit,
                     program,
                     programStage,
                     date
