@@ -18,6 +18,7 @@ data class TransferUiState(
     val isLoadingOutgoing: Boolean = false,
     val isLoadingIncoming: Boolean = false,
     val isDownloadingIncoming: Boolean = false,
+    val isRefreshingOutgoing: Boolean = false,
     val isSubmitting: Boolean = false,
     val program: String = "",
     val sourceOrgUnit: OrgUnit? = null,
@@ -70,7 +71,7 @@ data class TransferUiState(
 
     val isLoadingTab: Boolean
         get() = when (selectedTab) {
-            TransferTab.OUTGOING -> isLoadingOutgoing
+            TransferTab.OUTGOING -> isLoadingOutgoing || isRefreshingOutgoing
             TransferTab.INCOMING -> isLoadingIncoming || isDownloadingIncoming
         }
 

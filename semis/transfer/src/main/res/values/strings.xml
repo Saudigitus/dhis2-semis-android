@@ -4,6 +4,7 @@
     <string name="outgoing_tab">OUTGOING</string>
     <string name="incoming_tab">INCOMING</string>
     <string name="refresh_incoming">Refresh incoming transfers</string>
+    <string name="refresh_outgoing">Refresh outgoing transfers</string>
 
     <string name="transfer_status_pending">Pending</string>
     <string name="transfer_status_approved">Approved</string>

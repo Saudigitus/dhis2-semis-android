@@ -12,6 +12,12 @@ sealed interface TransferUiEvent {
 
     data object RefreshIncoming : TransferUiEvent
 
+    /**
+     * Asks the server for news about the requests this school raised: their statuses,
+     * and the departure of any learner whose transfer was approved.
+     */
+    data object RefreshOutgoing : TransferUiEvent
+
     /** Asks for the decision to be confirmed rather than applying it. */
     data class AskDecision(
         val eventUid: String,

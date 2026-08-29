@@ -85,6 +85,7 @@ class TransferViewModel @Inject constructor(
             is TransferUiEvent.SelectTab -> selectTab(event.tab)
             is TransferUiEvent.SelectStatusFilter -> selectStatusFilter(event.filter)
             TransferUiEvent.RefreshIncoming -> refreshIncomingTransfers()
+            TransferUiEvent.RefreshOutgoing -> refreshOutgoingTransfers()
             is TransferUiEvent.AskDecision -> askDecision(event.eventUid, event.decision)
             TransferUiEvent.ConfirmDecision -> confirmDecision()
             TransferUiEvent.DismissDecision -> dismissDecision()
@@ -206,6 +207,29 @@ class TransferViewModel @Inject constructor(
     }
 
     /**
+     * The origin only learns what the destination decided by asking, and a decision
+     * touches more than the request: an approved learner no longer belongs here. The
+     * learners behind the sent requests are downloaded again, and both the statuses and
+     * the classes they left are read back from what arrived.
+     */
+    private fun refreshOutgoingTransfers() {
+        val current = _uiState.value
+        val orgUnit = current.sourceOrgUnit ?: return
+        if (current.isRefreshingOutgoing) return
+
+        _uiState.update { it.copy(isRefreshingOutgoing = true) }
+        viewModelScope.launch {
+            runCatching {
+                repository.refreshOutgoingTransfers(current.program, orgUnit.uid)
+            }.onFailure { error ->
+                emitError(error, R.string.outgoing_transfer_load_failed)
+            }
+            _uiState.update { it.copy(isRefreshingOutgoing = false) }
+            loadOutgoingTransfers()
+        }
+    }
+
+    /**
      * Holds the decision until it is confirmed. Neither approving nor rejecting can be
      * undone from this screen, so neither is applied on a single tap.
      */
@@ -257,6 +281,7 @@ class TransferViewModel @Inject constructor(
                 emitSuccess(resourceManager.getString(decision.successMessage()))
                 _syncEvent.emit(Unit)
                 loadIncomingTransfers()
+                loadOutgoingTransfers()
             }.onFailure { error ->
                 _uiState.update {
                     it.copy(processingEventUids = it.processingEventUids - eventUid)

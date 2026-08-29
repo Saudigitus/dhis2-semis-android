@@ -59,6 +59,23 @@ interface TeiTransferRepository {
     ): Int
 
     /**
+     * Brings the requests this school raised up to date with the server.
+     *
+     * A decision is taken at the destination, so the origin only learns of it by asking.
+     * The learners behind the requests already sent are downloaded again by identifier:
+     * the refreshed records carry the school the server moved them to and the decision
+     * the destination recorded, so an approved learner leaves this school's class and
+     * the request shows its new status in the same gesture. Requests not yet sent are
+     * left untouched, since refreshing them would throw the request itself away.
+     *
+     * @return how many learners were checked against the server.
+     */
+    suspend fun refreshOutgoingTransfers(
+        program: String,
+        currentOrgUnit: String,
+    ): Int
+
+    /**
      * Records what this school decided about a request addressed to it.
      *
      * Approving hands the learner over: the ownership, the enrollment and the history

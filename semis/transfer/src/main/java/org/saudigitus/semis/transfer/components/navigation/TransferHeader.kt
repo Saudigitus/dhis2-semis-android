@@ -35,6 +35,7 @@ internal fun TransferHeader(
     modifier: Modifier = Modifier,
     onNavigateBack: () -> Unit,
     onRefreshIncoming: () -> Unit,
+    onRefreshOutgoing: () -> Unit,
 ) {
     Toolbar(
         headers = ToolbarHeaders(
@@ -51,14 +52,24 @@ internal fun TransferHeader(
         disableNavigation = true,
         colors = TransferToolbarColors,
         actions = {
-            // Requests addressed to this school live in the school that raised them, so
-            // they are fetched rather than found, and only the incoming list can be.
-            if (requestStep == null && selectedTab == TransferTab.INCOMING) {
-                IconButton(onClick = onRefreshIncoming) {
-                    Icon(
-                        imageVector = Icons.Default.Refresh,
-                        contentDescription = stringResource(R.string.refresh_incoming),
-                    )
+            // Each list has news only the server holds: the incoming requests live in
+            // the schools that raised them, and the decisions about the outgoing ones
+            // are taken at the schools they were sent to.
+            if (requestStep == null) {
+                when (selectedTab) {
+                    TransferTab.INCOMING -> IconButton(onClick = onRefreshIncoming) {
+                        Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = stringResource(R.string.refresh_incoming),
+                        )
+                    }
+
+                    TransferTab.OUTGOING -> IconButton(onClick = onRefreshOutgoing) {
+                        Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = stringResource(R.string.refresh_outgoing),
+                        )
+                    }
                 }
             }
         },
