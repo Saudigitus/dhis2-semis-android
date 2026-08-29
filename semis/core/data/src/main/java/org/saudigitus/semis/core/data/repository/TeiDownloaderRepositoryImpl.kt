@@ -30,6 +30,8 @@ class TeiDownloaderRepositoryImpl
         try {
             val teiUids = searchTrackedEntityInstances(ou, program, dataElementIds, dataValues)
 
+            refreshDepartedTeis(ou, program, dataElementIds, dataValues, stillPresent = teiUids)
+
             if (teiUids.isEmpty()) {
                 return@withContext Result.Failure(
                     Exception(
@@ -92,6 +94,68 @@ class TeiDownloaderRepositoryImpl
 
         return message?.takeIf { it.isNotBlank() } ?: this::class.java.simpleName
     }
+
+    /**
+     * Refreshes the learners this class holds locally but the server no longer returns for it.
+     *
+     * A learner the search stops mentioning has usually been transferred: on the server their
+     * records already sit at the new school, while the local copy still places them here, so the
+     * class would go on listing them forever. Downloading them again by identifier brings the
+     * records as the server has them, and the learner drops out of this class on their own,
+     * because the listings anchor on the organisation unit the events carry.
+     *
+     * Never fails the download that triggered it: cleaning up the departed is worth nothing if it
+     * costs the class its own records.
+     */
+    private fun refreshDepartedTeis(
+        ou: String,
+        program: String,
+        dataElementIds: List<String>,
+        dataValues: List<String>,
+        stillPresent: List<String>,
+    ) {
+        runCatching {
+            val departed = localClassTeis(ou, program, dataElementIds, dataValues) - stillPresent.toSet()
+            if (departed.isEmpty()) return
+
+            d2.trackedEntityModule().trackedEntityInstanceDownloader()
+                .byUid().`in`(departed.toList())
+                .byProgramUid(program)
+                .overwrite(true)
+                .blockingDownload()
+        }
+    }
+
+    /**
+     * The learners the device currently places in this class: the ones whose registration event
+     * sits at [ou] and carries the class values, which is the same anchor every listing uses.
+     */
+    private fun localClassTeis(
+        ou: String,
+        program: String,
+        dataElementIds: List<String>,
+        dataValues: List<String>,
+    ): Set<String> =
+        d2.eventModule().events()
+            .byOrganisationUnitUid().eq(ou)
+            .byProgramUid().eq(program)
+            .byDeleted().isFalse
+            .withTrackedEntityDataValues()
+            .blockingGet()
+            .asSequence()
+            .filter { event ->
+                val values = event.trackedEntityDataValues()
+                    ?.associate { it.dataElement() to it.value() }
+                    .orEmpty()
+                values.keys.containsAll(dataElementIds) && values.values.containsAll(dataValues)
+            }
+            .mapNotNull { event ->
+                event.enrollment()?.let { enrollment ->
+                    d2.enrollmentModule().enrollments().uid(enrollment)
+                        .blockingGet()?.trackedEntityInstance()
+                }
+            }
+            .toSet()
 
     private fun searchTrackedEntityInstances(
         ou: String,
