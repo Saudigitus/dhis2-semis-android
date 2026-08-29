@@ -164,19 +164,19 @@ fun Toolbar(
             }
         },
         actions = {
-            if (actionState.showCalendar) {
-                IconButton(onClick = { isCalendarShown = !isCalendarShown }) {
-                    Icon(
-                        imageVector = Icons.Default.CalendarMonth,
-                        contentDescription = stringResource(R.string.calendar),
-                    )
-                }
-            }
             if (actionState.syncVisibility) {
                 IconButton(onClick = { syncAction.invoke() }) {
                     Icon(
                         imageVector = Icons.Default.Sync,
                         contentDescription = stringResource(R.string.sync),
+                    )
+                }
+            }
+            if (actionState.showCalendar) {
+                IconButton(onClick = { isCalendarShown = !isCalendarShown }) {
+                    Icon(
+                        imageVector = Icons.Default.CalendarMonth,
+                        contentDescription = stringResource(R.string.calendar),
                     )
                 }
             }

@@ -1,11 +1,13 @@
 package org.saudigitus.semis.core.designsystem.components.buttons
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
@@ -34,15 +36,23 @@ fun TonalIconButton(
     IconButton(
         onClick = onClick,
         enabled = enabled,
-        modifier = modifier
-            .size(size)
-            .background(color = containerColor, shape = shape),
+        modifier = modifier.size(size),
     ) {
-        Icon(
-            imageVector = imageVector,
-            contentDescription = contentDescription,
-            tint = contentColor,
-            modifier = Modifier.size(iconSize),
-        )
+        // The tint is painted inside rather than on the button itself: a button of this size
+        // is widened to stay comfortable to tap, and a background set on the outside is drawn
+        // over that wider area, which makes two of them side by side look like one.
+        Box(
+            modifier = Modifier
+                .size(size)
+                .background(color = containerColor, shape = shape),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = imageVector,
+                contentDescription = contentDescription,
+                tint = contentColor,
+                modifier = Modifier.size(iconSize),
+            )
+        }
     }
 }
