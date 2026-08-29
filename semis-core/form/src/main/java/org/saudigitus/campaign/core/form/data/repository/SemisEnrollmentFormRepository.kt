@@ -2,15 +2,21 @@ package org.saudigitus.campaign.core.form.data.repository
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.dhis2.commons.resources.ResourceManager
 import org.hisp.dhis.android.core.D2
+import org.hisp.dhis.android.core.common.State
+import org.hisp.dhis.android.core.common.ValueType
 import org.hisp.dhis.android.core.event.EventCreateProjection
 import org.hisp.dhis.android.core.event.EventStatus
+import org.saudigitus.campaign.core.data.models.FormFieldEntity
 import org.saudigitus.campaign.core.data.models.OptionModel
 import org.saudigitus.campaign.core.data.models.OrgUnit
 import org.saudigitus.campaign.core.data.models.OuHideStrategy
+import org.saudigitus.campaign.core.data.models.TrackedEntityAttributeModel
 import org.saudigitus.campaign.core.data.repository.EnrollmentRepository
 import org.saudigitus.campaign.core.data.repository.OptionRepository
 import org.saudigitus.campaign.core.data.repository.ProgramRepository
+import org.saudigitus.campaign.core.form.R
 import org.saudigitus.campaign.core.form.data.models.FormFieldModel
 import org.saudigitus.campaign.core.form.data.models.FormResult
 import org.saudigitus.campaign.core.form.data.models.FormSectionModel
@@ -31,7 +37,16 @@ class SemisEnrollmentFormRepository @Inject constructor(
     private val optionRepository: OptionRepository,
     private val programRepository: ProgramRepository,
     private val enrollmentRepository: EnrollmentRepository,
+    private val resourceManager: ResourceManager,
 ) : FormRepository {
+
+    private companion object {
+        /**
+         * How many reserved values may be discarded before giving up on finding a usable one.
+         * Each attempt costs a value from the reserve, so the search stays deliberately short.
+         */
+        const val MAX_RESERVED_VALUE_ATTEMPTS = 5
+    }
     override suspend fun save(
         formType: FormSectionType,
         orgUnit: String,
@@ -108,6 +123,113 @@ class SemisEnrollmentFormRepository @Inject constructor(
             }
         }
     }
+
+    override suspend fun saveEnrollment(
+        orgUnit: String,
+        program: String,
+        date: String,
+        attributes: List<FormSectionModel>,
+        stages: Map<String, List<FormSectionModel>>,
+        backgroundStages: List<String>,
+    ): FormResult = withContext(Dispatchers.IO) {
+        val (enrollmentUid, teiUid) = enrollmentRepository.create(
+            orgUnit = orgUnit,
+            program = program,
+            date = date,
+            fields = attributes.capturedFields(),
+        )
+
+        try {
+            stages.forEach { (programStage, sections) ->
+                createStageEvent(
+                    orgUnit = orgUnit,
+                    program = program,
+                    programStage = programStage,
+                    enrollment = enrollmentUid,
+                    date = date,
+                    fields = sections.capturedFields(),
+                )
+            }
+
+            backgroundStages.forEach { programStage ->
+                createStageEvent(
+                    orgUnit = orgUnit,
+                    program = program,
+                    programStage = programStage,
+                    enrollment = enrollmentUid,
+                    date = date,
+                    fields = emptyList(),
+                )
+            }
+        } catch (error: Throwable) {
+            discardEnrollment(teiUid, enrollmentUid)
+            throw error
+        }
+
+        FormResult(enrollment = enrollmentUid, tei = teiUid)
+    }
+
+    /**
+     * Creates the event for [programStage] and fills in whatever was captured for it.
+     *
+     * The completed status is deliberate and configured: an event produced by an enrollment is not
+     * left open for later editing.
+     */
+    private fun createStageEvent(
+        orgUnit: String,
+        program: String,
+        programStage: String,
+        enrollment: String,
+        date: String,
+        fields: List<FormFieldEntity>,
+    ) {
+        val eventUid = d2.eventModule().events().blockingAdd(
+            EventCreateProjection.builder()
+                .organisationUnit(orgUnit)
+                .program(program)
+                .programStage(programStage)
+                .enrollment(enrollment)
+                .attributeOptionCombo(defaultAttributeOptionCombo())
+                .build(),
+        )
+
+        fields.forEach { field ->
+            d2.trackedEntityModule().trackedEntityDataValues()
+                .value(eventUid, field.uid)
+                .blockingSet(field.value)
+        }
+
+        d2.eventModule().events().uid(eventUid).apply {
+            setEventDate(Date.valueOf(date))
+            setStatus(EventStatus.COMPLETED)
+        }
+    }
+
+    /**
+     * Removes an enrollment that could not be written in full.
+     *
+     * A learner created during this transaction has never reached the server, so the whole record is
+     * dropped. Should it somehow already have been uploaded, only the enrollment is removed, because
+     * deleting the learner would then take away someone the server still knows about.
+     */
+    private fun discardEnrollment(tei: String, enrollment: String) {
+        runCatching {
+            val teiRepository = d2.trackedEntityModule().trackedEntityInstances().uid(tei)
+
+            if (teiRepository.blockingGet()?.syncState() == State.TO_POST) {
+                teiRepository.blockingDelete()
+            } else {
+                d2.enrollmentModule().enrollments().uid(enrollment).blockingDelete()
+            }
+        }
+    }
+
+    /** The fields a step actually presented, in the shape the data layer stores. */
+    private fun List<FormSectionModel>.capturedFields(): List<FormFieldEntity> = this
+        .filter { it.rendered }
+        .flatMap { it.formFields }
+        .filter { it.rendered == true }
+        .toEntities()
 
     override suspend fun getFormSections(
         orgUnit: String,
@@ -200,6 +322,8 @@ class SemisEnrollmentFormRepository @Inject constructor(
         program: String,
         tei: String?,
     ): List<FormSectionModel> = withContext(Dispatchers.IO) {
+        val storedValues = attributeValues(tei)
+
         programRepository.getTrackedEntityAttributeWithSection(program).map { section ->
             FormSectionModel(
                 uid = section.uid,
@@ -209,10 +333,23 @@ class SemisEnrollmentFormRepository @Inject constructor(
                 sortOrder = section.sortOrder,
                 formFields = section.attributes.map { attribute ->
                     val optionSetUid = attribute.optionSetUid
+                    val storedValue = storedValues[attribute.uid]
+                    val reserved = if (attribute.generated && storedValue == null) {
+                        reserveGeneratedValue(attribute, orgUnit)
+                    } else {
+                        null
+                    }
+
                     FormFieldModel(
                         uid = attribute.uid,
                         label = attribute.displayFormName.orEmpty(),
                         valueType = attribute.valueType,
+                        value = storedValue ?: reserved?.value,
+                        // A generated value belongs to the server, so it is shown but not typed over.
+                        enabled = !attribute.generated,
+                        generated = attribute.generated,
+                        hasWarning = reserved?.warning != null,
+                        warningMessage = reserved?.warning,
                         mandatory = attribute.mandatory,
                         baseMandatory = attribute.mandatory,
                         optionSet = if (optionSetUid != null) {
@@ -230,6 +367,91 @@ class SemisEnrollmentFormRepository @Inject constructor(
             )
         }
     }
+
+    /**
+     * Value already stored for each attribute of [tei], keyed by attribute uid.
+     *
+     * Two things depend on this. An enrollment being edited shows what was captured before, and an
+     * attribute that already holds a generated value stops consuming a fresh one from the reserve
+     * every time the form is reopened, which would both exhaust the reserve and change an
+     * identifier that other records already refer to.
+     */
+    private fun attributeValues(tei: String?): Map<String, String> {
+        if (tei.isNullOrBlank()) return emptyMap()
+
+        return d2.trackedEntityModule().trackedEntityAttributeValues()
+            .byTrackedEntityInstance().eq(tei)
+            .blockingGet()
+            .mapNotNull { attributeValue ->
+                val uid = attributeValue.trackedEntityAttribute() ?: return@mapNotNull null
+                val value = attributeValue.value()?.takeIf(String::isNotBlank)
+                    ?: return@mapNotNull null
+                uid to value
+            }
+            .toMap()
+    }
+
+    /**
+     * Takes the next value the server reserved for [attribute] at [orgUnit].
+     *
+     * The pattern behind a generated attribute is deliberately never interpreted here. Sequential
+     * values are allocated by the server so that two devices cannot mint the same identifier, and
+     * the SDK owns the reserve, its refill and the patterns whose result varies per organisation
+     * unit. Delegating to it is what keeps this working for whatever pattern a deployment
+     * configures, instead of only for the ones seen so far.
+     *
+     * Every call consumes a value, hence it is only reached for an attribute with none stored yet.
+     */
+    private fun reserveGeneratedValue(
+        attribute: TrackedEntityAttributeModel,
+        orgUnit: String,
+    ): ReservedValue {
+        val value = try {
+            if (orgUnit.isBlank()) null else nextUsableReservedValue(attribute, orgUnit)
+        } catch (_: Exception) {
+            // The reserve is refilled while syncing, so running dry offline is expected rather
+            // than exceptional, and it must not take the whole form down with it.
+            null
+        }
+
+        return when (value) {
+            null -> ReservedValue(
+                value = null,
+                warning = resourceManager.getString(R.string.reserved_value_unavailable),
+            )
+
+            else -> ReservedValue(value = value, warning = null)
+        }
+    }
+
+    /**
+     * Next reserved value that is valid for the value type of [attribute], or null when none is.
+     *
+     * A number cannot carry a leading zero, so such a value is dropped instead of being stored as
+     * something the server would later reject. The retries are capped because each one costs a
+     * value from the reserve, and a pattern that only ever yields leading zeros is a configuration
+     * problem that draining the reserve would not solve.
+     */
+    private fun nextUsableReservedValue(
+        attribute: TrackedEntityAttributeModel,
+        orgUnit: String,
+    ): String? {
+        val reservedValueManager = d2.trackedEntityModule().reservedValueManager()
+        var value = reservedValueManager.blockingGetValue(attribute.uid, orgUnit)
+
+        if (attribute.valueType != ValueType.NUMBER) return value
+
+        var attempts = 1
+        while (value.startsWith("0") && attempts < MAX_RESERVED_VALUE_ATTEMPTS) {
+            value = reservedValueManager.blockingGetValue(attribute.uid, orgUnit)
+            attempts++
+        }
+
+        return value.takeIf { !it.startsWith("0") }
+    }
+
+    /** Outcome of reserving a value: the value itself, or the warning to show when there is none. */
+    private data class ReservedValue(val value: String?, val warning: String?)
 
     override suspend fun applyProgramRules(
         orgUnit: String,

@@ -14,10 +14,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.PinDrop
-import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -47,13 +51,15 @@ import org.saudigitus.campaign.core.designsystem.templates.SimpleScaffold
 import org.saudigitus.campaign.core.designsystem.theme.FormSurfaces
 import org.saudigitus.campaign.core.designsystem.theme.light_success
 import org.saudigitus.campaign.core.form.R
-import org.saudigitus.campaign.core.form.ui.component.FormInfo
+import org.saudigitus.campaign.core.form.ui.component.FormPrimaryButton
+import org.saudigitus.campaign.core.form.ui.component.FormStepHeader
 import org.saudigitus.campaign.core.form.ui.component.MandatoryFieldWrapper
 import org.saudigitus.campaign.core.form.ui.fields.DateField
 import org.saudigitus.campaign.core.form.ui.fields.OuField
 import org.saudigitus.campaign.core.form.ui.state.FormEvent
 import org.saudigitus.campaign.core.form.ui.state.FormSectionType
 import org.saudigitus.campaign.core.form.ui.state.FormSectionUiState
+import org.saudigitus.campaign.core.form.ui.state.FormStepProgress
 import org.saudigitus.campaign.core.form.utils.completionPercentage
 import org.saudigitus.campaign.core.form.utils.firstBlockingFieldIndex
 import org.saudigitus.campaign.core.utils.location.rememberCoordinateState
@@ -64,6 +70,7 @@ import org.saudigitus.campaign.core.utils.location.state.CoordinateState
 internal fun FormSectionUi(
     modifier: Modifier = Modifier,
     state: FormSectionUiState.HasFormSection,
+    stepProgress: FormStepProgress? = null,
     onEvent: (FormEvent) -> Unit,
 ) {
     val visibleSections = state.formSections.filter { section ->
@@ -73,8 +80,10 @@ internal fun FormSectionUi(
     val listState = rememberLazyListState()
     val scrollScope = rememberCoroutineScope()
 
+    // Within a flow the bar reports how far along the steps the user is, which is the progress that
+    // matters there. On a form standing on its own it keeps reporting how much of it is filled in.
     val animatedProgress by animateFloatAsState(
-        targetValue = visibleSections.completionPercentage(),
+        targetValue = stepProgress?.fraction ?: visibleSections.completionPercentage(),
         animationSpec = ProgressIndicatorDefaults.ProgressAnimationSpec,
     )
 
@@ -147,13 +156,20 @@ internal fun FormSectionUi(
         )
     }
 
-    val showsBaseFields = state.formType == FormSectionType.NEW_ENROLLMENT ||
-        state.formType == FormSectionType.EDIT_ENROLLMENT ||
-        state.formType == FormSectionType.NEW_EVENT_WITHOUT_REGISTRATION
-    val pendingMandatorySection = visibleSections.firstOrNull { it.hasUnfilledMandatoryFields() }
+    // Where the record belongs and when it happened are settled once and apply to everything the
+    // flow produces, so they are asked for on a single step. Asking on each one would invite them
+    // to disagree. They sit on the second step, next to the rest of what the enrollment is about,
+    // falling back to the only step there is when the flow has just one.
+    val baseFieldsStep = stepProgress?.let { minOf(2, it.stepCount) }
+    val showsBaseFields = when {
+        stepProgress != null -> stepProgress.stepNumber == baseFieldsStep
 
+        else -> state.formType == FormSectionType.NEW_ENROLLMENT ||
+            state.formType == FormSectionType.EDIT_ENROLLMENT ||
+            state.formType == FormSectionType.NEW_EVENT_WITHOUT_REGISTRATION
+    }
     // The header sits inside the list, so the sections start right after it.
-    val sectionsOffset = if (showsBaseFields || pendingMandatorySection != null) 1 else 0
+    val sectionsOffset = if (showsBaseFields) 1 else 0
 
     fun isFormValid(): Boolean {
         hasUnfilledMandatoryFields = hasBaseMandatoryFields(state) ||
@@ -176,25 +192,41 @@ internal fun FormSectionUi(
         topBar = {
             TopAppBar(
                 title = {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(5.dp, Alignment.Top),
-                        horizontalAlignment = Alignment.Start
-                    ) {
-                        Text(
-                            stringResource(R.string.form_title),
-                            style = MaterialTheme.typography.titleLarge
+                    if (stepProgress != null) {
+                        // The markers already say which step this is, so the line above them names
+                        // it instead of repeating the count.
+                        FormStepHeader(
+                            title = stringResource(R.string.form_title),
+                            stepName = visibleSections.firstOrNull()?.name
+                                ?.takeIf { it.isNotBlank() }
+                                ?: stringResource(
+                                    R.string.form_step_progress,
+                                    stepProgress.stepNumber,
+                                    stepProgress.stepCount,
+                                ),
+                            progress = stepProgress,
                         )
-
-                        if (hasVisibleSections) {
-                            LinearProgressIndicator(
-                                modifier = Modifier.fillMaxWidth(),
-                                trackColor = Color.White,
-                                color = light_success,
-                                progress = { animatedProgress }
+                    } else {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(5.dp, Alignment.Top),
+                            horizontalAlignment = Alignment.Start,
+                        ) {
+                            Text(
+                                stringResource(R.string.form_title),
+                                style = MaterialTheme.typography.titleLarge,
                             )
+
+                            if (hasVisibleSections) {
+                                LinearProgressIndicator(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    trackColor = Color.White,
+                                    color = light_success,
+                                    progress = { animatedProgress },
+                                )
+                            }
                         }
                     }
                 },
@@ -224,16 +256,26 @@ internal fun FormSectionUi(
                 horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Button(
+                // Nothing is written until the last step, so every step before it offers to move on
+                // rather than promising to save.
+                val movesOn = stepProgress?.isLast == false
+
+                FormPrimaryButton(
+                    text = stringResource(
+                        if (movesOn) R.string.form_step_continue else R.string.save,
+                    ),
                     modifier = Modifier.fillMaxWidth(),
+                    imageVector = if (movesOn) {
+                        Icons.AutoMirrored.Filled.ArrowForward
+                    } else {
+                        Icons.Default.Check
+                    },
                     onClick = {
                         if (isFormValid()) {
                             onEvent(FormEvent.ConfirmSave)
                         }
-                    }
-                ) {
-                    Text(stringResource(R.string.save))
-                }
+                    },
+                )
             }
         },
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
@@ -253,34 +295,52 @@ internal fun FormSectionUi(
                 item(key = "form_header") {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         if (showsBaseFields) {
-                            MandatoryFieldWrapper(hasUnfilledMandatoryFields) {
-                                OuField(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    placeholder = stringResource(R.string.administrative_area),
-                                    leadingIcon = Icons.Default.PinDrop,
-                                    selectedOrgUnit = state.orgUnit,
-                                    program = state.program.orEmpty()
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(16.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = FormSurfaces.CardSurface,
+                                ),
+                            ) {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(16.dp),
+                                    verticalArrangement = Arrangement.spacedBy(12.dp),
                                 ) {
-                                    hasUnfilledMandatoryFields = false
-                                    onEvent(FormEvent.SelectedOU(it))
+                                    // Cased like the section titles below it, so the card reads as
+                                    // one of them rather than as something apart.
+                                    Text(
+                                        text = stringResource(R.string.form_record_details)
+                                            .uppercase(),
+                                        style = MaterialTheme.typography.titleSmall,
+                                        color = FormSurfaces.SectionTitle,
+                                    )
+
+                                    MandatoryFieldWrapper(hasUnfilledMandatoryFields) {
+                                        OuField(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            placeholder = stringResource(R.string.administrative_area),
+                                            leadingIcon = Icons.Default.PinDrop,
+                                            selectedOrgUnit = state.orgUnit,
+                                            program = state.program.orEmpty()
+                                        ) {
+                                            hasUnfilledMandatoryFields = false
+                                            onEvent(FormEvent.SelectedOU(it))
+                                        }
+                                    }
+
+                                    DateField(
+                                        isEnabled = true,
+                                        date = visibleSections.firstOrNull()?.registrationDate,
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        onEvent(FormEvent.SelectedDate(it))
+                                    }
                                 }
                             }
-
-                            DateField(
-                                isEnabled = false,
-                                date = visibleSections.firstOrNull()?.registrationDate,
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                onEvent(FormEvent.SelectedDate(it))
-                            }
                         }
 
-                        pendingMandatorySection?.let { section ->
-                            FormInfo(
-                                modifier = Modifier.fillMaxWidth(),
-                                formSectionModel = section
-                            )
-                        }
                     }
                 }
             }

@@ -16,6 +16,9 @@ import androidx.compose.ui.unit.dp
 object FormSurfaces {
     /** Header blue of the SEMIS design (SemisPalette.HeaderBlue). */
     val HeaderBlue = Color(0xFF1B3F94)
+
+    /** Blue the module screens fill their main action with (SemisPalette.ActionBlue). */
+    val ActionBlue = Color(0xFF1B4BA8)
     val ScreenBackground = Color(0xFFEEF2F7)
     val CardSurface = Color(0xFFFFFFFF)
     val FieldSurface = Color(0xFFEEF2F7)

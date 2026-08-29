@@ -25,6 +25,11 @@ data class FormFieldModel(
     val baseMandatory: Boolean? = mandatory,
     val rendered: Boolean? = true,
     val enabled: Boolean? = true,
+    /**
+     * The server minted this value from a pattern rather than the user typing it, which is what
+     * lets the identifiers be shown back once the record is written.
+     */
+    val generated: Boolean = false,
     val enabledOnAssign: Boolean? = null,
     val hasError: Boolean? = false,
     val errorMessage: String? = null,
