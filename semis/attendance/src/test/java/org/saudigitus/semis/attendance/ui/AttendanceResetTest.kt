@@ -45,7 +45,7 @@ class AttendanceResetTest {
         formRepository.stub {
             on { attendanceButtonStateFlow } doReturn MutableStateFlow(AttendanceButtonState())
             onBlocking {
-                loadAttendanceEvents(any(), any(), any(), any(), any(), anyOrNull())
+                loadAttendanceEvents(any(), any(), any(), any(), any(), any(), anyOrNull())
             } doReturn AttendanceButtonState()
             onBlocking { deleteAttendance(any()) } doReturn AttendanceButtonState()
         }

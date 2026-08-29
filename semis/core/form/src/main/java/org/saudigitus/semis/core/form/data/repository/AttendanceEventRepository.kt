@@ -39,6 +39,7 @@ interface AttendanceEventRepository {
 
     suspend fun getAttendanceEvent(
         teiUids: List<String>,
+        orgUnit: String,
         program: String,
         programStage: String,
         dataElement: String,
@@ -65,6 +66,7 @@ interface AttendanceEventRepository {
 
     suspend fun loadAttendanceEvents(
         teiUids: List<String>,
+        orgUnit: String,
         program: String,
         programStage: String,
         dataElement: String,

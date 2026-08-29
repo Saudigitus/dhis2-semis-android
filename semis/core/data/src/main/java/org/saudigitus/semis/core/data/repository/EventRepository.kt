@@ -83,6 +83,7 @@ interface EventRepository {
 
     suspend fun getEvents(
         teiUids: List<String>,
+        orgUnit: String,
         program: String,
         programStage: String,
         eventDate: String?

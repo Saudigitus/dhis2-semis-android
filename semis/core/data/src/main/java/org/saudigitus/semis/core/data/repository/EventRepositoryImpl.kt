@@ -253,6 +253,7 @@ class EventRepositoryImpl @Inject constructor(
 
     override suspend fun getEvents(
         teiUids: List<String>,
+        orgUnit: String,
         program: String,
         programStage: String,
         eventDate: String?
@@ -265,6 +266,7 @@ class EventRepositoryImpl @Inject constructor(
 
         d2.eventModule().events()
             .byTrackedEntityInstanceUids(teiUids)
+            .byOrganisationUnitUid().eq(orgUnit)
             .byProgramUid().eq(program)
             .byProgramStageUid().eq(programStage)
             .byDeleted().isFalse
