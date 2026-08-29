@@ -7,6 +7,8 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import org.dhis2.commons.network.NetworkUtils
+import org.dhis2.commons.prefs.PreferenceProvider
+import org.dhis2.commons.prefs.PreferenceProviderImpl
 import org.dhis2.commons.resources.ResourceManager
 import org.hisp.dhis.android.core.D2
 import org.saudigitus.semis.core.data.repository.AppConfigRepository
@@ -17,8 +19,12 @@ import org.saudigitus.semis.core.data.repository.EventRepository
 import org.saudigitus.semis.core.data.repository.EventRepositoryImpl
 import org.saudigitus.semis.core.data.repository.FilterRepository
 import org.saudigitus.semis.core.data.repository.FilterRepositoryImpl
+import org.saudigitus.semis.core.data.repository.FilterSelectionRepository
+import org.saudigitus.semis.core.data.repository.FilterSelectionRepositoryImpl
 import org.saudigitus.semis.core.data.repository.OptionRepository
 import org.saudigitus.semis.core.data.repository.OptionRepositoryImpl
+import org.saudigitus.semis.core.data.repository.OrgUnitRepository
+import org.saudigitus.semis.core.data.repository.OrgUnitRepositoryImpl
 import org.saudigitus.semis.core.data.repository.ProgramStageRepository
 import org.saudigitus.semis.core.data.repository.ProgramStageRepositoryImpl
 import org.saudigitus.semis.core.data.repository.TeiDownloaderRepository
@@ -67,6 +73,28 @@ object DataModule {
     @Singleton
     fun provideNetworkUtils(@ApplicationContext context: Context): NetworkUtils =
         NetworkUtils(context)
+
+    /**
+     * The preferences the base app already writes to, reached without changing it.
+     *
+     * Reusing that store rather than opening one of our own is what makes anything SEMIS remembers
+     * disappear together with the rest when local data is deleted.
+     */
+    @Provides
+    @Singleton
+    fun providePreferenceProvider(@ApplicationContext context: Context): PreferenceProvider =
+        PreferenceProviderImpl(context)
+
+    @Provides
+    @Singleton
+    fun provideFilterSelectionRepository(
+        d2: D2,
+        preferences: PreferenceProvider
+    ): FilterSelectionRepository = FilterSelectionRepositoryImpl(d2, preferences)
+
+    @Provides
+    @Singleton
+    fun provideOrgUnitRepository(d2: D2): OrgUnitRepository = OrgUnitRepositoryImpl(d2)
 
 
     @Provides
