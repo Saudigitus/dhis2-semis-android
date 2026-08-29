@@ -45,6 +45,12 @@ class AttendanceViewModel @Inject constructor(
     private var selectedDate: String = DateHelper.formatDate(System.currentTimeMillis())
         .orEmpty()
 
+    /**
+     * The academic year the user is working in, which decides whose calendar judges the dates.
+     * Left null until the screen is initialised, where the configured default stands in.
+     */
+    private var academicYearCode: String? = null
+
     private var cachedButtonModel: AttendanceButtonModel? = null
 
     private val _hasCachedData = MutableStateFlow(false)
@@ -82,11 +88,16 @@ class AttendanceViewModel @Inject constructor(
             _uiState.update {
                 it.copy(
                     dateValidator = { date ->
-                        appConfigRepository.allowedCalenderYearDates(date, schoolCalendar)
+                        appConfigRepository.allowedCalenderYearDates(
+                            date,
+                            schoolCalendar,
+                            academicYearCode,
+                        )
                     },
                     canTakeAttendance = appConfigRepository.allowedCalenderYearDates(
                         DateHelper.convertDateToMilliseconds(selectedDate),
-                        schoolCalendar
+                        schoolCalendar,
+                        academicYearCode,
                     )
                 )
             }
@@ -99,10 +110,12 @@ class AttendanceViewModel @Inject constructor(
         program: String,
         orgUnit: String,
         teis: List<SearchTeiModel>,
-        filterDetailsState: FilterDetailsState
+        filterDetailsState: FilterDetailsState,
+        academicYearCode: String? = null,
     ) {
         viewModelScope.launch {
             studentsIds = teis.mapNotNull { it.tei.uid() }
+            this@AttendanceViewModel.academicYearCode = academicYearCode
 
             val config = appConfigRepository.getAppConfig(program)
             attendanceConfig = config?.attendance
@@ -192,7 +205,8 @@ class AttendanceViewModel @Inject constructor(
                 ),
                 canTakeAttendance = appConfigRepository.allowedCalenderYearDates(
                     DateHelper.convertDateToMilliseconds(selectedDate),
-                    schoolCalendar
+                    schoolCalendar,
+                    academicYearCode,
                 )
             )
         }
