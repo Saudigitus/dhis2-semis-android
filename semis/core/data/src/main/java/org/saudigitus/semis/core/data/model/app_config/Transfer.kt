@@ -62,9 +62,16 @@ private const val PENDING_STATUS_KEY = "pending"
 private const val APPROVED_STATUS_KEY = "approved"
 private const val REJECTED_STATUS_KEY = "reproved"
 
-fun Transfer?.isIncomingEnabledAndConfigured(): Boolean = this?.run {
+/**
+ * Whether transfers can be listed and raised at all.
+ *
+ * [originSchool] is deliberately not required. The transfer program stage holds a single
+ * organisation unit data element and it carries the destination; the origin is the
+ * organisation unit the request event belongs to. The key is kept only because it is
+ * still present in the datastore, and must never be read as a data element.
+ */
+fun Transfer?.isTransferEnabledAndConfigured(): Boolean = this?.run {
     enabled == true &&
         !programStage.isNullOrBlank() &&
-        !originSchool.isNullOrBlank() &&
         !destinySchool.isNullOrBlank()
 } == true

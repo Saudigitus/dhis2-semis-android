@@ -42,14 +42,25 @@ class TransferTest {
     }
 
     @Test
-    fun `incoming configuration only requires the transfer event fields`() {
+    fun `configuration only requires the stage and the destination data element`() {
         val configured = decodeTransfer("pendingCode")
 
-        assertTrue(configured.isIncomingEnabledAndConfigured())
-        assertTrue(configured.copy(pendingCode = null, status = null).isIncomingEnabledAndConfigured())
-        assertFalse(configured.copy(originSchool = null).isIncomingEnabledAndConfigured())
-        assertFalse(configured.copy(destinySchool = null).isIncomingEnabledAndConfigured())
-        assertFalse(null.isIncomingEnabledAndConfigured())
+        assertTrue(configured.isTransferEnabledAndConfigured())
+        assertTrue(configured.copy(pendingCode = null, status = null).isTransferEnabledAndConfigured())
+        assertFalse(configured.copy(destinySchool = null).isTransferEnabledAndConfigured())
+        assertFalse(configured.copy(programStage = null).isTransferEnabledAndConfigured())
+        assertFalse(configured.copy(enabled = false).isTransferEnabledAndConfigured())
+        assertFalse(null.isTransferEnabledAndConfigured())
+    }
+
+    @Test
+    fun `origin school key never takes part in deciding the configuration is usable`() {
+        val configured = decodeTransfer("pendingCode")
+
+        assertTrue(configured.copy(originSchool = null).isTransferEnabledAndConfigured())
+        assertTrue(
+            configured.copy(originSchool = configured.destinySchool).isTransferEnabledAndConfigured(),
+        )
     }
 
     private fun statusOption(code: String, key: String) = StatusOption(

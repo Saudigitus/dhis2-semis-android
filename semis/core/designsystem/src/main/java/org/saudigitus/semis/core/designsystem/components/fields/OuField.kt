@@ -39,6 +39,25 @@ import org.hisp.dhis.mobile.ui.designsystem.theme.SurfaceColor
 import org.saudigitus.semis.core.data.model.OrgUnit
 import org.saudigitus.semis.core.designsystem.theme.SemisFieldShape
 
+/**
+ * Which organisation units a field offers.
+ *
+ * [CAPTURE] is what a screen naming the user's own school needs: the places they record
+ * into. [SEARCH] is for a field naming somebody else's school, such as where a record is
+ * being sent, since a user seldom records into the school they are sending it to. It is
+ * filled from the user's search organisation units, configured on the DHIS2 user.
+ */
+enum class OuFieldScope {
+    CAPTURE,
+    SEARCH,
+    ;
+
+    internal fun selectorScope(program: String): OrgUnitSelectorScope = when (this) {
+        CAPTURE -> OrgUnitSelectorScope.ProgramCaptureScope(program)
+        SEARCH -> OrgUnitSelectorScope.ProgramSearchScope(program)
+    }
+}
+
 @Composable
 fun OuField(
     modifier: Modifier = Modifier,
@@ -48,6 +67,7 @@ fun OuField(
     program: String,
     enabled: Boolean = true,
     style: OuFieldStyle = OuFieldStyle.FILTER,
+    scope: OuFieldScope = OuFieldScope.CAPTURE,
     label: String = placeholder,
     supportingText: String? = null,
     isError: Boolean = false,
@@ -71,6 +91,7 @@ fun OuField(
                 supportFragmentManager = it,
                 selectedOrgUnit = selectedOrgUnit,
                 program = program,
+                scope = scope,
                 onOrgUnitSelected = onItemClick,
             )
         }
@@ -158,11 +179,12 @@ private fun launchOuTreeSelector(
     supportFragmentManager: FragmentManager,
     selectedOrgUnit: OrgUnit? = null,
     program: String,
+    scope: OuFieldScope,
     onOrgUnitSelected: (orgUnit: OrgUnit) -> Unit,
 ) {
     OUTreeFragment.Builder()
         .singleSelection()
-        .orgUnitScope(OrgUnitSelectorScope.ProgramCaptureScope(program))
+        .orgUnitScope(scope.selectorScope(program))
         .withPreselectedOrgUnits(
             selectedOrgUnit?.let { listOf(it.uid) } ?: emptyList(),
         )

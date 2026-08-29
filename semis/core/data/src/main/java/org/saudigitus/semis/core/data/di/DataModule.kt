@@ -131,12 +131,14 @@ object DataModule {
         appConfigRepository: AppConfigRepository,
         eventRepository: EventRepository,
         transformations: Transformations,
+        networkUtils: NetworkUtils,
         resourceManager: ResourceManager,
     ): TeiTransferRepository = TeiTransferRepositoryImpl(
         d2 = d2,
         appConfigRepository = appConfigRepository,
         eventRepository = eventRepository,
         transformations = transformations,
+        networkUtils = networkUtils,
         resourceManager = resourceManager,
     )
 
