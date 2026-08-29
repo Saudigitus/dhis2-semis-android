@@ -393,6 +393,7 @@ class FormRepositoryImpl @Inject constructor(
     }
 
     override suspend fun saveAttendance(
+        orgUnit: String,
         program: String,
         programStage: String,
         attendanceEvents: List<AttendanceEventWithDecorator>,
@@ -410,7 +411,7 @@ class FormRepositoryImpl @Inject constructor(
         attendanceEvents.forEach { attendanceEvent ->
             eventRepository.saveEvent(
                 event = attendanceEvent.event?.event,
-                orgUnit = attendanceEvent.tei!!.tei.organisationUnit().orEmpty(),
+                orgUnit = orgUnit,
                 tei = attendanceEvent.tei!!,
                 program = program,
                 programStage = programStage,
