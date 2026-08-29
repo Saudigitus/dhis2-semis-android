@@ -204,6 +204,7 @@ class FormRepositoryImpl @Inject constructor(
 
     override suspend fun loadAttendanceEvents(
         teiUids: List<String>,
+        orgUnit: String,
         program: String,
         programStage: String,
         dataElement: String,
@@ -215,6 +216,7 @@ class FormRepositoryImpl @Inject constructor(
 
         val attendanceEvents = getAttendanceEvent(
             teiUids = teiUids,
+            orgUnit = orgUnit,
             program = program,
             programStage = programStage,
             dataElement = attendanceConfig?.status.orEmpty(),
@@ -451,6 +453,7 @@ class FormRepositoryImpl @Inject constructor(
 
     override suspend fun getAttendanceEvent(
         teiUids: List<String>,
+        orgUnit: String,
         program: String,
         programStage: String,
         dataElement: String,
@@ -461,6 +464,7 @@ class FormRepositoryImpl @Inject constructor(
 
         eventRepository.getEvents(
             teiUids = teiUids,
+            orgUnit = orgUnit,
             program = program,
             programStage = programStage,
             eventDate = eventDate,

@@ -170,6 +170,7 @@ class AttendanceViewModel @Inject constructor(
 
         val currentButtonState = formRepository.loadAttendanceEvents(
             teiUids = studentsIds,
+            orgUnit = uiState.value.formBuilderState.orgUnit,
             program = uiState.value.program,
             programStage = attendanceConfig?.programStage.orEmpty(),
             dataElement = attendanceConfig?.status.orEmpty(),
