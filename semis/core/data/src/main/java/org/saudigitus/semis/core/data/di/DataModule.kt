@@ -109,8 +109,9 @@ object DataModule {
     @Singleton
     fun provideTeiRepository(
         d2: D2,
-        transformations: Transformations
-    ): TeiRepository = TeiRepositoryImpl(d2, transformations)
+        transformations: Transformations,
+        appConfigRepository: AppConfigRepository,
+    ): TeiRepository = TeiRepositoryImpl(d2, transformations, appConfigRepository)
 
     @Provides
     @Singleton
