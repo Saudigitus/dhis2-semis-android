@@ -272,7 +272,7 @@ class SemisEnrollmentFormRepository @Inject constructor(
                 sortOrder = section.sortOrder(),
                 formFields = eventFields(
                     stage = stage,
-                    includedDataElements = section.dataElements().orEmpty().map { it.uid() }.toSet(),
+                    sectionDataElements = section.dataElements().orEmpty().map { it.uid() },
                 ),
             )
         }
@@ -285,37 +285,59 @@ class SemisEnrollmentFormRepository @Inject constructor(
             .blockingGet()
             ?.uid()
 
+    /**
+     * The fields a step presents, in the order the configuration puts them in.
+     *
+     * A section states the order of the data elements it holds, and that is the order the form
+     * follows. The position the program stage gives the same data element is a different number
+     * entirely: it is assigned across the whole stage, it repeats between sections, and reading it
+     * instead leaves a section shuffled and its ties settled by nothing in particular. Only a stage
+     * that groups nothing has no section order to follow, and there the stage order is the order.
+     *
+     * [sectionDataElements] is the section's own list, already in that order, and null for a stage
+     * without sections.
+     */
     private suspend fun eventFields(
         stage: String,
-        includedDataElements: Set<String>?,
-    ): List<FormFieldModel> = d2.programModule().programStageDataElements()
-        .byProgramStage().eq(stage)
-        .blockingGet()
-        .filter { includedDataElements == null || it.dataElement()?.uid() in includedDataElements }
-        .sortedBy { it.sortOrder() }
-        .mapNotNull { stageDataElement ->
-            val dataElementUid = stageDataElement.dataElement()?.uid() ?: return@mapNotNull null
-            val dataElement = d2.dataElementModule().dataElements().uid(dataElementUid).blockingGet()
-                ?: return@mapNotNull null
-            val optionSetUid = dataElement.optionSet()?.uid()
-            FormFieldModel(
-                uid = dataElementUid,
-                label = dataElement.displayFormName().orEmpty(),
-                valueType = dataElement.valueType(),
-                mandatory = stageDataElement.compulsory() == true,
-                baseMandatory = stageDataElement.compulsory() == true,
-                optionSet = optionSetUid?.let { uid ->
-                    optionRepository.getOptions(uid).map { option ->
-                        OptionModel(
-                            uid = option.uid(),
-                            code = option.code(),
-                            displayName = option.displayName(),
-                            sortOrder = option.sortOrder(),
-                        )
-                    }
-                }.orEmpty(),
-            )
-        }
+        sectionDataElements: List<String>?,
+    ): List<FormFieldModel> {
+        val positionInSection = sectionDataElements
+            ?.withIndex()
+            ?.associate { (position, dataElement) -> dataElement to position }
+
+        return d2.programModule().programStageDataElements()
+            .byProgramStage().eq(stage)
+            .blockingGet()
+            .filter { positionInSection == null || it.dataElement()?.uid() in positionInSection }
+            .sortedBy { stageDataElement ->
+                positionInSection?.get(stageDataElement.dataElement()?.uid())
+                    ?: stageDataElement.sortOrder()
+                    ?: Int.MAX_VALUE
+            }
+            .mapNotNull { stageDataElement ->
+                val dataElementUid = stageDataElement.dataElement()?.uid() ?: return@mapNotNull null
+                val dataElement = d2.dataElementModule().dataElements().uid(dataElementUid).blockingGet()
+                    ?: return@mapNotNull null
+                val optionSetUid = dataElement.optionSet()?.uid()
+                FormFieldModel(
+                    uid = dataElementUid,
+                    label = dataElement.displayFormName().orEmpty(),
+                    valueType = dataElement.valueType(),
+                    mandatory = stageDataElement.compulsory() == true,
+                    baseMandatory = stageDataElement.compulsory() == true,
+                    optionSet = optionSetUid?.let { uid ->
+                        optionRepository.getOptions(uid).map { option ->
+                            OptionModel(
+                                uid = option.uid(),
+                                code = option.code(),
+                                displayName = option.displayName(),
+                                sortOrder = option.sortOrder(),
+                            )
+                        }
+                    }.orEmpty(),
+                )
+            }
+    }
 
     override suspend fun getFormSections(
         orgUnit: String,
