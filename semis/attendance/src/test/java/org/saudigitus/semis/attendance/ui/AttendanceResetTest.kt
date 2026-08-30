@@ -86,6 +86,7 @@ class AttendanceResetTest {
                 key = null,
                 lastUpdate = null,
                 performance = null,
+                profile = null,
                 program = "program",
                 reenroll = null,
                 registration = null,
