@@ -37,4 +37,12 @@
     <string name="enrollment_summary_registration_hint">Where the learner was enrolled and what was recorded.</string>
     <string name="enrollment_summary_org_unit">School</string>
     <string name="enrollment_summary_date">Registration date</string>
+    <string name="profile_panel_empty">Nothing was recorded for this panel.</string>
+    <string name="profile_record_empty">This record holds no values.</string>
+    <string name="profile_panel_attributes">What was recorded about this person.</string>
+    <plurals name="profile_panel_records">
+        <item quantity="one">%1$d record</item>
+        <item quantity="other">%1$d records</item>
+    </plurals>
+    <string name="profile_not_configured">This profile page has not been configured for this program.</string>
 </resources>

@@ -20,6 +20,7 @@ import org.saudigitus.semis.core.designsystem.components.tabs.SegmentedTabRow
 import org.saudigitus.semis.core.designsystem.templates.RoundedHeaderScaffold
 import org.saudigitus.semis.core.designsystem.theme.dark_warning
 import org.saudigitus.semis.enrollment.R
+import org.saudigitus.semis.enrollment.ui.profile.components.ConfiguredProfileSection
 import org.saudigitus.semis.enrollment.ui.profile.components.StudentAttendanceSection
 import org.saudigitus.semis.enrollment.ui.profile.components.StudentDetailsSection
 import org.saudigitus.semis.enrollment.ui.profile.components.StudentPerformanceSection
@@ -39,9 +40,13 @@ fun StudentProfileScreen(
     RoundedHeaderScaffold(
         header = {
             StudentProfileHeader(
-                name = profile?.name.orEmpty()
+                // The deployment says which attributes name the person and how they are joined;
+                // the derived name is what a deployment that has not configured that still gets.
+                name = state.configured?.identity?.title.orEmpty()
+                    .ifBlank { profile?.name.orEmpty() }
                     .ifBlank { stringResource(R.string.profile_unknown_learner) },
-                systemId = profile?.systemId.orEmpty(),
+                systemId = state.configured?.identity?.subtitle.orEmpty()
+                    .ifBlank { profile?.systemId.orEmpty() },
                 tiles = studentProfileTiles(
                     recordedDaysLabel = stringResource(R.string.profile_recorded),
                     profile = profile,
@@ -76,33 +81,55 @@ fun StudentProfileScreen(
                     bottom = 24.dp,
                 ),
             ) {
-                item {
-                    SegmentedTabRow(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 12.dp),
-                        tabs = profileTabs(state),
-                        selectedId = state.selectedTab.name,
-                        onSelect = { tab ->
-                            onEvent(
-                                StudentProfileEvent.SelectTab(
-                                    StudentProfileTab.valueOf(tab.id),
-                                ),
+                // What the deployment configured is what the page shows. The fixed tabs remain
+                // for a deployment that has configured nothing, so upgrading the app does not
+                // empty a page that was working.
+                if (state.isConfigured) {
+                    item {
+                        SegmentedTabRow(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 12.dp),
+                            tabs = configuredTabs(state),
+                            selectedId = state.currentTab?.id.orEmpty(),
+                            onSelect = { tab ->
+                                onEvent(StudentProfileEvent.SelectConfiguredTab(tab.id))
+                            },
+                        )
+                    }
+
+                    item {
+                        state.currentTab?.let { tab -> ConfiguredProfileSection(tab = tab) }
+                    }
+                } else {
+                    item {
+                        SegmentedTabRow(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 12.dp),
+                            tabs = profileTabs(state),
+                            selectedId = state.selectedTab.name,
+                            onSelect = { tab ->
+                                onEvent(
+                                    StudentProfileEvent.SelectTab(
+                                        StudentProfileTab.valueOf(tab.id),
+                                    ),
+                                )
+                            },
+                        )
+                    }
+
+                    item {
+                        when (state.selectedTab) {
+                            StudentProfileTab.DETAILS -> StudentDetailsSection(profile = profile)
+                            StudentProfileTab.ATTENDANCE -> StudentAttendanceSection(
+                                history = profile.attendance,
                             )
-                        },
-                    )
-                }
 
-                item {
-                    when (state.selectedTab) {
-                        StudentProfileTab.DETAILS -> StudentDetailsSection(profile = profile)
-                        StudentProfileTab.ATTENDANCE -> StudentAttendanceSection(
-                            history = profile.attendance,
-                        )
-
-                        StudentProfileTab.PERFORMANCE -> StudentPerformanceSection(
-                            subjects = state.scoredSubjects,
-                        )
+                            StudentProfileTab.PERFORMANCE -> StudentPerformanceSection(
+                                subjects = state.scoredSubjects,
+                            )
+                        }
                     }
                 }
             }
@@ -129,3 +156,10 @@ private fun profileTabs(state: StudentProfileUiState): List<SegmentedTabItem> = 
         badge = state.scoredSubjects.size.takeIf { it > 0 }?.toString(),
     ),
 )
+
+/** The tabs the deployment configured, in the order it put them in. */
+@Composable
+private fun configuredTabs(state: StudentProfileUiState): List<SegmentedTabItem> =
+    state.configured?.tabs.orEmpty().map { tab ->
+        SegmentedTabItem(id = tab.id, label = tab.title)
+    }
