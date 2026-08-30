@@ -11,18 +11,22 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldColors
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import org.hisp.dhis.mobile.ui.designsystem.theme.Spacing
 import org.saudigitus.campaign.core.designsystem.theme.FormSurfaces
 import org.saudigitus.campaign.core.designsystem.utils.Utils
-import org.saudigitus.campaign.core.form.R
 import org.saudigitus.campaign.core.form.data.models.FormFieldModel
-import org.saudigitus.campaign.core.form.utils.phone.MozambiquePhoneTransformation
-import org.saudigitus.campaign.core.form.utils.phone.MozambiquePhoneValidator
 
+/**
+ * A phone number, entered as the deployment writes it.
+ *
+ * No national format is imposed here: SEMIS is deployed in several countries, and a number that is
+ * valid in one is not in another, so the field accepts what is typed and leaves any national rule
+ * to be expressed as a program rule, which the form evaluates. The only concession to the value
+ * type is the keyboard.
+ */
 @Composable
 fun PhoneNumberField(
     modifier: Modifier = Modifier,
@@ -39,14 +43,9 @@ fun PhoneNumberField(
             .then(modifier),
         enabled = (enable ?: field.enabled) == true,
         value = field.value.orEmpty(),
-        onValueChange = {
-            onValueChange(it.take(MozambiquePhoneValidator.MAX_LEN))
-        },
+        onValueChange = onValueChange,
         label = { Text(text = field.label + if (field.mandatory == true) " *" else "") },
         placeholder = { Text(text = field.label) },
-        prefix = {
-            Text(stringResource(R.string.phone_prefix))
-        },
         leadingIcon = {
             Icon(
                 imageVector = Icons.Default.Phone,
@@ -63,6 +62,5 @@ fun PhoneNumberField(
             imeAction = ImeAction.Done,
         ),
         colors = colors,
-        visualTransformation = MozambiquePhoneTransformation(),
     )
 }

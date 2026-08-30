@@ -23,7 +23,6 @@ import org.saudigitus.campaign.core.form.data.models.FormResult
 import org.saudigitus.campaign.core.form.data.models.FormSectionModel
 import org.saudigitus.campaign.core.form.rules.applyRuleEffects
 import org.saudigitus.campaign.core.form.ui.state.FormSectionType
-import org.saudigitus.campaign.core.form.utils.phone.MozambiquePhoneValidator
 import org.saudigitus.campaign.core.form.utils.toEntities
 import timber.log.Timber
 import org.saudigitus.campaign.core.utils.Constants
@@ -550,30 +549,16 @@ class SemisEnrollmentFormRepository @Inject constructor(
         }
         .toMap()
 
-    /**
-     * The field as the configuration alone describes it, with no rule outcome left in.
-     *
-     * The phone number check is the only flag that does not come from a rule, so it is the only
-     * one recomputed instead of dropped.
-     */
-    private fun FormFieldModel.withBaseFlags(): FormFieldModel {
-        val phoneInvalid = valueType == ValueType.PHONE_NUMBER &&
-            !value.isNullOrEmpty() && !MozambiquePhoneValidator.isValid(value)
-
-        return copy(
-            rendered = true,
-            mandatory = baseMandatory,
-            enabled = !generated,
-            hasError = phoneInvalid,
-            errorMessage = if (phoneInvalid) {
-                resourceManager.getString(R.string.invalide_phone_num)
-            } else {
-                null
-            },
-            hasWarning = false,
-            warningMessage = null,
-        )
-    }
+    /** The field as the configuration alone describes it, with no rule outcome left in. */
+    private fun FormFieldModel.withBaseFlags(): FormFieldModel = copy(
+        rendered = true,
+        mandatory = baseMandatory,
+        enabled = !generated,
+        hasError = false,
+        errorMessage = null,
+        hasWarning = false,
+        warningMessage = null,
+    )
 
     override suspend fun searchOrgUnits(
         query: String?,

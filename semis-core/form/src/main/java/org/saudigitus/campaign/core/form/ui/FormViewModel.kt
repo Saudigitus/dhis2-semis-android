@@ -28,7 +28,6 @@ import org.saudigitus.campaign.core.form.ui.state.FormSectionType
 import org.saudigitus.campaign.core.form.ui.state.FormSectionUiState
 import org.saudigitus.campaign.core.form.utils.CustomValueType
 import org.saudigitus.campaign.core.form.utils.hasBlockingFields
-import org.saudigitus.campaign.core.form.utils.phone.MozambiquePhoneValidator
 import org.saudigitus.campaign.core.navigation.AppRoute
 import org.saudigitus.campaign.core.utils.DateHelper
 import org.saudigitus.campaign.core.utils.formatBoolean
@@ -424,31 +423,18 @@ class FormViewModel @Inject constructor(
                 if (currentSection.uid != section.uid) return@map currentSection
 
                 val updatedFields = currentSection.formFields.map { field ->
-                    val cleanedValue = when (field.valueType) {
-                        ValueType.PHONE_NUMBER -> MozambiquePhoneValidator.clean(value)
+                    if (field.uid != uid) return@map field
+
+                    // Only the shape the value type itself defines is normalised. Nothing here
+                    // knows a country: a national phone format belongs in a program rule, which
+                    // the form evaluates, not in the field that captures the value.
+                    val normalisedValue = when (field.valueType) {
                         ValueType.BOOLEAN -> value.formatBoolean()
                         ValueType.TRUE_ONLY -> value.formatTrueOnly()
                         else -> value
                     }
 
-                    if (field.uid == uid) {
-                        field.copy(
-                            value = cleanedValue,
-                            hasError = field.valueType == ValueType.PHONE_NUMBER &&
-                                (cleanedValue.isNotEmpty() && !MozambiquePhoneValidator.isValid(
-                                    cleanedValue
-                                )),
-                            errorMessage = if (field.valueType == ValueType.PHONE_NUMBER &&
-                                (cleanedValue.isNotEmpty() && !MozambiquePhoneValidator.isValid(
-                                    cleanedValue
-                                ))
-                            ) {
-                                resourceManager.getString(R.string.invalide_phone_num)
-                            } else null
-                        )
-                    } else {
-                        field
-                    }
+                    field.copy(value = normalisedValue)
                 }
 
                 currentSection.copy(formFields = updatedFields)
