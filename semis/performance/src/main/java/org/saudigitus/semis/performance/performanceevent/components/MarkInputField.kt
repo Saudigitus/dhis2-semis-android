@@ -31,6 +31,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.saudigitus.semis.core.designsystem.theme.SemisAccent
 import org.saudigitus.semis.core.designsystem.theme.SemisPalette
+import org.saudigitus.semis.core.designsystem.theme.dark_warning
+import org.saudigitus.semis.core.designsystem.theme.light_error
 import org.saudigitus.semis.core.designsystem.theme.semisSoftShadow
 
 private val FieldShape = RoundedCornerShape(12.dp)
@@ -48,6 +50,8 @@ internal fun MarkInputField(
     value: String,
     enabled: Boolean,
     modifier: Modifier = Modifier,
+    hasError: Boolean = false,
+    hasWarning: Boolean = false,
     onValueChange: (String) -> Unit,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
@@ -59,7 +63,11 @@ internal fun MarkInputField(
         label = "mark_field_container",
     )
     val outline by animateColorAsState(
+        // A mark a rule refuses is marked on the box itself, because the roster shows one box per
+        // learner and a message elsewhere would not say whose mark is being questioned.
         targetValue = when {
+            hasError -> light_error
+            hasWarning -> dark_warning
             focused -> SemisAccent.Blue
             enabled -> SemisAccent.Blue.copy(alpha = 0.45f)
             else -> SemisPalette.CardBorder
@@ -68,7 +76,7 @@ internal fun MarkInputField(
         label = "mark_field_outline",
     )
     val outlineWidth by animateDpAsState(
-        targetValue = if (focused) 1.5.dp else 1.dp,
+        targetValue = if (focused || hasError || hasWarning) 1.5.dp else 1.dp,
         animationSpec = tween(durationMillis = 180),
         label = "mark_field_outline_width",
     )

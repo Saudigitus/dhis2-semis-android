@@ -82,9 +82,15 @@ fun InputField(
                 }
             }
         },
-        isError = field.hasError,
+        // What a rule said about this person's value wins over the shared field, which knows
+        // nothing about whose value it is showing.
+        isError = formFieldData?.hasError ?: field.hasError,
         supportingText = {
-            field.errorMessage?.let { Text(text = it) }
+            val message = formFieldData?.errorMessage
+                ?: formFieldData?.warningMessage
+                ?: field.errorMessage
+
+            message?.let { Text(text = it) }
         },
         singleLine = field.valueType.toKeyBoardInputType()?.multiline == true,
         maxLines = if (field.valueType.toKeyBoardInputType()?.multiline == false) 1 else Int.MAX_VALUE,

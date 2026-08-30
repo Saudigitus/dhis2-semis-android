@@ -3,6 +3,8 @@ package org.saudigitus.semis.core.form.ui
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.collectLatest
@@ -25,11 +27,15 @@ import org.saudigitus.semis.core.form.ui.state.FormEvent
 import org.saudigitus.semis.core.form.ui.state.FormUiState
 import javax.inject.Inject
 
+private const val RULE_DEBOUNCE = 300L
+
 @HiltViewModel
 class FormViewModel @Inject constructor(
     private val formRepository: FormRepository,
     private val resourceManager: ResourceManager
 ) : ViewModel() {
+
+    private var recordRulesJob: Job? = null
 
     private val _uiState = MutableStateFlow(
         FormUiState(
@@ -125,6 +131,50 @@ class FormViewModel @Inject constructor(
 
             _uiState.update {
                 it.copy(hasCachedData = true, fieldsData = currentFormData)
+            }
+
+            debounceRecordRules()
+        }
+    }
+
+    /**
+     * Judges what has been captured, once the typing settles.
+     *
+     * Every keystroke would otherwise start an evaluation that reads the rules, the variables and
+     * the constants, and the answer to a half typed number is not worth that. The job is replaced
+     * rather than queued, so only the values as they stand are ever judged.
+     */
+    private fun debounceRecordRules() {
+        recordRulesJob?.cancel()
+
+        recordRulesJob = viewModelScope.launch {
+            delay(RULE_DEBOUNCE)
+
+            val current = uiState.value
+            val evaluated = formRepository.applyProgramRulesToRecords(
+                orgUnit = current.formBuilderState.orgUnit,
+                program = current.formBuilderState.program,
+                programStage = current.formBuilderState.programStage,
+                fieldsData = current.fieldsData,
+            )
+
+            // What was typed while the rules were running lives in the state that is current now,
+            // so only what the rules decided is taken and the values are left as they stand.
+            _uiState.update { latest ->
+                val outcomes = evaluated.associateBy { it.tei to it.dataElement }
+
+                latest.copy(
+                    fieldsData = latest.fieldsData.map { record ->
+                        val outcome = outcomes[record.tei to record.dataElement] ?: record
+
+                        record.copy(
+                            hasError = outcome.hasError,
+                            errorMessage = outcome.errorMessage,
+                            hasWarning = outcome.hasWarning,
+                            warningMessage = outcome.warningMessage,
+                        )
+                    },
+                )
             }
         }
     }
