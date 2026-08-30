@@ -1,6 +1,7 @@
 package org.saudigitus.semis.performance.route
 
 import androidx.compose.runtime.Composable
+import org.saudigitus.semis.core.data.model.SyncTarget
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.fragment.app.FragmentActivity
@@ -33,7 +34,7 @@ fun PerformanceNavGraph(
     teiList: List<SearchTeiModel> = emptyList(),
     filterState: FilterComponentState? = null,
     parentNavController: NavHostController? = null,
-    syncData: (() -> Unit)? = null,
+    syncData: ((List<SyncTarget>) -> Unit)? = null,
 ) {
     val navController = rememberNavController()
 

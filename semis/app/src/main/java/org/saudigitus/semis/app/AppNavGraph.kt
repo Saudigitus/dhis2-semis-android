@@ -22,6 +22,7 @@ import org.saudigitus.semis.enrollment.ui.profile.StudentProfileScreen
 import org.saudigitus.semis.enrollment.ui.profile.StudentProfileViewModel
 import org.saudigitus.semis.enrollment.ui.form.SemisCoreEnrollmentFormScreen
 import org.saudigitus.semis.enrollment.ui.form.initializeSemisCoreForm
+import org.saudigitus.semis.core.data.model.SyncTarget
 import org.saudigitus.semis.core.designsystem.components.model.FilterType
 import org.saudigitus.semis.core.designsystem.utils.mapper.TEICardMapper
 import org.saudigitus.semis.core.form.ui.FormViewModel
@@ -36,7 +37,7 @@ fun AppNavGraph(
     teiCardMapper: TEICardMapper,
     navController: NavHostController,
     navBack: () -> Unit,
-    syncData: () -> Unit,
+    syncData: (List<SyncTarget>) -> Unit,
     displayImageDetail: (imagePath: String) -> Unit,
 ) {
     NavHost(
@@ -63,7 +64,7 @@ fun AppNavGraph(
                 onEvent = {
                     when (it) {
                         is TeiListEvent.OnBack -> navController.navigateUp()
-                        is TeiListEvent.OnSyncClick -> syncData()
+                        is TeiListEvent.OnSyncClick -> syncData(emptyList())
                         is TeiListEvent.OnTeiClick -> {
                             navController.navigate(AppRoutes.studentProfile(it.tei))
                         }
@@ -161,9 +162,13 @@ fun AppNavGraph(
                 grade = selectedFilters[FilterType.GRADE]?.code,
                 section = selectedFilters[FilterType.SECTION]?.code,
                 navController = navController,
-                onSaved = {
+                onSaved = { targets ->
                     viewModel.refreshTeis()
-                    navController.navigateUp()
+                    if (targets.isEmpty()) {
+                        navController.navigateUp()
+                    } else {
+                        syncData(targets)
+                    }
                 },
             )
         }

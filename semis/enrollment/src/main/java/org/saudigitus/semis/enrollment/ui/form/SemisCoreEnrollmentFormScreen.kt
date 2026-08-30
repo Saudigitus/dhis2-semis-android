@@ -20,6 +20,7 @@ import org.saudigitus.campaign.core.form.di.campaignFormModule
 import org.saudigitus.campaign.core.form.ui.section.FormSectionScreen
 import org.saudigitus.campaign.core.form.ui.state.FormStepProgress
 import org.saudigitus.campaign.core.navigation.AppRoute
+import org.saudigitus.semis.core.data.model.SyncTarget
 import org.saudigitus.semis.enrollment.ui.form.summary.EnrollmentSummaryScreen
 
 private var semisCoreFormInitialized = false
@@ -52,13 +53,19 @@ fun SemisCoreEnrollmentFormScreen(
     grade: String?,
     section: String?,
     navController: NavController,
-    onSaved: () -> Unit,
+    onSaved: (List<SyncTarget>) -> Unit,
     viewModel: EnrollmentCreationViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
     LaunchedEffect(program, orgUnit, academicYear, grade, section) {
         viewModel.initialize(program, orgUnit, orgUnitName, academicYear, grade, section)
+    }
+
+    // The record is written by the time the flow reports itself complete, which is the moment it
+    // is worth offering to send, the same as every other capture screen in the app.
+    LaunchedEffect(state.completed) {
+        if (state.completed) onSaved(listOf(SyncTarget.Tracker(program)))
     }
 
     // Back walks the steps in reverse, and only leaves the flow from the first one.
@@ -74,7 +81,7 @@ fun SemisCoreEnrollmentFormScreen(
                 teiUid = state.tei.orEmpty(),
                 stepCount = state.plan.stepCount,
                 onAddAnother = viewModel::registerAnother,
-                onBackToList = onSaved,
+                onBackToList = { onSaved(emptyList()) },
             )
         }
 

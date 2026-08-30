@@ -4,6 +4,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
+import org.saudigitus.semis.core.data.model.SyncTarget
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -21,7 +22,7 @@ fun TransferUi(
     viewModel: TransferViewModel,
     formViewModel: FormViewModel,
     navigateBack: () -> Unit,
-    syncData: () -> Unit,
+    syncData: (List<SyncTarget>) -> Unit,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val formState by formViewModel.uiState.collectAsStateWithLifecycle()
@@ -39,7 +40,7 @@ fun TransferUi(
     }
 
     LaunchedEffect(Unit) {
-        viewModel.syncEvent.collectLatest { syncData() }
+        viewModel.syncEvent.collectLatest { targets -> syncData(targets) }
     }
 
     LaunchedEffect(Unit) {

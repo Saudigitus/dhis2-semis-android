@@ -14,6 +14,7 @@ import kotlinx.coroutines.launch
 import org.dhis2.commons.resources.ResourceManager
 import org.saudigitus.semis.core.data.model.OrgUnit
 import org.saudigitus.semis.core.data.model.SearchTeiModel
+import org.saudigitus.semis.core.data.model.SyncTarget
 import org.saudigitus.semis.core.data.model.transfer.TeiTransferRecord
 import org.saudigitus.semis.core.data.model.transfer.TeiTransferRequest
 import org.saudigitus.semis.core.data.model.transfer.TransferDecision
@@ -49,8 +50,9 @@ class TransferViewModel @Inject constructor(
     private val _messageEvent = MutableSharedFlow<TransferMessage>()
     val messageEvent: SharedFlow<TransferMessage> = _messageEvent.asSharedFlow()
 
-    private val _syncEvent = MutableSharedFlow<Unit>()
-    val syncEvent: SharedFlow<Unit> = _syncEvent.asSharedFlow()
+    /** The programs a decision has just written into, so what was changed is offered for sending. */
+    private val _syncEvent = MutableSharedFlow<List<SyncTarget>>()
+    val syncEvent: SharedFlow<List<SyncTarget>> = _syncEvent.asSharedFlow()
 
     private val _formResetEvent = MutableSharedFlow<Unit>()
     val formResetEvent: SharedFlow<Unit> = _formResetEvent.asSharedFlow()
@@ -279,7 +281,7 @@ class TransferViewModel @Inject constructor(
                     it.copy(processingEventUids = it.processingEventUids - eventUid)
                 }
                 emitSuccess(resourceManager.getString(decision.successMessage()))
-                _syncEvent.emit(Unit)
+                _syncEvent.emit(listOf(SyncTarget.Tracker(uiState.value.program)))
                 loadIncomingTransfers()
                 loadOutgoingTransfers()
             }.onFailure { error ->
@@ -391,7 +393,7 @@ class TransferViewModel @Inject constructor(
                             result.transferredTeiUids.size,
                         ),
                     )
-                    _syncEvent.emit(Unit)
+                    _syncEvent.emit(listOf(SyncTarget.Tracker(uiState.value.program)))
                 }
                 if (result.failures.isNotEmpty()) {
                     emitError(

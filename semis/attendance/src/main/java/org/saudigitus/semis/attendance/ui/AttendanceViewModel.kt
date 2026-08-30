@@ -21,6 +21,7 @@ import org.saudigitus.semis.attendance.ui.model.BottomSheetType
 import org.saudigitus.semis.attendance.ui.model.missingLearnerAttendanceCount
 import org.saudigitus.semis.attendance.ui.repository.AttendanceRepository
 import org.saudigitus.semis.core.data.model.SearchTeiModel
+import org.saudigitus.semis.core.data.model.SyncTarget
 import org.saudigitus.semis.core.data.model.app_config.Attendance
 import org.saudigitus.semis.core.data.model.app_config.isEnabledAndConfigured
 import org.saudigitus.semis.core.data.repository.AppConfigRepository
@@ -59,8 +60,9 @@ class AttendanceViewModel @Inject constructor(
     private val _snackbarEvent = MutableSharedFlow<String?>()
     val snackbarEvent: SharedFlow<String?> = _snackbarEvent
 
-    private val _syncEvent = MutableSharedFlow<Unit>()
-    val syncEvent: SharedFlow<Unit> = _syncEvent
+    /** The programs a save has just written into, so what was changed is offered for sending. */
+    private val _syncEvent = MutableSharedFlow<List<SyncTarget>>()
+    val syncEvent: SharedFlow<List<SyncTarget>> = _syncEvent
 
     private val _errorEvent = MutableSharedFlow<String>()
     val errorEvent: SharedFlow<String> = _errorEvent
@@ -367,7 +369,7 @@ class AttendanceViewModel @Inject constructor(
                 loadAttendanceEventsByDate(selectedDate)
                 _hasCachedData.value = false
                 _snackbarEvent.emit(resourceManager.getString(R.string.attendance_saved))
-                _syncEvent.emit(Unit)
+                _syncEvent.emit(syncTargets())
             }.onFailure { error ->
                 val message = friendlyErrorMessage(error)
                 _uiState.update {
@@ -518,7 +520,7 @@ class AttendanceViewModel @Inject constructor(
                 resetForm()
                 loadAttendanceEventsByDate(selectedDate)
                 attendanceSummary()
-                _syncEvent.emit(Unit)
+                _syncEvent.emit(syncTargets())
             }.onFailure { error ->
                 val message = friendlyErrorMessage(error)
                 _uiState.update { it.copy(displayResetDialog = false, errorMessage = message) }
@@ -546,5 +548,22 @@ class AttendanceViewModel @Inject constructor(
         viewModelScope.launch {
             _snackbarEvent.emit(resourceManager.getString(R.string.attendance_form_reset))
         }
+    }
+
+    /**
+     * What a save of attendance has written into.
+     *
+     * The learner records are one program and the class summary is another, written on the same
+     * screen and by the same action. Offering only the first is what leaves a summary sitting on
+     * the device while the roster it summarises is already on the server.
+     */
+    private fun syncTargets(): List<SyncTarget> {
+        val summaryProgram = attendanceConfig?.attendanceStatus?.program
+            ?.takeIf { it.isNotBlank() && uiState.value.allowAttendanceStatus }
+
+        return listOfNotNull(
+            SyncTarget.Tracker(uiState.value.program),
+            summaryProgram?.let(SyncTarget::Events),
+        )
     }
 }

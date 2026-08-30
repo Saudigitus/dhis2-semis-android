@@ -4,6 +4,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
+import org.saudigitus.semis.core.data.model.SyncTarget
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -21,7 +22,7 @@ fun PerformanceEventCaptureScreen(
     viewModel: PerformanceViewModel,
     formViewModel: FormViewModel,
     navController: NavHostController,
-    syncData: () -> Unit,
+    syncData: (List<SyncTarget>) -> Unit,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -37,6 +38,10 @@ fun PerformanceEventCaptureScreen(
                 )
             }
         }
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.syncEvent.collectLatest { targets -> syncData(targets) }
     }
 
     LaunchedEffect(state.formBuilderState) {
@@ -84,7 +89,7 @@ fun PerformanceEventCaptureScreen(
                     navigationBack()
                 }
 
-                is PerformanceUiEvent.Sync -> syncData()
+                is PerformanceUiEvent.Sync -> syncData(emptyList())
                 else -> viewModel.handleUiEvent(
                     it,
                     formViewModel::enableForm,

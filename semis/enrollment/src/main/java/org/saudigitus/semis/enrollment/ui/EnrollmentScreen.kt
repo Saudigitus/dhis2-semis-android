@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.runtime.Composable
+import org.saudigitus.semis.core.data.model.SyncTarget
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -33,14 +34,14 @@ fun EnrollmentScreen(
     tei: List<SearchTeiModel>,
     filterState: FilterComponentState,
     onBack: () -> Unit,
-    onSync: () -> Unit,
+    onSync: (List<SyncTarget>) -> Unit,
     onNewEnrollment: () -> Unit,
     onTeiClick: (teiUid: String) -> Unit = {},
 ) {
     TopAppBarScaffold(
         toolbarHeaders = ToolbarHeaders(title = programName),
         navigationAction = onBack,
-        syncAction = onSync,
+        syncAction = { onSync(emptyList()) },
         bottomBar = {
             SemisActionBar(
                 label = stringResource(R.string.semis_new_enrollment),

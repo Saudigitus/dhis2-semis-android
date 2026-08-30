@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -14,6 +15,7 @@ import kotlinx.coroutines.launch
 import org.dhis2.commons.resources.ResourceManager
 import org.hisp.dhis.android.core.maintenance.D2Error
 import org.saudigitus.semis.core.data.model.SearchTeiModel
+import org.saudigitus.semis.core.data.model.SyncTarget
 import org.saudigitus.semis.core.data.model.app_config.Performance
 import org.saudigitus.semis.core.data.repository.AppConfigRepository
 import org.saudigitus.semis.core.designsystem.R
@@ -53,6 +55,10 @@ class PerformanceViewModel @Inject constructor(
 
     private val _snackbarEvent = MutableSharedFlow<String?>()
     val snackbarEvent: SharedFlow<String?> = _snackbarEvent
+
+    /** The program a save has written into, so what was changed is offered for sending. */
+    private val _syncEvent = MutableSharedFlow<List<SyncTarget>>()
+    val syncEvent: SharedFlow<List<SyncTarget>> = _syncEvent.asSharedFlow()
 
     private val _formFieldData = MutableStateFlow(emptyList<FormFieldData>())
     private val formFields: StateFlow<List<FormFieldData>> = _formFieldData
@@ -138,6 +144,7 @@ class PerformanceViewModel @Inject constructor(
             }.onSuccess {
                 resetFormCache()
                 _snackbarEvent.emit(resourceManager.getString(R.string.performance_saved))
+                _syncEvent.emit(listOf(SyncTarget.Tracker(uiState.value.formBuilderState.program)))
             }.onFailure { error ->
                 val friendlyMessage = when (error) {
                     is D2Error -> {

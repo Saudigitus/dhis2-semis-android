@@ -1,13 +1,10 @@
 package org.saudigitus.semis.app.presentation
 
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import org.saudigitus.semis.core.data.model.SyncTarget
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -24,7 +21,7 @@ import org.saudigitus.semis.core.designsystem.templates.TopAppBarScaffold
 fun AppScreen(
     viewModel: HomeViewModel,
     navBack: () -> Unit,
-    syncData: () -> Unit,
+    syncData: (List<SyncTarget>) -> Unit,
     navTo: (String) -> Unit
 ) {
     val internalNavController = rememberNavController()
@@ -32,19 +29,9 @@ fun AppScreen(
 
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    // A download that worked leaves no trace on the screen beyond a number that may not have
-    // changed, so what it did is said once and then gone, which is what a snackbar is for.
-    val snackbarHostState = remember { SnackbarHostState() }
-    LaunchedEffect(Unit) {
-        viewModel.downloadFeedback.collect { message ->
-            snackbarHostState.showSnackbar(message)
-        }
-    }
-
     TopAppBarScaffold(
         toolbarHeaders = uiState.toolbarHeaders,
         navigationAction = navBack,
-        snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
             NavBar(destination = route.ordinal) {
                 route = when (it) {
@@ -54,7 +41,7 @@ fun AppScreen(
                 }
             }
         },
-        syncAction = syncData,
+        syncAction = { syncData(emptyList()) },
         filterAction = viewModel::hideShowFilter
     ) {
         NavHost(

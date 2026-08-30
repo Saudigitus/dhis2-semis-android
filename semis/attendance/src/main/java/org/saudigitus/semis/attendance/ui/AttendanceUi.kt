@@ -4,6 +4,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
+import org.saudigitus.semis.core.data.model.SyncTarget
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -23,7 +24,7 @@ fun AttendanceUi(
     viewModel: AttendanceViewModel,
     formViewModel: FormViewModel,
     navController: NavHostController,
-    syncData: () -> Unit,
+    syncData: (List<SyncTarget>) -> Unit,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     var snackbarIsError by remember { mutableStateOf(false) }
@@ -45,8 +46,8 @@ fun AttendanceUi(
     }
 
     LaunchedEffect(Unit) {
-        viewModel.syncEvent.collectLatest {
-            syncData()
+        viewModel.syncEvent.collectLatest { targets ->
+            syncData(targets)
         }
     }
 
@@ -103,7 +104,7 @@ fun AttendanceUi(
                     navigationBack()
                 }
 
-                is AttendanceUiEvent.OnSyncClicked -> syncData()
+                is AttendanceUiEvent.OnSyncClicked -> syncData(emptyList())
                 is AttendanceUiEvent.OnAttendanceClick -> {
                     formViewModel.markAttendanceChanged()
                     viewModel.handleUiEvent(it)
