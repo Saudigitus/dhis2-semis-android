@@ -152,9 +152,10 @@ class SemisEnrollmentProgramRepository(private val d2: D2) : ProgramRepository {
             TrackedEntityAttributeSectionModel(
                 uid = section.uid(), code = section.code(), displayName = section.displayName(),
                 description = section.description(), sortOrder = section.sortOrder(),
-                // The order the attributes come back in is not the order they were configured in,
-                // so the configured position is carried over and applied. Without it the learner
-                // details appear shuffled, and differently from one reading to the next.
+                // A section states the order of the attributes it holds, and that is the order
+                // the form follows, so the list is kept as the section gives it. Sorting it by the
+                // position the program gives the same attribute would replace the section's own
+                // order with one assigned across the whole program, and leave the section shuffled.
                 attributes = section.attributes().orEmpty().mapNotNull { sectionAttribute ->
                     val programAttribute = programAttributesByAttribute[sectionAttribute.uid()]
                         ?: return@mapNotNull null
@@ -169,7 +170,7 @@ class SemisEnrollmentProgramRepository(private val d2: D2) : ProgramRepository {
                         sortOrder = programAttribute.sortOrder(),
                         generated = attribute.generated() ?: false,
                     )
-                }.sortedBy { it.sortOrder ?: Int.MAX_VALUE },
+                },
             )
         }.sortedBy { it.sortOrder ?: Int.MAX_VALUE }
     }
