@@ -22,6 +22,8 @@ data class SEMISConfigItem(
     val lastUpdate: String?,
     @SerialName("performance")
     val performance: Performance?,
+    @SerialName("profile")
+    val profile: Profile?,
     @SerialName("program")
     val program: String?,
     @SerialName("reenroll")
