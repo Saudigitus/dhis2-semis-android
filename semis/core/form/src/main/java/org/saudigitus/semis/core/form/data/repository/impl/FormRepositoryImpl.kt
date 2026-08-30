@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.updateAndGet
 import kotlinx.coroutines.withContext
 import org.hisp.dhis.android.core.common.ValueType
 import org.hisp.dhis.android.core.program.ProgramRuleActionType
+import timber.log.Timber
 import org.saudigitus.semis.core.data.model.OptionModel
 import org.saudigitus.semis.core.data.model.SearchTeiModel
 import org.saudigitus.semis.core.data.repository.AppConfigRepository
@@ -38,6 +39,8 @@ import org.saudigitus.semis.core.form.data.repository.AttendanceOptionRepository
 import org.saudigitus.semis.core.form.data.repository.FormRepository
 import org.saudigitus.semis.core.utils.DateHelper
 import javax.inject.Inject
+
+private const val RULES_TAG = "FORM_RULES"
 
 class FormRepositoryImpl @Inject constructor(
     private val appConfigRepository: AppConfigRepository,
@@ -277,58 +280,117 @@ class FormRepositoryImpl @Inject constructor(
 
     }
 
+    /**
+     * Applies the rules to the shape of the form, which is what every person shares.
+     *
+     * Only what does not depend on whose value it is can be decided here: whether a field is
+     * shown at all, whether it is required, and what a rule assigns when it does not read a
+     * value. Anything that judges a value belongs to the person who holds it and is applied on
+     * their record instead.
+     */
     override suspend fun applyProgramRules(
         orgUnit: String,
         program: String,
         programStage: String,
         fields: List<FormFieldState>,
     ) = withContext(Dispatchers.IO) {
-        if (fields.none { !it.eventUid.isNullOrBlank() }) {
-            return@withContext fields
-        }
-        val currentFields = fields.toMutableList()
-        currentFields.clear()
-
-        for (field in fields) {
-            var currentField = field
-
-            val ruleEffects = ruleEngineRepository.evaluateDataEntry(
+        val effects = runCatching {
+            ruleEngineRepository.evaluateUnsavedEvent(
                 ou = orgUnit,
                 program = program,
-                dataElement = field.dataElementUid,
-                event = field.eventUid.orEmpty(),
-                value = field.value.orEmpty(),
+                programStage = programStage,
+                dataValues = emptyMap(),
             )
-
-            for (ruleEffect in ruleEffects) {
-                when (ruleEffect.ruleAction.type) {
-                    ProgramRuleActionType.HIDEFIELD.name -> {
-                        currentField = currentField.copy(rendered = false)
-                    }
-
-                    ProgramRuleActionType.SHOWERROR.name -> {
-                        currentField = currentField.copy(
-                            hasError = true,
-                            errorMessage = ruleEffect.ruleAction.content().orEmpty()
-                        )
-                    }
-
-                    ProgramRuleActionType.ASSIGN.name -> {
-                        currentField = currentField.copy(
-                            value = ruleEffect.ruleAction.content().orEmpty()
-                        )
-                    }
-
-                    ProgramRuleActionType.SETMANDATORYFIELD.name -> {
-                        currentField = currentField.copy(mandatory = true)
-                    }
-                }
-            }
-
-            currentFields.add(currentField)
+        }.getOrElse { error ->
+            Timber.tag(RULES_TAG).e(error)
+            return@withContext fields
         }
 
-        return@withContext currentFields
+        val hidden = mutableSetOf<String>()
+        val mandatory = mutableSetOf<String>()
+        val assigned = mutableMapOf<String, String?>()
+
+        effects.forEach { effect ->
+            val field = effect.ruleAction.field() ?: return@forEach
+
+            when (effect.ruleAction.type) {
+                ProgramRuleActionType.HIDEFIELD.name -> hidden += field
+                ProgramRuleActionType.SETMANDATORYFIELD.name -> mandatory += field
+                ProgramRuleActionType.ASSIGN.name -> assigned[field] = effect.data
+                else -> Unit
+            }
+        }
+
+        // Every evaluation starts from what the configuration alone says, so an effect whose
+        // condition stopped holding disappears instead of staying behind.
+        return@withContext fields.map { field ->
+            field.copy(
+                rendered = field.dataElementUid !in hidden,
+                mandatory = field.mandatory || field.dataElementUid in mandatory,
+                value = if (field.dataElementUid in assigned) {
+                    assigned[field.dataElementUid]
+                } else {
+                    field.value
+                },
+            )
+        }
+    }
+
+    override suspend fun applyProgramRulesToRecords(
+        orgUnit: String,
+        program: String,
+        programStage: String,
+        fieldsData: List<FormFieldData>,
+    ): List<FormFieldData> = withContext(Dispatchers.IO) {
+        if (fieldsData.isEmpty()) return@withContext fieldsData
+
+        val byPerson = fieldsData.groupBy { it.tei }
+        val outcomes = byPerson.mapValues { (_, records) ->
+            val values = records.mapNotNull { record ->
+                record.value?.takeIf { it.isNotBlank() }?.let { record.dataElement to it }
+            }.toMap()
+
+            if (values.isEmpty()) {
+                emptyMap()
+            } else {
+                runCatching {
+                    ruleEngineRepository.evaluateUnsavedEvent(
+                        ou = orgUnit,
+                        program = program,
+                        programStage = programStage,
+                        dataValues = values,
+                    )
+                }.getOrElse { error ->
+                    Timber.tag(RULES_TAG).e(error)
+                    emptyList()
+                }.mapNotNull { effect ->
+                    val field = effect.ruleAction.field() ?: return@mapNotNull null
+                    val message = listOfNotNull(effect.ruleAction.content(), effect.data)
+                        .map(String::trim)
+                        .filter(String::isNotEmpty)
+                        .joinToString(" ")
+
+                    when (effect.ruleAction.type) {
+                        ProgramRuleActionType.SHOWERROR.name -> field to (true to message)
+                        ProgramRuleActionType.SHOWWARNING.name -> field to (false to message)
+                        else -> null
+                    }
+                }.toMap()
+            }
+        }
+
+        return@withContext fieldsData.map { record ->
+            val outcome = outcomes[record.tei]?.get(record.dataElement)
+            val isError = outcome?.first == true
+            val isWarning = outcome != null && !isError
+
+            record.copy(
+                hasError = isError,
+                errorMessage = outcome?.second?.takeIf { isError },
+                hasWarning = isWarning,
+                warningMessage = outcome?.second?.takeIf { isWarning },
+            )
+        }
     }
 
     override fun individualFormSummary(

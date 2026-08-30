@@ -332,4 +332,93 @@ class RuleEngineRepository @Inject constructor(
             executionContext = ruleEngineContextData.ruleEngineContext,
         )
     }
+
+    /**
+     * Evaluates the rules for a record that has not been saved yet.
+     *
+     * The values a person is being given are not in the database while they are being typed, and
+     * for a person with nothing recorded yet there is no event at all, so a throwaway target
+     * carries the school, the stage and [dataValues] as they stand. Rules scoped to another stage
+     * are left out, and no neighbouring events are loaded: what is being judged is this record.
+     */
+    suspend fun evaluateUnsavedEvent(
+        ou: String,
+        program: String,
+        programStage: String,
+        dataValues: Map<String, String>,
+    ) = withContext(Dispatchers.IO) {
+        val stageRules = rules(program).filter { rule ->
+            rule.programStage == null || rule.programStage == programStage
+        }
+        val engineContext = ruleContext(
+            ruleVariables = ruleVariables(program),
+            rules = stageRules,
+            supplementaryData = supplementaryData(ou),
+            constants = constants(),
+        )
+
+        val ruleDataValues = dataValues.mapNotNull { (dataElement, value) ->
+            engineValue(program, dataElement, value)
+                ?.takeIf { it.isNotEmpty() }
+                ?.let { RuleDataValue(dataElement = dataElement, value = it) }
+        }
+
+        return@withContext ruleEngine.evaluate(
+            target = unsavedEvent(ou, programStage, ruleDataValues),
+            ruleEnrollment = null,
+            ruleEvents = emptyList(),
+            executionContext = engineContext,
+        )
+    }
+
+    /** The stand-in target carrying what an unsaved record knows: the school, the stage, the values. */
+    private fun unsavedEvent(
+        ou: String,
+        programStage: String,
+        dataValues: List<RuleDataValue>,
+    ): RuleEvent {
+        val now = Date()
+        return RuleEvent(
+            event = UUID.randomUUID().toString(),
+            programStage = programStage,
+            programStageName = d2.programStage(programStage)?.name().orEmpty(),
+            status = RuleEventStatus.ACTIVE,
+            eventDate = now.toRuleEngineInstant(),
+            createdDate = now.toRuleEngineInstant(),
+            dueDate = null,
+            completedDate = null,
+            organisationUnit = ou,
+            organisationUnitCode = d2.organisationUnit(ou)?.code(),
+            dataValues = dataValues,
+        )
+    }
+
+    /**
+     * The value the engine reads for [dataElement], given [raw] as the form holds it.
+     *
+     * A field backed by an option set holds the option code, but a rule variable is configured to
+     * read either that code or the option name, and the conditions are written against whichever
+     * it reads. Translating here is what keeps a rule from holding on a saved record and failing
+     * on one still being typed.
+     */
+    private fun engineValue(program: String, dataElement: String, raw: String): String? {
+        val optionSet = d2.dataElementModule().dataElements()
+            .uid(dataElement)
+            .blockingGet()
+            ?.optionSetUid()
+            ?: return raw
+
+        val readsCode = !d2.programModule().programRuleVariables()
+            .byProgramUid().eq(program)
+            .byDataElementUid().eq(dataElement)
+            .byUseCodeForOptionSet().isTrue
+            .blockingIsEmpty()
+
+        if (readsCode) return raw
+
+        return d2.optionModule().options()
+            .byOptionSetUid().eq(optionSet)
+            .byCode().eq(raw)
+            .one().blockingGet()?.name()
+    }
 }
