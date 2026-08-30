@@ -380,7 +380,8 @@ class FormViewModel @Inject constructor(
      *
      * The rules decide what is shown, what is required and what is flagged; the values belong to
      * the user and are the one thing an evaluation that started earlier must not be allowed to
-     * revert.
+     * revert. The exception is a field the evaluation disabled: only an assignment rule does
+     * that, and an assigned value is owned by the rule, not by the user, so it is carried over.
      */
     private fun List<FormSectionModel>.withRuleOutcome(
         evaluated: List<FormSectionModel>,
@@ -396,6 +397,7 @@ class FormViewModel @Inject constructor(
                 formFields = section.formFields.map { field ->
                     val outcome = evaluatedFields[field.uid] ?: return@map field
                     field.copy(
+                        value = if (outcome.enabled == false) outcome.value else field.value,
                         rendered = outcome.rendered,
                         mandatory = outcome.mandatory,
                         enabled = outcome.enabled,

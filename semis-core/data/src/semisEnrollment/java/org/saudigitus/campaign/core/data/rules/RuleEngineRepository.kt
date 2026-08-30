@@ -35,7 +35,15 @@ import org.hisp.dhis.rules.models.RuleEvent
 import org.hisp.dhis.rules.models.RuleEventStatus
 import org.hisp.dhis.rules.models.RuleVariable
 import java.util.Date
+import java.util.UUID
 
+/**
+ * Evaluates the program rules of the enrollment flow.
+ *
+ * The wizard writes nothing until its last step, so the evaluations here accept the values as
+ * typed, in memory, instead of reading them back from records that do not exist yet. The rules,
+ * variables, constants and supplementary data still come from the metadata the SDK synchronised.
+ */
 class RuleEngineRepository(
     private val d2: D2,
 ) {
@@ -72,7 +80,6 @@ class RuleEngineRepository(
             .blockingGet()
             .map {
                 it.toRuleVariable(
-                    d2.optionModule().options(),
                     d2.trackedEntityModule().trackedEntityAttributes(),
                     d2.dataElementModule().dataElements(),
                 )
@@ -197,7 +204,12 @@ class RuleEngineRepository(
             organisationUnitCode = d2.organisationUnitModule().organisationUnits()
                 .uid(organisationUnit())
                 .blockingGet()?.code(),
-            dataValues = trackedEntityDataValues()?.toRuleDataValue() ?: emptyList(),
+            dataValues = trackedEntityDataValues()?.toRuleDataValue(
+                event = this,
+                dataElementRepository = d2.dataElementModule().dataElements(),
+                ruleVariableRepository = d2.programModule().programRuleVariables(),
+                optionRepository = d2.optionModule().options(),
+            ) ?: emptyList(),
             createdDate = created()?.toRuleEngineInstant()
                 ?: Instant.fromEpochMilliseconds(System.currentTimeMillis()),
         )
@@ -285,7 +297,7 @@ class RuleEngineRepository(
                     .byTrackedEntityInstance()
                     .eq(enrollment.trackedEntityInstance())
                     .blockingGet()
-                    .toRuleAttributeValue(d2)
+                    .toRuleAttributeValue(d2, enrollment.program().orEmpty())
             } ?: emptyList()
 
     private fun getRuleEnrollment(enrollmentUid: String?): RuleEnrollment? {
@@ -370,7 +382,7 @@ class RuleEngineRepository(
         val ruleDataValues = dataValues.map {
             RuleDataValue(
                 dataElement = it.key,
-                value = it.value
+                value = engineValue(program, it.key, it.value, isAttribute = false)
             )
         }.filter {
             it.value.isNotEmpty()
@@ -395,7 +407,7 @@ class RuleEngineRepository(
         val ruleAttributeValues = attributeValues.map {
             RuleAttributeValue(
                 trackedEntityAttribute = it.key,
-                value = it.value
+                value = engineValue(program, it.key, it.value, isAttribute = true)
             )
         }.filter {
             it.value.isNotEmpty()
@@ -420,6 +432,114 @@ class RuleEngineRepository(
             ruleEvents = ruleEngineContextData.ruleEvents,
             executionContext = ruleEngineContextData.ruleEngineContext,
         )
+    }
+
+    /**
+     * Evaluates the rules for a step whose event has not been saved yet.
+     *
+     * The engine only evaluates conditions against a target it can read the school and the stage
+     * from, and the wizard has no persisted event to offer, so a throwaway target carries them
+     * along with [dataValues], the values as typed. Rules scoped to another stage are left out,
+     * the same narrowing the persisted event path applies, and no neighbouring events are loaded:
+     * the learner being enrolled is new, so there is no history for a condition to read.
+     */
+    suspend fun evaluateUnsavedEvent(
+        ou: String,
+        program: String,
+        programStage: String,
+        dataValues: Map<String, String>,
+    ) = withContext(Dispatchers.IO) {
+        val rules = rules(program).filter { rule ->
+            rule.programStage == null || rule.programStage == programStage
+        }
+        val engineContext = ruleContext(
+            ruleVariables = ruleVariables(program),
+            rules = rules,
+            supplementaryData = supplementaryData(ou),
+            constants = constants(),
+        )
+
+        val ruleDataValues = dataValues.map {
+            RuleDataValue(
+                dataElement = it.key,
+                value = engineValue(program, it.key, it.value, isAttribute = false)
+            )
+        }.filter {
+            it.value.isNotEmpty()
+        }
+
+        return@withContext ruleEngine.evaluate(
+            target = unsavedEvent(ou, programStage, ruleDataValues),
+            ruleEnrollment = null,
+            ruleEvents = emptyList(),
+            executionContext = engineContext,
+        )
+    }
+
+    /** The stand-in target carrying what an unsaved step knows: the school, the stage, the values. */
+    private fun unsavedEvent(
+        ou: String,
+        programStage: String,
+        dataValues: List<RuleDataValue>,
+    ): RuleEvent {
+        val now = Date()
+        return RuleEvent(
+            event = UUID.randomUUID().toString(),
+            programStage = programStage,
+            programStageName = d2.programStage(programStage)?.name().orEmpty(),
+            status = RuleEventStatus.ACTIVE,
+            eventDate = now.toRuleEngineInstant(),
+            createdDate = now.toRuleEngineInstant(),
+            dueDate = null,
+            completedDate = null,
+            organisationUnit = ou,
+            organisationUnitCode = d2.organisationUnit(ou)?.code(),
+            dataValues = dataValues,
+        )
+    }
+
+    /**
+     * The value the engine reads for [field], given [raw] as the form stores it.
+     *
+     * A field backed by an option set stores the option code, but a rule variable is configured
+     * to read either the code or the option name, and the conditions are written against what it
+     * reads. The persisted evaluation paths already translate accordingly, so the in memory ones
+     * must translate the same way or the same rule would hold on a saved record and fail on an
+     * unsaved one. A code with no matching option becomes empty and is dropped, as it is there.
+     */
+    private fun engineValue(
+        program: String,
+        field: String,
+        raw: String,
+        isAttribute: Boolean,
+    ): String {
+        val optionSet = if (isAttribute) {
+            d2.trackedEntityModule().trackedEntityAttributes()
+                .uid(field).blockingGet()?.optionSet()?.uid()
+        } else {
+            d2.dataElementModule().dataElements()
+                .uid(field).blockingGet()?.optionSet()?.uid()
+        } ?: return raw
+
+        val readsCode = if (isAttribute) {
+            !d2.programModule().programRuleVariables()
+                .byProgramUid().eq(program)
+                .byTrackedEntityAttributeUid().eq(field)
+                .byUseCodeForOptionSet().isTrue
+                .blockingIsEmpty()
+        } else {
+            !d2.programModule().programRuleVariables()
+                .byProgramUid().eq(program)
+                .byDataElementUid().eq(field)
+                .byUseCodeForOptionSet().isTrue
+                .blockingIsEmpty()
+        }
+        if (readsCode) return raw
+
+        return d2.optionModule().options()
+            .byOptionSetUid().eq(optionSet)
+            .byCode().eq(raw)
+            .one().blockingGet()?.name().orEmpty()
     }
 
     private companion object {

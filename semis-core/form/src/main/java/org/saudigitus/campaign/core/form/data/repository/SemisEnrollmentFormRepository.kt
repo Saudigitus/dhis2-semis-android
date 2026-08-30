@@ -16,12 +16,16 @@ import org.saudigitus.campaign.core.data.models.TrackedEntityAttributeModel
 import org.saudigitus.campaign.core.data.repository.EnrollmentRepository
 import org.saudigitus.campaign.core.data.repository.OptionRepository
 import org.saudigitus.campaign.core.data.repository.ProgramRepository
+import org.saudigitus.campaign.core.data.rules.RuleEngineRepository
 import org.saudigitus.campaign.core.form.R
 import org.saudigitus.campaign.core.form.data.models.FormFieldModel
 import org.saudigitus.campaign.core.form.data.models.FormResult
 import org.saudigitus.campaign.core.form.data.models.FormSectionModel
+import org.saudigitus.campaign.core.form.rules.applyRuleEffects
 import org.saudigitus.campaign.core.form.ui.state.FormSectionType
+import org.saudigitus.campaign.core.form.utils.phone.MozambiquePhoneValidator
 import org.saudigitus.campaign.core.form.utils.toEntities
+import timber.log.Timber
 import org.saudigitus.campaign.core.utils.Constants
 import java.sql.Date
 import java.util.UUID
@@ -37,6 +41,7 @@ class SemisEnrollmentFormRepository @Inject constructor(
     private val optionRepository: OptionRepository,
     private val programRepository: ProgramRepository,
     private val enrollmentRepository: EnrollmentRepository,
+    private val ruleEngineRepository: RuleEngineRepository,
     private val resourceManager: ResourceManager,
 ) : FormRepository {
 
@@ -475,6 +480,21 @@ class SemisEnrollmentFormRepository @Inject constructor(
     /** Outcome of reserving a value: the value itself, or the warning to show when there is none. */
     private data class ReservedValue(val value: String?, val warning: String?)
 
+    /**
+     * Evaluates the program rules of [program] against the values as typed and applies their
+     * effects to [formSections].
+     *
+     * Every evaluation starts from base state: what the configuration alone says about each
+     * field, with the outcome of the previous evaluation cleared, so an effect whose condition
+     * stopped holding disappears on its own. The one non rule flag a field can carry, the phone
+     * number validation, is recomputed rather than kept, because keeping it would also keep a
+     * stale rule error, the two being indistinguishable on the model.
+     *
+     * A step whose sections belong to a stage evaluates as an event, unsaved or not; the
+     * attribute step evaluates as an enrollment. A failure inside the engine never reaches the
+     * form: the rules then simply do not constrain it, which is also what a program with no
+     * rules looks like.
+     */
     override suspend fun applyProgramRules(
         orgUnit: String,
         program: String,
@@ -482,19 +502,76 @@ class SemisEnrollmentFormRepository @Inject constructor(
         event: String?,
         enrollment: String?,
         formSections: List<FormSectionModel>,
-    ): List<FormSectionModel> = formSections.map { section ->
-        section.copy(
-            rendered = true,
-            formFields = section.formFields.map { field ->
-                field.copy(
-                    rendered = true,
-                    mandatory = field.baseMandatory,
-                    hasError = field.hasError,
-                    errorMessage = field.errorMessage,
-                    hasWarning = false,
-                    warningMessage = null,
+    ): List<FormSectionModel> {
+        val baseSections = formSections.map { section ->
+            section.copy(
+                rendered = true,
+                formFields = section.formFields.map { field -> field.withBaseFlags() },
+            )
+        }
+
+        val effects = runCatching {
+            if (programStage.isNullOrBlank()) {
+                ruleEngineRepository.evaluate(
+                    ou = orgUnit,
+                    program = program,
+                    enrollment = enrollment.orEmpty(),
+                    attributeValues = baseSections.typedValues(),
                 )
+            } else if (event.isNullOrBlank()) {
+                ruleEngineRepository.evaluateUnsavedEvent(
+                    ou = orgUnit,
+                    program = program,
+                    programStage = programStage,
+                    dataValues = baseSections.typedValues(),
+                )
+            } else {
+                ruleEngineRepository.evaluate(
+                    ou = orgUnit,
+                    program = program,
+                    event = event,
+                    enrollment = enrollment,
+                    dataValues = baseSections.typedValues(),
+                )
+            }
+        }.getOrElse { error ->
+            Timber.tag("ENROLLMENT_RULES").e(error)
+            return baseSections
+        }
+
+        return baseSections.applyRuleEffects(effects)
+    }
+
+    /** The values as typed, keyed by field, which is what an in memory evaluation runs against. */
+    private fun List<FormSectionModel>.typedValues(): Map<String, String> = this
+        .flatMap { section -> section.formFields }
+        .mapNotNull { field ->
+            field.value?.takeIf { it.isNotBlank() }?.let { value -> field.uid to value }
+        }
+        .toMap()
+
+    /**
+     * The field as the configuration alone describes it, with no rule outcome left in.
+     *
+     * The phone number check is the only flag that does not come from a rule, so it is the only
+     * one recomputed instead of dropped.
+     */
+    private fun FormFieldModel.withBaseFlags(): FormFieldModel {
+        val phoneInvalid = valueType == ValueType.PHONE_NUMBER &&
+            !value.isNullOrEmpty() && !MozambiquePhoneValidator.isValid(value)
+
+        return copy(
+            rendered = true,
+            mandatory = baseMandatory,
+            enabled = !generated,
+            hasError = phoneInvalid,
+            errorMessage = if (phoneInvalid) {
+                resourceManager.getString(R.string.invalide_phone_num)
+            } else {
+                null
             },
+            hasWarning = false,
+            warningMessage = null,
         )
     }
 
