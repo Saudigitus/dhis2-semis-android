@@ -8,8 +8,6 @@
     <string name="registration_date">Registration date</string>
     <string name="current_precision">Precision: %s meters</string>
     <string name="location" translatable="false">Lat: %s, Long: %s</string>
-    <string name="phone_prefix" translatable="false">+258</string>
-    <string name="invalide_phone_num">Invalid Phone Number</string>
     <string name="previous">Previous</string>
     <string name="unsaved_changes_form">You have unsaved changes. If you discard them, your collected data will be lost. Tap ‘Keep Editing’ to continue.</string>
     <string name="events_not_found">There are no event records yet. Press ‘Add New’ to create one.</string>

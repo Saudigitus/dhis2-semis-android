@@ -7,7 +7,6 @@
     <string name="administrative_area">Área administrativa</string>
     <string name="registration_date">Data de registo</string>
     <string name="current_precision">Precisão: %s metros</string>
-    <string name="invalide_phone_num">Número de telefone inválido</string>
     <string name="previous">Anterior</string>
     <string name="unsaved_changes_form">Tem alterações não guardadas. Se as descartar, os dados recolhidos serão perdidos. Toque em "Continuar a editar" para prosseguir.</string>
     <string name="events_not_found">Ainda não existem registos de eventos. Pressione "Adicionar novo" para criar um.</string>
