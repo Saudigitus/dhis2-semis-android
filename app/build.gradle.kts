@@ -166,6 +166,9 @@ android {
 
     productFlavors {
         create("dhis2") {
+            // The deployment this build serves, kept out of the package of any other SEMIS so a
+            // tester can install it without uninstalling what they already have.
+            applicationIdSuffix = ".sl"
             signingConfig = signingConfigs.getByName("release")
         }
         create("dhis2PlayServices") {
