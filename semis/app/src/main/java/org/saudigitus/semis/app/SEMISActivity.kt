@@ -67,6 +67,7 @@ class SEMISActivity : FragmentActivity() {
                     navController = navController,
                     navBack = { finish() },
                     syncData = ::syncTargets,
+                    syncNow = ::syncNow,
                     displayImageDetail = ::displayImageDetail,
                 )
             }
@@ -93,6 +94,16 @@ class SEMISActivity : FragmentActivity() {
             }
         }
     }
+
+    /**
+     * Sends because the user pressed the button that says so.
+     *
+     * The configured sync mode governs what happens on its own after a save, never what happens
+     * when someone asks for it: a deployment that chose to be left alone after saving still has a
+     * button on the toolbar, and a button that decides for itself not to do anything is worse than
+     * no button at all.
+     */
+    private fun syncNow() = promptToSync(emptyList())
 
     /**
      * Sends what was captured without asking, and says how it went when it is done.

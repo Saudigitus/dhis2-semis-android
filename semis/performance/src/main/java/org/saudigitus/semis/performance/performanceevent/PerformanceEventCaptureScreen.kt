@@ -23,6 +23,7 @@ fun PerformanceEventCaptureScreen(
     formViewModel: FormViewModel,
     navController: NavHostController,
     syncData: (List<SyncTarget>) -> Unit,
+    syncNow: () -> Unit,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -89,7 +90,7 @@ fun PerformanceEventCaptureScreen(
                     navigationBack()
                 }
 
-                is PerformanceUiEvent.Sync -> syncData(emptyList())
+                is PerformanceUiEvent.Sync -> syncNow()
                 else -> viewModel.handleUiEvent(
                     it,
                     formViewModel::enableForm,

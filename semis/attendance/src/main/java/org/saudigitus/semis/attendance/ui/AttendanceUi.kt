@@ -25,6 +25,7 @@ fun AttendanceUi(
     formViewModel: FormViewModel,
     navController: NavHostController,
     syncData: (List<SyncTarget>) -> Unit,
+    syncNow: () -> Unit,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     var snackbarIsError by remember { mutableStateOf(false) }
@@ -104,7 +105,7 @@ fun AttendanceUi(
                     navigationBack()
                 }
 
-                is AttendanceUiEvent.OnSyncClicked -> syncData(emptyList())
+                is AttendanceUiEvent.OnSyncClicked -> syncNow()
                 is AttendanceUiEvent.OnAttendanceClick -> {
                     formViewModel.markAttendanceChanged()
                     viewModel.handleUiEvent(it)

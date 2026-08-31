@@ -38,6 +38,7 @@ fun AppNavGraph(
     navController: NavHostController,
     navBack: () -> Unit,
     syncData: (List<SyncTarget>) -> Unit,
+    syncNow: () -> Unit,
     displayImageDetail: (imagePath: String) -> Unit,
 ) {
     NavHost(
@@ -51,7 +52,7 @@ fun AppNavGraph(
             AppScreen(
                 viewModel = viewModel,
                 navBack = navBack,
-                syncData = syncData,
+                syncNow = syncNow,
                 navTo = navController::navigate
             )
         }
@@ -64,7 +65,7 @@ fun AppNavGraph(
                 onEvent = {
                     when (it) {
                         is TeiListEvent.OnBack -> navController.navigateUp()
-                        is TeiListEvent.OnSyncClick -> syncData(emptyList())
+                        is TeiListEvent.OnSyncClick -> syncNow()
                         is TeiListEvent.OnTeiClick -> {
                             navController.navigate(AppRoutes.studentProfile(it.tei))
                         }
@@ -98,6 +99,7 @@ fun AppNavGraph(
                 onEvent = { event ->
                     when (event) {
                         is StudentProfileEvent.OnBack -> navController.navigateUp()
+                        is StudentProfileEvent.OnSyncClick -> syncNow()
                         else -> profileViewModel.handleEvent(event)
                     }
                 },
@@ -124,7 +126,8 @@ fun AppNavGraph(
                 viewModel = attendanceViewModel,
                 formViewModel = formViewModel,
                 navController = navController,
-                syncData = syncData
+                syncData = syncData,
+                syncNow = syncNow,
             )
         }
         composable(route = AppRoutes.ENROLLMENT) {
@@ -135,7 +138,7 @@ fun AppNavGraph(
                 tei = homeState.tei,
                 filterState = homeState.filterState,
                 onBack = navController::navigateUp,
-                onSync = syncData,
+                onSync = syncNow,
                 onNewEnrollment = {
                     initializeSemisCoreForm()
                     navController.navigate(AppRoutes.ENROLLMENT_FORM)
@@ -183,6 +186,7 @@ fun AppNavGraph(
                 homeState.filterState,
                 navController,
                 syncData,
+                syncNow,
             )
         }
         composable(route = AppRoutes.TRANSFER) {

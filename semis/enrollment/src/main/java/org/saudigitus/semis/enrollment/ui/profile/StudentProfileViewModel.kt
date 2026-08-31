@@ -34,15 +34,7 @@ class StudentProfileViewModel @Inject constructor(
         if (initialized) return
         initialized = true
 
-        _uiState.update {
-            it.copy(
-                isLoading = true,
-                filterDetailsState = filterDetailsState.copy(
-                    enable = false,
-                    enableCounter = false,
-                ),
-            )
-        }
+        _uiState.update { it.copy(isLoading = true) }
 
         viewModelScope.launch {
             runCatching {
@@ -80,7 +72,11 @@ class StudentProfileViewModel @Inject constructor(
                 _uiState.update { it.copy(selectedTabId = event.tabId) }
             }
 
-            StudentProfileEvent.OnBack -> Unit
+            // Leaving the page and sending what the device holds are both answered by whoever
+            // hosts the page, because neither is a question about the record being read.
+            StudentProfileEvent.OnBack,
+            StudentProfileEvent.OnSyncClick,
+            -> Unit
         }
     }
 }

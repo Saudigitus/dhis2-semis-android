@@ -15,7 +15,6 @@
     <string name="profile_school">School</string>
     <string name="profile_active">Active</string>
     <string name="profile_average">Average %1$s</string>
-    <string name="profile_recorded">Recorded</string>
     <string name="profile_recorded_days">%1$d day(s) recorded</string>
     <string name="profile_more_records">%1$d more day(s) not listed</string>
     <string name="profile_unknown_date">Unknown date</string>

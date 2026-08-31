@@ -2,7 +2,6 @@ package org.saudigitus.semis.app.presentation
 
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import org.saudigitus.semis.core.data.model.SyncTarget
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -21,7 +20,7 @@ import org.saudigitus.semis.core.designsystem.templates.TopAppBarScaffold
 fun AppScreen(
     viewModel: HomeViewModel,
     navBack: () -> Unit,
-    syncData: (List<SyncTarget>) -> Unit,
+    syncNow: () -> Unit,
     navTo: (String) -> Unit
 ) {
     val internalNavController = rememberNavController()
@@ -41,7 +40,7 @@ fun AppScreen(
                 }
             }
         },
-        syncAction = { syncData(emptyList()) },
+        syncAction = syncNow,
         filterAction = viewModel::hideShowFilter
     ) {
         NavHost(

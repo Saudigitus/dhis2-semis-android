@@ -35,6 +35,7 @@ fun PerformanceNavGraph(
     filterState: FilterComponentState? = null,
     parentNavController: NavHostController? = null,
     syncData: ((List<SyncTarget>) -> Unit)? = null,
+    syncNow: (() -> Unit)? = null,
 ) {
     val navController = rememberNavController()
 
@@ -106,6 +107,7 @@ fun PerformanceNavGraph(
                 formViewModel = formViewModel,
                 navController = navController,
                 syncData = syncData!!,
+                syncNow = syncNow!!,
             )
         }
     }
