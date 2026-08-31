@@ -10,7 +10,6 @@ import com.google.android.material.snackbar.Snackbar
 import dagger.hilt.android.AndroidEntryPoint
 import org.dhis2.commons.Constants
 import org.dhis2.commons.dialogs.imagedetail.ImageDetailActivity
-import org.dhis2.commons.sync.OnDismissListener
 import org.dhis2.commons.sync.SyncContext
 import org.saudigitus.semis.core.data.model.SyncTarget
 import org.dhis2.commons.sync.SyncDialog
@@ -58,41 +57,30 @@ class SEMISActivity : FragmentActivity() {
     }
 
     /**
-     * Offers to send what a screen has just written.
+     * Offers to send what a screen has just written, in a single question.
      *
-     * A screen can have written into more than one program, so the targets are offered one after
-     * the other rather than only the first: capturing attendance writes both the learner records
-     * and the class summary, and sending only the records is what leaves a summary the server
-     * never sees. A screen that names nothing falls back to the program being worked on.
+     * A screen can have written into more than one program: capturing attendance writes both the
+     * learner records and the class summary, which is a program of its own, and sending only the
+     * first is what leaves a summary the server never sees. Rather than ask once per program, a
+     * screen that touched several is offered everything the device has pending, because being
+     * asked twice for one action reads as the app not knowing what it did.
+     *
+     * A screen that names nothing falls back to the program being worked on.
      */
     private fun syncTargets(targets: List<SyncTarget>) {
-        val contexts = targets
-            .ifEmpty { listOf(SyncTarget.Tracker(program)) }
-            .distinctBy { it.program }
-            .map { target ->
-                when (target) {
-                    is SyncTarget.Tracker -> SyncContext.TrackerProgram(target.program)
-                    is SyncTarget.Events -> SyncContext.EventProgram(target.program)
-                }
+        val distinct = targets.distinctBy { it.program }
+        val context = when {
+            distinct.size > 1 -> SyncContext.Global()
+            else -> when (val target = distinct.firstOrNull() ?: SyncTarget.Tracker(program)) {
+                is SyncTarget.Tracker -> SyncContext.TrackerProgram(target.program)
+                is SyncTarget.Events -> SyncContext.EventProgram(target.program)
             }
-
-        showSyncDialogs(contexts)
-    }
-
-    private fun showSyncDialogs(contexts: List<SyncContext>) {
-        val context = contexts.firstOrNull() ?: return
+        }
 
         SyncDialog(
             activity = this@SEMISActivity,
             recordUid = context.recordUid(),
             syncContext = context,
-            // The next program is offered once this one is done with, so the two are answered in
-            // turn instead of one dialog covering the other.
-            dismissListener = object : OnDismissListener {
-                override fun onDismiss(hasChanged: Boolean) {
-                    showSyncDialogs(contexts.drop(1))
-                }
-            },
             onNoConnectionListener = {
                 Snackbar.make(
                     this.window.decorView.rootView,
