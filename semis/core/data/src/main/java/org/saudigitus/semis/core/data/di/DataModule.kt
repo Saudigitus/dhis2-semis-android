@@ -27,6 +27,8 @@ import org.saudigitus.semis.core.data.repository.OrgUnitRepository
 import org.saudigitus.semis.core.data.repository.OrgUnitRepositoryImpl
 import org.saudigitus.semis.core.data.repository.ProgramStageRepository
 import org.saudigitus.semis.core.data.repository.ProgramStageRepositoryImpl
+import org.saudigitus.semis.core.data.repository.SyncRepository
+import org.saudigitus.semis.core.data.repository.SyncRepositoryImpl
 import org.saudigitus.semis.core.data.repository.TeiDownloaderRepository
 import org.saudigitus.semis.core.data.repository.TeiDownloaderRepositoryImpl
 import org.saudigitus.semis.core.data.repository.TeiProfileRepository
@@ -142,6 +144,13 @@ object DataModule {
         networkUtils = networkUtils,
         resourceManager = resourceManager,
     )
+
+    @Provides
+    @Singleton
+    fun provideSyncRepository(
+        d2: D2,
+        networkUtils: NetworkUtils,
+    ): SyncRepository = SyncRepositoryImpl(d2, networkUtils)
 
     @Provides
     @Singleton

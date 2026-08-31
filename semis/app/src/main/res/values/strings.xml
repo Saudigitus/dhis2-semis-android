@@ -12,4 +12,7 @@
     <string name="home_stat_enrolled">Enrolled</string>
     <string name="home_stat_modules">Modules</string>
     <string name="home_stat_status">Status</string>
+    <string name="sync_sent">Sent to the server.</string>
+    <string name="sync_saved_offline">Saved. It will be sent when there is a connection.</string>
+    <string name="sync_saved_not_sent">Saved. It could not be sent yet and will be sent later.</string>
 </resources>

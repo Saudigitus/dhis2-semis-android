@@ -11,7 +11,18 @@ import dagger.hilt.android.AndroidEntryPoint
 import org.dhis2.commons.Constants
 import org.dhis2.commons.dialogs.imagedetail.ImageDetailActivity
 import org.dhis2.commons.sync.SyncContext
+import android.widget.Toast
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.saudigitus.semis.core.data.model.SyncTarget
+import org.saudigitus.semis.core.data.model.app_config.SyncMode
+import org.saudigitus.semis.core.data.repository.AppConfigRepository
+import org.saudigitus.semis.core.data.repository.SyncOutcome
+import org.saudigitus.semis.core.data.repository.SyncRepository
 import org.dhis2.commons.sync.SyncDialog
 import org.saudigitus.semis.app.presentation.home.HomeViewModel
 import org.saudigitus.semis.core.designsystem.theme.SEMISTheme
@@ -26,6 +37,12 @@ class SEMISActivity : FragmentActivity() {
 
     @Inject
     lateinit var teiCardMapper: TEICardMapper
+
+    @Inject
+    lateinit var appConfigRepository: AppConfigRepository
+
+    @Inject
+    lateinit var syncRepository: SyncRepository
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -68,6 +85,43 @@ class SEMISActivity : FragmentActivity() {
      * A screen that names nothing falls back to the program being worked on.
      */
     private fun syncTargets(targets: List<SyncTarget>) {
+        lifecycleScope.launch {
+            when (appConfigRepository.getSyncMode()) {
+                SyncMode.DEFAULT -> Unit
+                SyncMode.PROMPT -> promptToSync(targets)
+                SyncMode.AUTO -> sendInBackground(targets)
+            }
+        }
+    }
+
+    /**
+     * Sends what was captured without asking, and says how it went when it is done.
+     *
+     * The upload is started on a scope that outlives this screen, because leaving straight after
+     * saving is the ordinary thing to do and must not be what cancels the sending. Whatever does
+     * not go now stays where it is, for the periodic sync or the manual button to carry.
+     */
+    private fun sendInBackground(targets: List<SyncTarget>) {
+        val appContext = applicationContext
+
+        uploadScope.launch {
+            val outcome = syncRepository.upload(
+                targets.ifEmpty { listOf(SyncTarget.Tracker(program)) },
+            )
+
+            val message = when (outcome) {
+                SyncOutcome.SENT -> R.string.sync_sent
+                SyncOutcome.OFFLINE -> R.string.sync_saved_offline
+                SyncOutcome.FAILED -> R.string.sync_saved_not_sent
+            }
+
+            withContext(Dispatchers.Main) {
+                Toast.makeText(appContext, appContext.getString(message), Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
+    private fun promptToSync(targets: List<SyncTarget>) {
         val distinct = targets.distinctBy { it.program }
         val context = when {
             distinct.size > 1 -> SyncContext.Global()
@@ -101,3 +155,12 @@ class SEMISActivity : FragmentActivity() {
         startActivity(intent)
     }
 }
+
+/**
+ * Where an upload started from a capture screen runs.
+ *
+ * Deliberately not tied to a screen or to an activity: the teacher saves and leaves, and the
+ * sending has to survive that. It lives as long as the process does, which for one small upload
+ * is exactly as long as it needs to.
+ */
+private val uploadScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
