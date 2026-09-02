@@ -106,9 +106,6 @@ dependencies {
     implementation(libs.room.ktx)
 
     // Ktor
-    implementation(libs.ktor.client.android)
-    implementation(libs.ktor.client.content.negotiation)
-    implementation(libs.ktor.serialization.kotlinx.json)
 
     ksp(libs.room.compiler)
 
