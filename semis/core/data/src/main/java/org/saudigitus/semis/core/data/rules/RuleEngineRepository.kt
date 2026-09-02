@@ -26,6 +26,8 @@ import org.hisp.dhis.rules.models.RuleEvent
 import org.hisp.dhis.rules.models.RuleEventStatus
 import org.hisp.dhis.rules.models.RuleVariable
 import java.util.Collections
+import java.util.Date
+import java.util.UUID
 import javax.inject.Inject
 
 class RuleEngineRepository @Inject constructor(
@@ -204,32 +206,82 @@ class RuleEngineRepository @Inject constructor(
         )
     }
 
+    /**
+     * Resolves the option level rules that restrict [dataElement] of [program] for the school [ou].
+     *
+     * These rules carry conditions such as `d2:inOrgUnitGroup('SSS')`, so their actions only apply to
+     * the schools the condition matches. Reading the actions off the configured rules would apply
+     * every restriction to every school, so the rules are evaluated instead: the engine returns the
+     * effects of the rules whose condition held, and discards the rest.
+     *
+     * The engine only evaluates conditions against a target it can read the school from, so a
+     * throwaway target carrying [ou] stands in for the record being filled. Without [ou] no
+     * organisation unit condition can hold and the field keeps its full option set.
+     */
     suspend fun applyOptionRules(
         ou: String? = null,
         program: String,
         dataElement: String,
-    ) = withContext(Dispatchers.IO) {
-        val ruleContext = executeContext(ou, program)
-        ruleContext.rules
-            .asSequence()
-            .flatMap { it.actions.asSequence() }
-            .filter {
-                it.type in setOf(
-                    ProgramRuleActionType.HIDEOPTION.name,
-                    ProgramRuleActionType.HIDEOPTIONGROUP.name
-                )
-            }
-            .mapNotNull { action ->
-                val fieldMatches = action.values["field"] == dataElement
-                if (!fieldMatches) return@mapNotNull null
+    ): OptionRuleEffects = withContext(Dispatchers.IO) {
+        val optionsToHide = mutableListOf<String>()
+        val optionGroupsToHide = mutableListOf<String>()
+        val optionGroupsToShow = mutableListOf<String>()
 
+        ruleEngine.evaluate(
+            target = optionRuleTarget(ou),
+            ruleEnrollment = null,
+            ruleEvents = emptyList(),
+            executionContext = executeContext(ou, program),
+        ).asSequence()
+            .map { it.ruleAction }
+            .filter { it.field() == dataElement }
+            .forEach { action ->
                 when (action.type) {
-                    ProgramRuleActionType.HIDEOPTION.name -> action.values["option"]
-                    ProgramRuleActionType.HIDEOPTIONGROUP.name -> action.values["optionGroup"]
-                    else -> null
+                    ProgramRuleActionType.HIDEOPTION.name ->
+                        action.values["option"]?.let(optionsToHide::add)
+
+                    ProgramRuleActionType.HIDEOPTIONGROUP.name ->
+                        action.values["optionGroup"]?.let(optionGroupsToHide::add)
+
+                    ProgramRuleActionType.SHOWOPTIONGROUP.name ->
+                        action.values["optionGroup"]?.let(optionGroupsToShow::add)
+
+                    // Every other action type shapes the form, not the option list of this field.
+                    else -> Unit
                 }
             }
-            .toList()
+
+        return@withContext OptionRuleEffects(
+            optionsToHide = optionsToHide,
+            optionGroupsToHide = optionGroupsToHide,
+            optionGroupsToShow = optionGroupsToShow,
+        )
+    }
+
+    /**
+     * Builds the throwaway target the option rules are evaluated against.
+     *
+     * Nothing here is persisted and no program stage is involved: the target exists only to carry
+     * [ou], which is the value `d2:inOrgUnitGroup` matches against the organisation unit groups
+     * published in the context supplementary data. Filtering an option list happens before any
+     * record exists, so there is no real event to evaluate instead. The current date stands in for
+     * the event date so that a date based condition is evaluated as of now.
+     */
+    private fun optionRuleTarget(ou: String?): RuleEvent {
+        val now = Date()
+        return RuleEvent(
+            event = UUID.randomUUID().toString(),
+            programStage = "",
+            programStageName = "",
+            status = RuleEventStatus.ACTIVE,
+            eventDate = now.toRuleEngineInstant(),
+            createdDate = now.toRuleEngineInstant(),
+            dueDate = null,
+            completedDate = null,
+            organisationUnit = ou.orEmpty(),
+            organisationUnitCode = ou?.let { d2.organisationUnit(it)?.code() },
+            dataValues = emptyList(),
+        )
     }
 
     private fun dataEntry(
