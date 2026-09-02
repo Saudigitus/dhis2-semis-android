@@ -20,6 +20,21 @@ class AppModulesRepositoryImpl
     val configRepository: AppConfigRepository,
     val resourceManager: ResourceManager
 ) : AppModulesRepository {
+    /**
+     * Reads the modules the home screen offers, in the order they are shown.
+     *
+     * The order follows the life of a learner: enrolled first, marked present day to day, graded,
+     * and eventually transferred. Absenteeism sits beside attendance because it belongs to the same
+     * daily routine.
+     *
+     * That order comes from the bundled asset and is therefore the same on every server, which is
+     * at odds with the rest of SEMIS, where the datastore decides. It should be read from the
+     * datastore too, with the asset kept only as the default, so that a deployment can present the
+     * modules in the order its own users work in. That change is not made here.
+     *
+     * A module the configuration disables is dropped from the list rather than shown as
+     * unavailable, so what this returns is exactly what the home screen draws.
+     */
     override suspend fun getModules(program: String) = withContext(Dispatchers.IO) {
         val appConfig = configRepository.getAppConfig(program)
 

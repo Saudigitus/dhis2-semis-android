@@ -2,6 +2,7 @@
 <resources>
     <string name="sync_offline_check_connection">Parece que está offline. Por favor, verifique a sua ligação</string>
     <string name="home_modules">Módulos</string>
+    <string name="home_select_all_filters">Por favor selecione todos os filtros para continuar.</string>
     <string name="home_stat_enrolled">Inscritos</string>
     <string name="home_stat_modules">Módulos</string>
     <string name="home_stat_status">Estado</string>

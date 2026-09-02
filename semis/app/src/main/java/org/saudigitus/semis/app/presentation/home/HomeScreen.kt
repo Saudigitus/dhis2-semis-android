@@ -70,6 +70,7 @@ fun HomeScreen(
     ) {
         val filterDetails = state.filterState.filterDetailsState
         val stats = homeStats(state)
+        val noticeMessage = state.errorMessage ?: state.notice.message()
 
         LazyVerticalGrid(
             modifier = Modifier.fillMaxSize(),
@@ -87,12 +88,11 @@ fun HomeScreen(
                 )
             }
 
-            if (filterDetails.count == 0) {
-                fullWidthItem(key = "no_records") {
+            if (noticeMessage != null) {
+                fullWidthItem(key = "notice") {
                     NoRecordsFound(
                         modifier = Modifier.fillMaxWidth(),
-                        message = state.errorMessage
-                            ?: stringResource(DesignSystemR.string.no_records_found)
+                        message = noticeMessage
                     )
                 }
             }
@@ -107,7 +107,7 @@ fun HomeScreen(
                         label = module.title,
                         icon = painterResource(ModuleIcons.getModuleIconByName(module.icon)),
                         accent = moduleAccent(module.icon),
-                        enabled = module.enabled && filterDetails.count != 0,
+                        enabled = state.areModulesAvailable,
                         onClick = {
                             navTo.invoke(module.route)
                         }
@@ -120,6 +120,14 @@ fun HomeScreen(
             }
         }
     }
+}
+
+/** Resolves the notice to the text shown to the user, or to nothing when there is none. */
+@Composable
+private fun HomeNotice.message(): String? = when (this) {
+    HomeNotice.NONE -> null
+    HomeNotice.SELECT_FILTERS -> stringResource(R.string.home_select_all_filters)
+    HomeNotice.NO_DATA -> stringResource(DesignSystemR.string.no_records_found)
 }
 
 private fun LazyGridScope.fullWidthItem(
