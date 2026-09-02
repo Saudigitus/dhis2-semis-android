@@ -5,10 +5,10 @@ lifecycleRuntimeCompose = "2.9.6"
 navigationCompose = "2.9.2"
 sdk = "36"
 minSdk = "23"
-vCode = "157"
+vCode = "158"
 vName = "3.4.2"
 # The SEMIS deployment carries its own version, shown on the About screen.
-semis = "2.1.0-rc1"
+semis = "2.1.0-rc2"
 semisDatastore = "2.0"
 gradle = "9.0.1"
 kotlin = '2.3.20'

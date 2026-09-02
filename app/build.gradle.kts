@@ -226,6 +226,9 @@ android {
 
     productFlavors {
         create("dhis2") {
+            // The round under test installs beside whatever SEMIS a tester already has, so a
+            // build signed with a different key is never refused as a conflicting install.
+            applicationIdSuffix = ".test"
             signingConfig = signingConfigs.getByName("release")
         }
         create("dhis2PlayServices") {
