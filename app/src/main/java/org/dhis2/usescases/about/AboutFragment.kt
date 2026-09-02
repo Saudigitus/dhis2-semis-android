@@ -43,6 +43,10 @@ class AboutFragment :
                 aboutContact.movementMethod = LinkMovementMethod.getInstance()
                 aboutApp.text = getString(R.string.about_app).format(context?.buildInfo())
                 appSDK.text = getString(R.string.about_sdk).format(BuildConfig.SDK_VERSION)
+                aboutSemis.text = getString(R.string.about_semis)
+                    .format(BuildConfig.SEMIS_VERSION)
+                aboutSemisDatastore.text = getString(R.string.about_datastore)
+                    .format(BuildConfig.DATASTORE_VERSION)
                 privacyPolicy.setOnClickListener { navigateToPrivacyPolicy() }
             }.root
     }

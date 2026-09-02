@@ -120,7 +120,7 @@ android {
     testNamespace = "org.dhis2.test"
 
     defaultConfig {
-        applicationId = "com.dhis2"
+        applicationId = "com.dhis2.semis"
         targetSdk = libs.versions.sdk.get().toInt()
         minSdk = libs.versions.minSdk.get().toInt()
         versionCode = libs.versions.vCode.get().toInt()
@@ -131,6 +131,8 @@ android {
         val bitriseSentryDSN = System.getenv("SENTRY_DSN") ?: ""
 
         buildConfigField("String", "SDK_VERSION", "\"" + libs.versions.dhis2sdk.get() + "\"")
+        buildConfigField("String", "SEMIS_VERSION", "\"" + libs.versions.semis.get() + "\"")
+        buildConfigField("String", "DATASTORE_VERSION", "\"" + libs.versions.semisDatastore.get() + "\"")
         buildConfigField("String", "MATOMO_URL", "\"https://usage.analytics.dhis2.org/matomo.php\"")
         buildConfigField("long", "VERSION_CODE", "${defaultConfig.versionCode}")
         buildConfigField("String", "VERSION_NAME", "\"${defaultConfig.versionName}\"")
