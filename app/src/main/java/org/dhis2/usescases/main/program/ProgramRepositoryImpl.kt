@@ -15,6 +15,12 @@ import org.hisp.dhis.android.core.program.Program
 import org.hisp.dhis.android.core.program.ProgramType.WITHOUT_REGISTRATION
 import org.hisp.dhis.android.core.program.ProgramType.WITH_REGISTRATION
 import org.hisp.dhis.mobile.ui.designsystem.theme.SurfaceColor
+import kotlinx.coroutines.runBlocking
+import org.saudigitus.semis.core.data.model.app_config.SEMISConfig
+import org.saudigitus.semis.core.utils.Constants.DATASTORE_KEY
+import org.saudigitus.semis.core.utils.Constants.DATASTORE_NAMESPACE
+import org.saudigitus.semis.core.utils.ProgramValidator
+import org.saudigitus.semis.core.utils.decodeJson
 
 internal class ProgramRepositoryImpl(
     private val d2: D2,
@@ -23,6 +29,7 @@ internal class ProgramRepositoryImpl(
     private val resourceManager: ResourceManager,
     private val metadataIconProvider: MetadataIconProvider,
     private val schedulerProvider: SchedulerProvider,
+    private val programValidator: ProgramValidator,
 ) : ProgramRepository {
     private val programViewModelMapper = ProgramViewModelMapper()
     private var lastSyncStatus: SyncStatusData? = null
@@ -120,6 +127,17 @@ internal class ProgramRepositoryImpl(
                         metadataIconData = metadataIconProvider(program.style(), SurfaceColor.Primary),
                     ).copy(
                         isStockUseCase = d2.isStockProgram(program.uid()),
+                        isSEMIS = runBlocking {
+                            programValidator.isSEMIS(
+                                DATASTORE_NAMESPACE,
+                                DATASTORE_KEY,
+                            ) { dataStoreEntry ->
+                                val decodedJson = decodeJson(dataStoreEntry?.value())
+                                val semisConfig = SEMISConfig.fromJson(decodedJson)
+
+                                semisConfig?.find { it.program == program.uid() } != null
+                            }
+                        },
                     )
             }.toList()
             .toFlowable()

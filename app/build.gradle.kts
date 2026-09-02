@@ -347,8 +347,11 @@ dependencies {
     implementation(project(":commonskmm"))
     implementation(project(":login"))
     implementation(project(":sync"))
-
     implementation(libs.dagger.hilt.android)
+    implementation(project(":semis:app"))
+    implementation(project(":semis:core:data"))
+    implementation(project(":semis:core:utils"))
+
     implementation(libs.security.conscrypt)
     implementation(libs.security.rootbeer)
     implementation(libs.security.openId)

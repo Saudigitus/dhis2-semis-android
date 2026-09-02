@@ -38,6 +38,7 @@ import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.doReturnConsecutively
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
+import org.saudigitus.semis.core.utils.ProgramValidator
 
 class ProgramRepositoryImplTest {
     @Rule
@@ -51,6 +52,13 @@ class ProgramRepositoryImplTest {
     private val dhisProgramUtils: DhisProgramUtils = mock()
     private val scheduler = TrampolineSchedulerProvider()
     private val resourceManager: ResourceManager = mock()
+
+    // Reads the datastore, which the deep-stubbed D2 cannot answer. No programme here is a
+    // SEMIS one, which is what the expectations below describe.
+    private val programValidator: ProgramValidator =
+        mock {
+            onBlocking { isSEMIS(any(), any(), any()) } doReturn false
+        }
     private val metadataIconProvider: MetadataIconProvider =
         mock {
             on { invoke(style = any<ObjectStyle>(), anyOrNull<Color>()) } doReturn MetadataIconData.defaultIcon()
@@ -68,6 +76,7 @@ class ProgramRepositoryImplTest {
                 resourceManager,
                 metadataIconProvider,
                 scheduler,
+                programValidator,
             )
         whenever(
             resourceManager.defaultDataSetLabel(),
