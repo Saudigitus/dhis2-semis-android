@@ -2,7 +2,7 @@
 kotlinxDatetime = "0.6.2"
 sdk = "36"
 minSdk = "21"
-vCode = "146"
+vCode = "147"
 vName = "3.2.1.1"
 gradle = "8.8.0"
 kotlin = '2.0.21'
@@ -100,7 +100,7 @@ ktor = "2.3.12"
 #SEMIS
 room = "2.6.1"
 ksp = "2.0.21-1.0.28"
-semis = "2.0.0"
+semis = "2.1.0-rc1"
 semisDatastore = "2.0"
 materialIcons = "1.7.8"
 androidxHiltNavigation = "1.0.0"
