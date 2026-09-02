@@ -9,12 +9,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.Icon
+import androidx.compose.material3.Icon
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.ComposeView
@@ -40,14 +38,15 @@ import org.dhis2.maps.model.MapStyle
 import org.dhis2.maps.views.LocationIcon
 import org.dhis2.maps.views.MapScreen
 import org.dhis2.maps.views.OnMapClickListener
-import org.dhis2.ui.avatar.AvatarProvider
-import org.dhis2.ui.theme.Dhis2Theme
+import org.dhis2.mobile.commons.model.AvatarProviderConfiguration
 import org.dhis2.usescases.general.FragmentGlobalAbstract
 import org.dhis2.usescases.searchTrackEntity.SearchTEActivity
 import org.dhis2.usescases.searchTrackEntity.SearchTEContractsModule
 import org.dhis2.usescases.searchTrackEntity.SearchTEIViewModel
 import org.dhis2.usescases.searchTrackEntity.SearchTeiViewModelFactory
 import org.hisp.dhis.mobile.ui.designsystem.component.AdditionalInfoItem
+import org.hisp.dhis.mobile.ui.designsystem.component.Avatar
+import org.hisp.dhis.mobile.ui.designsystem.component.AvatarStyleData
 import org.hisp.dhis.mobile.ui.designsystem.component.IconButton
 import org.hisp.dhis.mobile.ui.designsystem.component.IconButtonStyle
 import org.hisp.dhis.mobile.ui.designsystem.component.ListCard
@@ -55,6 +54,8 @@ import org.hisp.dhis.mobile.ui.designsystem.component.ListCardDescriptionModel
 import org.hisp.dhis.mobile.ui.designsystem.component.ListCardTitleModel
 import org.hisp.dhis.mobile.ui.designsystem.component.state.rememberAdditionalInfoColumnState
 import org.hisp.dhis.mobile.ui.designsystem.component.state.rememberListCardState
+import org.hisp.dhis.mobile.ui.designsystem.files.buildPainterForFile
+import org.hisp.dhis.mobile.ui.designsystem.theme.DHIS2Theme
 import org.hisp.dhis.mobile.ui.designsystem.theme.TextColor
 import org.maplibre.android.maps.MapView
 import javax.inject.Inject
@@ -63,7 +64,6 @@ const val ARG_FROM_RELATIONSHIP = "ARG_FROM_RELATIONSHIP"
 const val ARG_TE_TYPE = "ARG_TE_TYPE"
 
 class SearchTEMap : FragmentGlobalAbstract() {
-
     @Inject
     lateinit var mapNavigation: ExternalMapNavigation
 
@@ -89,25 +89,31 @@ class SearchTEMap : FragmentGlobalAbstract() {
     }
 
     companion object {
-        fun get(fromRelationships: Boolean, teType: String): SearchTEMap {
-            return SearchTEMap().apply {
+        fun get(
+            fromRelationships: Boolean,
+            teType: String,
+        ): SearchTEMap =
+            SearchTEMap().apply {
                 arguments = bundleArguments(fromRelationships, teType)
             }
-        }
     }
 
-    private fun bundleArguments(fromRelationships: Boolean, teType: String): Bundle {
-        return Bundle().apply {
+    private fun bundleArguments(
+        fromRelationships: Boolean,
+        teType: String,
+    ): Bundle =
+        Bundle().apply {
             putBoolean(ARG_FROM_RELATIONSHIP, fromRelationships)
             putString(ARG_TE_TYPE, teType)
         }
-    }
 
     override fun onAttach(context: Context) {
         super.onAttach(context)
-        (context as SearchTEActivity).searchComponent?.plus(
-            SearchTEMapModule(),
-        )?.inject(this)
+        (context as SearchTEActivity)
+            .searchComponent
+            ?.plus(
+                SearchTEMapModule(),
+            )?.inject(this)
         viewModel.setMapScreen()
     }
 
@@ -115,8 +121,8 @@ class SearchTEMap : FragmentGlobalAbstract() {
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?,
-    ): View {
-        return ComposeView(requireContext()).apply {
+    ): View =
+        ComposeView(requireContext()).apply {
             setViewCompositionStrategy(
                 ViewCompositionStrategy.DisposeOnDetachedFromWindow,
             )
@@ -124,9 +130,7 @@ class SearchTEMap : FragmentGlobalAbstract() {
                 val listState = rememberLazyListState()
 
                 val trackerMapData by viewModel.mapResults.collectAsState(initial = null)
-                val items by remember {
-                    derivedStateOf { trackerMapData?.mapItems ?: emptyList() }
-                }
+                val items = trackerMapData?.mapItems ?: emptyList()
 
                 val clickedItem by viewModel.mapItemClicked.collectAsState(initial = null)
 
@@ -142,24 +146,31 @@ class SearchTEMap : FragmentGlobalAbstract() {
                     }
                 }
 
-                LaunchedEffect(key1 = items) {
+                LaunchedEffect(key1 = trackerMapData) {
                     trackerMapData?.let { data ->
-                        teiMapManager?.takeIf { it.isMapReady() }?.update(
-                            data.teiFeatures,
-                            data.eventFeatures,
-                            data.dataElementFeaturess,
-                            data.teiBoundingBox,
-                        ).also {
-                            viewModel.mapManager = teiMapManager
-                        }
+                        teiMapManager
+                            ?.takeIf { it.isMapReady() }
+                            ?.also { manager ->
+                                manager.update(
+                                    data.teiFeatures,
+                                    data.eventFeatures,
+                                    data.dataElementFeaturess,
+                                    data.teiBoundingBox,
+                                )
+                                if (manager.autoSelectFirstLayerWithData()) {
+                                    viewModel.filterVisibleMapItems(manager.mapLayerManager.mapLayers)
+                                }
+                                viewModel.mapManager = manager
+                            }
                     }
                 }
 
-                Dhis2Theme {
+                DHIS2Theme {
                     Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .clip(shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)),
+                        modifier =
+                            Modifier
+                                .fillMaxSize()
+                                .clip(shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)),
                     ) {
                         MapScreen(
                             items = items,
@@ -220,8 +231,10 @@ class SearchTEMap : FragmentGlobalAbstract() {
                             onItemScrolled = { item ->
                                 with(teiMapManager) {
                                     this?.requestMapLayerManager()?.selectFeature(null)
-                                    this?.findFeatures(item.uid)
-                                        ?.takeIf { it.isNotEmpty() }?.let { features ->
+                                    this
+                                        ?.findFeatures(item.uid)
+                                        ?.takeIf { it.isNotEmpty() }
+                                        ?.let { features ->
                                             map?.centerCameraOnFeatures(features)
                                         }
                                 }
@@ -234,26 +247,37 @@ class SearchTEMap : FragmentGlobalAbstract() {
                             onItem = { item ->
 
                                 ListCard(
-                                    modifier = Modifier.fillParentMaxWidth().testTag("MAP_ITEM"),
-                                    listCardState = rememberListCardState(
-                                        title = ListCardTitleModel(text = item.title, allowOverflow = false),
-                                        description = item.description?.let {
-                                            ListCardDescriptionModel(
-                                                text = it,
-                                            )
-                                        },
-                                        lastUpdated = item.lastUpdated,
-                                        additionalInfoColumnState = rememberAdditionalInfoColumnState(
-                                            additionalInfoList = item.additionalInfoList,
-                                            syncProgressItem = AdditionalInfoItem(
-                                                key = stringResource(id = R.string.syncing),
-                                                value = "",
-                                            ),
-                                            expandLabelText = stringResource(id = R.string.show_more),
-                                            shrinkLabelText = stringResource(id = R.string.show_less),
-                                            scrollableContent = true,
+                                    modifier =
+                                        Modifier
+                                            .fillParentMaxWidth()
+                                            .testTag("MAP_ITEM"),
+                                    listCardState =
+                                        rememberListCardState(
+                                            title =
+                                                ListCardTitleModel(
+                                                    text = item.title,
+                                                    allowOverflow = false,
+                                                ),
+                                            description =
+                                                item.description?.let {
+                                                    ListCardDescriptionModel(
+                                                        text = it,
+                                                    )
+                                                },
+                                            lastUpdated = item.lastUpdated,
+                                            additionalInfoColumnState =
+                                                rememberAdditionalInfoColumnState(
+                                                    additionalInfoList = item.additionalInfoList,
+                                                    syncProgressItem =
+                                                        AdditionalInfoItem(
+                                                            key = stringResource(id = R.string.syncing),
+                                                            value = "",
+                                                        ),
+                                                    expandLabelText = stringResource(id = R.string.show_more),
+                                                    shrinkLabelText = stringResource(id = R.string.show_less),
+                                                    scrollableContent = true,
+                                                ),
                                         ),
-                                    ),
                                     actionButton = {
                                         SyncButtonProvider(state = item.state) {
                                             presenter.onSyncIconClick(item.relatedInfo?.enrollment?.uid)
@@ -263,9 +287,43 @@ class SearchTEMap : FragmentGlobalAbstract() {
                                         cardClick(item)
                                     },
                                     listAvatar = {
-                                        AvatarProvider(
-                                            avatarProviderConfiguration = item.avatarProviderConfiguration,
-                                            onImageClick = ::launchImageDetail,
+                                        Avatar(
+                                            style =
+                                                when (
+                                                    val config =
+                                                        item.avatarProviderConfiguration
+                                                ) {
+                                                    is AvatarProviderConfiguration.MainValueLabel ->
+                                                        AvatarStyleData.Text(
+                                                            config.firstMainValue
+                                                                .firstOrNull()
+                                                                ?.toString()
+                                                                ?: "?",
+                                                        )
+
+                                                    is AvatarProviderConfiguration.Metadata ->
+                                                        AvatarStyleData.Metadata(
+                                                            imageCardData = config.metadataIconData.imageCardData,
+                                                            avatarSize = config.size,
+                                                            tintColor = config.metadataIconData.color,
+                                                        )
+
+                                                    is AvatarProviderConfiguration.ProfilePic ->
+                                                        AvatarStyleData.Image(buildPainterForFile(config.profilePicturePath))
+                                                },
+                                            onImageClick =
+                                                when (
+                                                    val config =
+                                                        item.avatarProviderConfiguration
+                                                ) {
+                                                    is AvatarProviderConfiguration.Metadata,
+                                                    is AvatarProviderConfiguration.MainValueLabel,
+                                                    -> null
+
+                                                    is AvatarProviderConfiguration.ProfilePic -> {
+                                                        { launchImageDetail(config.profilePicturePath) }
+                                                    }
+                                                },
                                         )
                                     },
                                 )
@@ -275,7 +333,6 @@ class SearchTEMap : FragmentGlobalAbstract() {
                 }
             }
         }
-    }
 
     private fun cardClick(item: MapItemModel) {
         if (fromRelationship) {
@@ -300,39 +357,43 @@ class SearchTEMap : FragmentGlobalAbstract() {
         )
     }
 
-    private fun loadMap(mapView: MapView, savedInstanceState: Bundle?) {
-        teiMapManager = TeiMapManager(mapView, MapLocationEngine(requireContext())).also {
-            lifecycle.addObserver(it)
-            it.onCreate(savedInstanceState)
-            it.teiFeatureType = presenter.getTrackedEntityType(tEType).featureType()
-            it.enrollmentFeatureType =
-                if (presenter.program != null) presenter.program.featureType() else null
-            it.onMapClickListener = OnMapClickListener(it, viewModel::onFeatureClicked)
-            it.mapStyle =
-                MapStyle(
-                    presenter.teiColor,
-                    presenter.symbolIcon,
-                    presenter.enrollmentColor,
-                    presenter.enrollmentSymbolIcon,
-                    presenter.programStageStyle,
-                    colorUtils.getPrimaryColor(
-                        requireContext(),
-                        ColorType.PRIMARY_DARK,
-                    ),
-                )
-            it.init(
-                viewModel.fetchMapStyles(),
-                onInitializationFinished = {
-                    presenter.getMapData()
-                    viewModel.filterVisibleMapItems(
-                        it.mapLayerManager.mapLayers.toMap(),
+    private fun loadMap(
+        mapView: MapView,
+        savedInstanceState: Bundle?,
+    ) {
+        teiMapManager =
+            TeiMapManager(mapView, MapLocationEngine(requireContext())).also {
+                lifecycle.addObserver(it)
+                it.onCreate(savedInstanceState)
+                it.teiFeatureType = presenter.getTrackedEntityType(tEType).featureType()
+                it.enrollmentFeatureType =
+                    if (presenter.program != null) presenter.program.featureType() else null
+                it.onMapClickListener = OnMapClickListener(it, viewModel::onFeatureClicked)
+                it.mapStyle =
+                    MapStyle(
+                        presenter.teiColor,
+                        presenter.symbolIcon,
+                        presenter.enrollmentColor,
+                        presenter.enrollmentSymbolIcon,
+                        presenter.programStageStyle,
+                        colorUtils.getPrimaryColor(
+                            requireContext(),
+                            ColorType.PRIMARY_DARK,
+                        ),
                     )
-                },
-                onMissingPermission = { permissionsManager ->
-                    permissionsManager?.requestLocationPermissions(requireActivity())
-                },
-            )
-        }
+                it.init(
+                    viewModel.fetchMapStyles(),
+                    onInitializationFinished = {
+                        presenter.getMapData()
+                        viewModel.filterVisibleMapItems(
+                            it.mapLayerManager.mapLayers.toMap(),
+                        )
+                    },
+                    onMissingPermission = { permissionsManager ->
+                        permissionsManager?.requestLocationPermissions(requireActivity())
+                    },
+                )
+            }
     }
 
     override fun onLowMemory() {
@@ -347,8 +408,9 @@ class SearchTEMap : FragmentGlobalAbstract() {
 
     override fun onResume() {
         super.onResume()
-        val exists = childFragmentManager
-            .findFragmentByTag(MapLayerDialog::class.java.name) as MapLayerDialog?
+        val exists =
+            childFragmentManager
+                .findFragmentByTag(MapLayerDialog::class.java.name) as MapLayerDialog?
         exists?.dismiss()
     }
 

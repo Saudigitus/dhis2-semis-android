@@ -33,8 +33,8 @@ import androidx.compose.ui.unit.dp
 import androidx.fragment.app.FragmentActivity
 import androidx.fragment.app.FragmentManager
 import org.dhis2.commons.orgunitselector.OUTreeFragment
-import org.dhis2.commons.orgunitselector.OrgUnitSelectorScope
-import org.dhis2.ui.theme.colorPrimary
+import org.dhis2.mobile.commons.orgunit.OrgUnitSelectorScope
+import org.saudigitus.semis.core.designsystem.theme.colorPrimary
 import org.hisp.dhis.mobile.ui.designsystem.theme.SurfaceColor
 import org.saudigitus.semis.core.data.model.OrgUnit
 import org.saudigitus.semis.core.designsystem.theme.SemisFieldShape

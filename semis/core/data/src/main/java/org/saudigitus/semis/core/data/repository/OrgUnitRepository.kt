@@ -3,7 +3,7 @@ package org.saudigitus.semis.core.data.repository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.dhis2.commons.orgunitselector.OURepositoryConfiguration
-import org.dhis2.commons.orgunitselector.OrgUnitSelectorScope
+import org.dhis2.mobile.commons.orgunit.OrgUnitSelectorScope
 import org.hisp.dhis.android.core.D2
 import org.saudigitus.semis.core.data.model.OrgUnit
 

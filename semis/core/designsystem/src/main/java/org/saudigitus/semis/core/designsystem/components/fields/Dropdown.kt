@@ -46,7 +46,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toSize
 import kotlin.collections.find
 import kotlin.collections.forEachIndexed
-import org.dhis2.ui.theme.colorPrimary
+import org.saudigitus.semis.core.designsystem.theme.colorPrimary
 import org.saudigitus.semis.core.designsystem.R
 import org.saudigitus.semis.core.designsystem.components.model.DropdownItem
 import org.saudigitus.semis.core.designsystem.components.model.FilterType

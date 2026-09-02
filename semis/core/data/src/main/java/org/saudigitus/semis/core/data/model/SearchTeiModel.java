@@ -1,8 +1,6 @@
 package org.saudigitus.semis.core.data.model;
 
-import org.dhis2.commons.data.CarouselItemModel;
-import org.dhis2.commons.data.tuples.Trio;
-import org.dhis2.ui.MetadataIconData;
+import org.dhis2.mobile.commons.model.MetadataIconData;
 import org.hisp.dhis.android.core.enrollment.Enrollment;
 import org.hisp.dhis.android.core.maintenance.D2ErrorCode;
 import org.hisp.dhis.android.core.program.Program;
@@ -19,12 +17,11 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Objects;
 
-public class SearchTeiModel implements CarouselItemModel {
+public class SearchTeiModel {
 
     private LinkedHashMap<String, TrackedEntityAttributeValue> attributeValues;
     private LinkedHashMap<String, TrackedEntityAttributeValue> textAttributeValues;
 
-    private List<Trio<String, String, String>> enrollmentsInfo;
     private List<Program> programInfo;
     private HashMap<String, MetadataIconData> metadataIconDataMap;
     private boolean hasOverdue;
@@ -56,7 +53,6 @@ public class SearchTeiModel implements CarouselItemModel {
         this.selectedEnrollment = null;
         this.attributeValues = new LinkedHashMap<>();
         this.textAttributeValues = new LinkedHashMap<>();
-        this.enrollmentsInfo = new ArrayList<>();
         this.programInfo = new ArrayList<>();
         this.isOnline = true;
         this.enrollments = new ArrayList<>();
@@ -65,10 +61,6 @@ public class SearchTeiModel implements CarouselItemModel {
         this.enrolledOrgUnit = null;
         this.onlineErrorMessage = null;
         this.metadataIconDataMap = new HashMap<>();
-    }
-
-    public void addEnrollmentInfo(Trio<String, String, String> enrollmentInfo) {
-        enrollmentsInfo.add(enrollmentInfo);
     }
 
     public void addProgramInfo(Program program, MetadataIconData metadataIconData) {
@@ -114,7 +106,6 @@ public class SearchTeiModel implements CarouselItemModel {
 
     public void resetEnrollments() {
         this.enrollments.clear();
-        this.enrollmentsInfo.clear();
     }
 
     public void setAttributeValues(LinkedHashMap<String, TrackedEntityAttributeValue> attributeValues) {
@@ -245,7 +236,6 @@ public class SearchTeiModel implements CarouselItemModel {
     }
 
     @NotNull
-    @Override
     public String uid() {
         return tei.uid();
     }

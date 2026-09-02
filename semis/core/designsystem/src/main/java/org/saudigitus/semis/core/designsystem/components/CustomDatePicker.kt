@@ -19,7 +19,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.window.DialogProperties
 import org.dhis2.commons.date.DateUtils
-import org.dhis2.ui.theme.colorPrimary
+import org.saudigitus.semis.core.designsystem.theme.colorPrimary
 import org.saudigitus.semis.core.designsystem.R
 import org.saudigitus.semis.core.designsystem.theme.SemisPalette
 import org.saudigitus.semis.core.designsystem.theme.light_error

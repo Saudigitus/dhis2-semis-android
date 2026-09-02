@@ -7,7 +7,7 @@ import org.dhis2.commons.filters.FilterManager
 import org.dhis2.commons.matomo.MatomoAnalyticsController
 import org.dhis2.commons.schedulers.SchedulerProvider
 import org.dhis2.commons.viewmodel.DispatcherProvider
-import org.dhis2.data.service.SyncStatusController
+import org.dhis2.mobile.sync.domain.SyncStatusController
 
 class ProgramViewModelFactory(
     private val view: ProgramView,
@@ -19,8 +19,8 @@ class ProgramViewModelFactory(
     private val syncStatusController: SyncStatusController,
     private val schedulerProvider: SchedulerProvider,
 ) : ViewModelProvider.Factory {
-    override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        return ProgramViewModel(
+    override fun <T : ViewModel> create(modelClass: Class<T>): T =
+        ProgramViewModel(
             view,
             programRepository,
             featureConfigRepository,
@@ -30,5 +30,4 @@ class ProgramViewModelFactory(
             syncStatusController,
             schedulerProvider,
         ) as T
-    }
 }

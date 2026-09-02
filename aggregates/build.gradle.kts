@@ -1,22 +1,22 @@
+import kotlin.text.set
+
 plugins {
-    kotlin("multiplatform")
+    alias(libs.plugins.kotlin.multiplatform)
     alias(libs.plugins.compose)
-    id("com.android.library")
+    alias(libs.plugins.android.kotlin.multiplatform.library)
     alias(libs.plugins.kotlin.compose.compiler)
 }
 
-repositories{
-    maven { url = uri("https://central.sonatype.com/repository/maven-snapshots") }
-    mavenCentral()
-    google()
-}
-
 kotlin {
-    androidTarget {
-        compilations.all {
-            kotlinOptions {
-                jvmTarget = "17"
-            }
+    android {
+        namespace = "org.dhis2.mobile.aggregates"
+        compileSdk = libs.versions.sdk.get().toInt()
+        minSdk = libs.versions.minSdk.get().toInt()
+        compilerOptions { jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17) }
+        androidResources { enable = true }
+        withHostTestBuilder {}.configure {}
+        withDeviceTestBuilder {}.configure {
+            instrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         }
     }
 
@@ -32,17 +32,17 @@ kotlin {
         }
 
         commonMain.dependencies {
-            implementation(compose.runtime)
-            implementation(compose.foundation)
-            implementation(compose.ui)
-            implementation(compose.material3)
-            api(compose.materialIconsExtended)
-            val desyngsystem = libs.dhis2.mobile.designsystem
-            implementation("${desyngsystem.get().group}:${desyngsystem.get().name}:${desyngsystem.get().version}"){
+            implementation(libs.compose.runtime)
+            implementation(libs.compose.foundation)
+            implementation(libs.compose.ui)
+            implementation(libs.compose.material3)
+            api(libs.compose.material3.iconsExtendend)
+            val designSystem = libs.dhis2.mobile.designsystem
+            implementation("${designSystem.get().group}:${designSystem.get().name}:${designSystem.get().version}"){
                 isChanging= true
             }
             implementation(libs.compose.material3.window)
-            implementation(compose.components.resources)
+            implementation(libs.compose.components.resources)
             implementation(project(":commonskmm"))
 
             // Koin
@@ -50,7 +50,7 @@ kotlin {
             implementation(libs.koin.compose)
             implementation(libs.koin.composeVM)
         }
-        
+
         commonTest.dependencies {
             implementation(kotlin("test"))
             // Koin Test features
@@ -60,7 +60,7 @@ kotlin {
             implementation(libs.test.turbine)
             implementation(libs.test.kotlinCoroutines)
             implementation(libs.test.mockitoKotlin)
-            implementation(compose.components.resources)
+            implementation(libs.compose.components.resources)
         }
 
         androidMain.dependencies {
@@ -71,13 +71,16 @@ kotlin {
             implementation(libs.koin.androidx.compose)
             implementation(project(":commons"))
             implementation(project(":dhis2_android_maps"))
+            compileOnly(libs.androidx.compose.uitooling)
         }
 
-        androidUnitTest.dependencies {  }
+        getByName("androidHostTest") {
+            dependencies { implementation(libs.junit.jupiter) }
+        }
 
         val desktopMain by getting {
             dependencies {
-                implementation(compose.desktop.common)
+                implementation(libs.compose.desktop.common)
             }
         }
     }
@@ -89,30 +92,6 @@ compose.resources {
     generateResClass = always
 }
 
-android {
-    namespace = "org.dhis2.mobile.aggregates"
-    compileSdk = libs.versions.sdk.get().toInt()
-
-    sourceSets["main"].manifest.srcFile("src/androidMain/AndroidManifest.xml")
-    sourceSets["main"].res.srcDirs("src/androidMain/res")
-
-    defaultConfig {
-        minSdk = libs.versions.minSdk.get().toInt()
-    }
-    compileOptions {
-        isCoreLibraryDesugaringEnabled = true
-
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-    }
-
-    dependencies {
-        coreLibraryDesugaring(libs.desugar)
-    }
-}
-
 dependencies {
-    testImplementation(libs.junit.jupiter)
-    debugImplementation(libs.androidx.compose.preview)
-    debugImplementation(libs.androidx.ui.tooling)
+    coreLibraryDesugaring(libs.desugar)
 }

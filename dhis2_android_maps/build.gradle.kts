@@ -2,8 +2,8 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     id("com.android.library")
-    kotlin("android")
-    kotlin("kapt")
+    alias(libs.plugins.legacy.kapt)
+    id("com.google.devtools.ksp")
     alias(libs.plugins.kotlin.compose.compiler)
     alias(libs.plugins.kotlin.serialization)
 }
@@ -52,8 +52,13 @@ kotlin {
     }
 }
 
+kapt {
+    correctErrorTypes = true
+}
+
 dependencies {
     implementation(project(":commons"))
+    implementation(project(":commonskmm"))
     api(libs.maps.maplibre) {
         exclude("com.google.android.gms")
     }
@@ -62,6 +67,7 @@ dependencies {
     }
     implementation(libs.maps.markerViewPlugin)
     implementation(libs.maps.annotationPlugin)
+    implementation(libs.androidx.activity.compose)
 
     testImplementation(libs.bundles.map.test)
     coreLibraryDesugaring(libs.desugar)

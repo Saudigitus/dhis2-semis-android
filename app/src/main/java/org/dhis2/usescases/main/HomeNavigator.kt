@@ -40,8 +40,8 @@ sealed class HomeItemData(
     ) : HomeItemData(uid, label, accessDataWrite)
 }
 
-fun ProgramUiModel.toHomeItemData(): HomeItemData {
-    return when (programType) {
+fun ProgramUiModel.toHomeItemData(): HomeItemData =
+    when (programType) {
         ProgramType.WITHOUT_REGISTRATION.name ->
             HomeItemData.EventProgram(
                 uid,
@@ -59,21 +59,25 @@ fun ProgramUiModel.toHomeItemData(): HomeItemData {
                 isSEMIS,
             )
 
-        else -> HomeItemData.DataSet(
-            uid,
-            title,
-            accessDataWrite,
-        )
+        else ->
+            HomeItemData.DataSet(
+                uid,
+                title,
+                accessDataWrite,
+            )
     }
-}
 
-fun ActivityResultLauncher<Intent>.navigateTo(context: Context, homeItemData: HomeItemData) {
+fun ActivityResultLauncher<Intent>.navigateTo(
+    context: Context,
+    homeItemData: HomeItemData,
+) {
     val bundle = Bundle()
-    val idTag = if (homeItemData is HomeItemData.DataSet) {
-        Constants.DATASET_UID
-    } else {
-        Constants.PROGRAM_UID
-    }
+    val idTag =
+        if (homeItemData is HomeItemData.DataSet) {
+            Constants.DATASET_UID
+        } else {
+            Constants.PROGRAM_UID
+        }
 
     bundle.putString(idTag, homeItemData.uid)
     bundle.putString(Constants.DATA_SET_NAME, homeItemData.label)

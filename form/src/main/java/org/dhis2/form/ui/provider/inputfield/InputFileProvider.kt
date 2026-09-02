@@ -7,7 +7,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import org.dhis2.commons.resources.ResourceManager
+import androidx.compose.ui.res.stringResource
 import org.dhis2.form.R
 import org.dhis2.form.extensions.inputState
 import org.dhis2.form.extensions.legend
@@ -24,7 +24,6 @@ import java.text.DecimalFormat
 internal fun ProvideInputFileResource(
     modifier: Modifier,
     fieldUiModel: FieldUiModel,
-    resources: ResourceManager,
     onFileSelected: (filePath: String) -> Unit,
     uiEventHandler: (RecyclerViewUiEvents) -> Unit,
 ) {
@@ -45,7 +44,7 @@ internal fun ProvideInputFileResource(
         title = fieldUiModel.label,
         inputShellState = fieldUiModel.inputState(),
         supportingText = fieldUiModel.supportingText(),
-        buttonText = resources.getString(R.string.add_file),
+        buttonText = stringResource(R.string.add_file),
         uploadFileState = uploadState,
         fileName = file?.name,
         fileWeight = file?.length()?.let { fileSizeLabel(it) },
@@ -63,22 +62,25 @@ internal fun ProvideInputFileResource(
     )
 }
 
-private fun fileSizeLabel(fileSize: Long) = run {
-    val kb = fileSize / 1024f
-    val mb = kb / 1024f
-    if (kb < 1024f) {
-        "${DecimalFormat("*0").format(kb)}KB"
-    } else {
-        "${DecimalFormat("*0.##").format(mb)}MB"
+private fun fileSizeLabel(fileSize: Long) =
+    run {
+        val kb = fileSize / 1024f
+        val mb = kb / 1024f
+        if (kb < 1024f) {
+            "${DecimalFormat("*0").format(kb)}KB"
+        } else {
+            "${DecimalFormat("*0.##").format(mb)}MB"
+        }
     }
-}
 
-private fun getFileUploadState(value: String?, isLoading: Boolean): UploadFileState {
-    return if (isLoading && value.isNullOrEmpty()) {
+private fun getFileUploadState(
+    value: String?,
+    isLoading: Boolean,
+): UploadFileState =
+    if (isLoading && value.isNullOrEmpty()) {
         UploadFileState.UPLOADING
     } else if (value.isNullOrEmpty()) {
         UploadFileState.ADD
     } else {
         UploadFileState.LOADED
     }
-}

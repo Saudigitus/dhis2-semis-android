@@ -2,10 +2,9 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     id("com.android.library")
-    kotlin("android")
-    kotlin("kapt")
+    id("com.google.devtools.ksp")
     id("kotlin-parcelize")
-    id("dagger.hilt.android.plugin")
+    alias(libs.plugins.hilt)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.kotlin.compose.compiler)
 }
@@ -75,6 +74,8 @@ kotlin {
 
 dependencies {
     implementation(project(":commons"))
+    // OrgUnitSelectorScope moved into the shared KMP module, which :commons keeps internal.
+    implementation(project(":commonskmm"))
     implementation(project(":dhis2-mobile-program-rules"))
     implementation(project(":semis:core:utils"))
 
@@ -84,14 +85,10 @@ dependencies {
     implementation(libs.dagger.hilt.android)
     implementation(libs.kotlin.serialization.json)
 
-    kapt(libs.dagger.hilt.android.compiler)
+    ksp(libs.dagger.hilt.android.compiler)
     coreLibraryDesugaring(libs.desugar)
 
     testImplementation(libs.test.junit)
     androidTestImplementation(libs.test.junit.ext)
     androidTestImplementation(libs.test.espresso)
-}
-
-kapt {
-    correctErrorTypes = true
 }

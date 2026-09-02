@@ -2,10 +2,9 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     id("com.android.library")
-    kotlin("android")
-    kotlin("kapt")
+    id("com.google.devtools.ksp")
     id("kotlin-parcelize")
-    id("dagger.hilt.android.plugin")
+    alias(libs.plugins.hilt)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.kotlin.compose.compiler)
 }
@@ -87,6 +86,9 @@ dependencies {
     implementation(libs.androidx.viewModelKtx)
     implementation(libs.navigation.compose)
     implementation(libs.androidx.hilt.navigation.compose)
+    // Material 2 is still used by the older components here. Upstream 3.4.2 stopped
+    // exporting it, so each module that imports it declares it.
+    implementation(libs.androidx.compose.material)
     implementation(libs.androidx.compose.materialIcons)
     implementation(libs.androidx.compose.material.iconsExtended)
     implementation(libs.androidx.compose.ui)
@@ -94,7 +96,7 @@ dependencies {
     implementation(libs.google.material)
     implementation(libs.dagger.hilt.android)
 
-    kapt(libs.dagger.hilt.android.compiler)
+    ksp(libs.dagger.hilt.android.compiler)
     coreLibraryDesugaring(libs.desugar)
 
     testImplementation(libs.test.junit)
@@ -104,8 +106,4 @@ dependencies {
     testImplementation(libs.test.kotlinCoroutines)
     androidTestImplementation(libs.test.junit.ext)
     androidTestImplementation(libs.test.espresso)
-}
-
-kapt {
-    correctErrorTypes = true
 }

@@ -1,11 +1,14 @@
 package org.dhis2.usescases.settings
 
+import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import androidx.test.rule.ActivityTestRule
-import org.dhis2.common.rules.DataBindingIdlingResourceRule
+import org.dhis2.commons.featureconfig.model.Feature
+import org.dhis2.lazyActivityScenarioRule
 import org.dhis2.usescases.BaseTest
 import org.dhis2.usescases.main.MainActivity
-import org.dhis2.usescases.main.homeRobot
+import org.dhis2.usescases.main.MainScreenType
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -14,22 +17,21 @@ import org.junit.runner.RunWith
 class SettingsTest : BaseTest() {
 
     @get:Rule
-    val rule = ActivityTestRule(MainActivity::class.java, false, false)
+    val rule = lazyActivityScenarioRule<MainActivity>(launchActivity = false)
 
-    @Rule
-    @JvmField
-    val dataBindingIdlingResourceRule = DataBindingIdlingResourceRule(rule)
+    @get:Rule
+    val composeTestRule = createComposeRule()
+
+    @Before
+    override fun setUp() {
+        super.setUp()
+        enableIntents()
+    }
 
     @Test
     fun shouldFindEditPeriodDisabledWhenClickOnSyncData() {
         startActivity()
-
-        homeRobot {
-            clickOnNavigationDrawerMenu()
-            clickOnSettings()
-        }
-
-        settingsRobot {
+        settingsRobot(composeTestRule) {
             clickOnSyncData()
             checkEditPeriodIsDisableForData()
         }
@@ -38,13 +40,7 @@ class SettingsTest : BaseTest() {
     @Test
     fun shouldFindEditDisabledWhenClickOnSyncConfiguration() {
         startActivity()
-
-        homeRobot {
-            clickOnNavigationDrawerMenu()
-            clickOnSettings()
-        }
-
-        settingsRobot {
+        settingsRobot(composeTestRule) {
             clickOnSyncConfiguration()
             checkEditPeriodIsDisableForConfiguration()
         }
@@ -53,13 +49,7 @@ class SettingsTest : BaseTest() {
     @Test
     fun shouldFindEditDisableWhenClickOnSyncParameters() {
         startActivity()
-
-        homeRobot {
-            clickOnNavigationDrawerMenu()
-            clickOnSettings()
-        }
-
-        settingsRobot {
+        settingsRobot(composeTestRule) {
             clickOnSyncParameters()
             checkEditPeriodIsDisableForParameters()
         }
@@ -68,13 +58,7 @@ class SettingsTest : BaseTest() {
     @Test
     fun shouldRefillValuesWhenClickOnReservedValues() {
         startActivity()
-
-        homeRobot {
-            clickOnNavigationDrawerMenu()
-            clickOnSettings()
-        }
-
-        settingsRobot {
+        settingsRobot(composeTestRule) {
             clickOnReservedValues()
             clickOnManageReservedValues()
         }
@@ -83,19 +67,40 @@ class SettingsTest : BaseTest() {
     @Test
     fun shouldSuccessfullyOpenLogs() {
         startActivity()
-
-        homeRobot {
-            clickOnNavigationDrawerMenu()
-            clickOnSettings()
-        }
-
-        settingsRobot {
+        settingsRobot(composeTestRule) {
             clickOnOpenSyncErrorLog()
             checkLogViewIsDisplayed()
         }
     }
 
-    fun startActivity() {
-        rule.launchActivity(null)
+    //This test covers test case ANDROAPP-7139
+    @Test
+    fun shouldNotShowTwoFAOption() {
+        disableFeatureConfigValue(Feature.TWO_FACTOR_AUTHENTICATION)
+        startActivity()
+        settingsRobot(composeTestRule) {
+            checkTwoFAOptionIsNotDisplayed()
+        }
+    }
+
+    //This test covers test case ANDROAPP-7139 and ANDROAPP-7140
+    @Test
+    fun shouldShowTwoFAOption() {
+        enableFeatureConfigValue(Feature.TWO_FACTOR_AUTHENTICATION)
+
+        startActivity()
+        settingsRobot(composeTestRule) {
+            checkTwoFAOptionIsDisplayed()
+            clickOnTwoFASettings()
+            checkTwoFAScreenIsDisplayed()
+        }
+    }
+
+    private fun startActivity() {
+        val intent = MainActivity.intent(
+            ApplicationProvider.getApplicationContext(),
+            MainScreenType.Settings
+        )
+        rule.launch(intent)
     }
 }
