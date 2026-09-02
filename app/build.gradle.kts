@@ -230,6 +230,9 @@ android {
             // build signed with a different key is never refused as a conflicting install.
             applicationIdSuffix = ".test"
             signingConfig = signingConfigs.getByName("release")
+            // Only the architectures phones run. The x86 ones exist for emulators alone, and
+            // with libraries stored uncompressed they were a third of the file.
+            ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") }
         }
         create("dhis2PlayServices") {
             signingConfig = signingConfigs.getByName("release")
