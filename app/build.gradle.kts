@@ -19,6 +19,8 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.kotlin.compose.compiler)
     alias(libs.plugins.sentry)
+    // Hilt is here only so the SEMIS modules can inject; the base app uses Koin and Dagger.
+    alias(libs.plugins.hilt)
 }
 apply(from = "${project.rootDir}/jacoco/jacoco.gradle.kts")
 
@@ -315,6 +317,13 @@ kapt {
     correctErrorTypes = true
 }
 
+// The base app's Dagger modules are plain @Module declarations with no @InstallIn, which is
+// what Hilt's own check rejects. Hilt is present here only to build the component the SEMIS
+// modules inject from, so the check is switched off rather than annotating the base app.
+ksp {
+    arg("dagger.hilt.disableModulesHaveInstallInCheck", "true")
+}
+
 dependencies {
     constraints {
         // The DHIS2 SDK asks for 4.5.5, whose arm64 library is aligned to 4 KB, and a device with
@@ -339,6 +348,7 @@ dependencies {
     implementation(project(":login"))
     implementation(project(":sync"))
 
+    implementation(libs.dagger.hilt.android)
     implementation(libs.security.conscrypt)
     implementation(libs.security.rootbeer)
     implementation(libs.security.openId)
@@ -370,6 +380,7 @@ dependencies {
     "dhis2PlayServicesImplementation"(libs.google.auth.apiphone)
 
     ksp(libs.dagger.compiler)
+    ksp(libs.dagger.hilt.android.compiler)
 
     testImplementation(libs.test.archCoreTesting)
     testImplementation(libs.test.testCore)
