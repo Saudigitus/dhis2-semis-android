@@ -303,6 +303,11 @@ class AndroidSyncRepository(
             d2.metadataModule().download().blockingForEach { progress ->
                 onProgressUpdate(ceil(progress.percentage() ?: 0.0).toInt())
             }
+            // SEMIS reads its whole configuration from the datastore, which the metadata
+            // download does not bring, so the app would run with an empty configuration after a
+            // fresh login. A failure here must not fail the metadata sync: the app degrades to
+            // the configuration it already holds.
+            runCatching { d2.dataStoreModule().dataStoreDownloader().blockingDownload() }
             Result.success(Unit)
         }
 
