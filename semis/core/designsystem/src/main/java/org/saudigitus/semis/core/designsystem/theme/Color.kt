@@ -2,6 +2,13 @@ package org.saudigitus.semis.core.designsystem.theme
 
 import androidx.compose.ui.graphics.Color
 
+/**
+ * The DHIS2 blue the base app uses for its own accents. It lived in the upstream
+ * `:ui-components` module, which release 3.4.2 deleted, and the components that were written
+ * against it still have to look like the base app, so the value is kept here as a token.
+ */
+val colorPrimary = Color(0xFF2C98F0)
+
 val primaryLight = SemisPalette.HeaderBlue
 val onPrimaryLight = Color(0xFFFFFFFF)
 val primaryContainerLight = Color(0xFFDBE1FF)
