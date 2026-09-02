@@ -1,0 +1,47 @@
+<resources>
+    <string name="app_name">enrollment</string>
+
+    <string name="profile_tab_details">Details</string>
+    <string name="profile_tab_attendance">Attendance</string>
+    <string name="profile_tab_performance">Performance</string>
+
+    <string name="profile_identity">Identity</string>
+    <string name="profile_socio_economics">Socio-economic details</string>
+    <string name="profile_attendance_summary">Attendance summary</string>
+    <string name="profile_attendance_history">Recorded days</string>
+    <string name="profile_performance">Performance</string>
+
+    <string name="profile_occurred_at">Occurred at</string>
+    <string name="profile_school">School</string>
+    <string name="profile_active">Active</string>
+    <string name="profile_average">Average %1$s</string>
+    <string name="profile_recorded_days">%1$d day(s) recorded</string>
+    <string name="profile_more_records">%1$d more day(s) not listed</string>
+    <string name="profile_unknown_date">Unknown date</string>
+    <string name="profile_unknown_learner">Learner</string>
+
+    <string name="profile_no_identity">No identity attributes were captured for this learner.</string>
+    <string name="profile_no_socio_economics">No socio-economic record was captured for this learner.</string>
+    <string name="profile_no_attendance">No attendance was recorded for the selected academic year.</string>
+    <string name="profile_no_performance">No marks were recorded for the selected academic year.</string>
+    <string name="profile_not_found">This learner profile could not be loaded.</string>
+
+    <string name="enrollment_config_unavailable">The enrollment setup could not be read. Sync the data and try again.</string>
+    <string name="enrollment_not_saved">The enrollment could not be saved. Nothing was recorded, please try again.</string>
+    <string name="enrollment_complete_step">Complete</string>
+    <string name="enrollment_complete_title">Enrollment complete</string>
+    <string name="enrollment_add_another">Add another record</string>
+    <string name="enrollment_back_to_list">Back to the list</string>
+    <string name="enrollment_summary_registration">Registration details</string>
+    <string name="enrollment_summary_registration_hint">Where the learner was enrolled and what was recorded.</string>
+    <string name="enrollment_summary_org_unit">School</string>
+    <string name="enrollment_summary_date">Registration date</string>
+    <string name="profile_panel_empty">Nothing was recorded for this panel.</string>
+    <string name="profile_record_empty">This record holds no values.</string>
+    <string name="profile_panel_attributes">What was recorded about this person.</string>
+    <plurals name="profile_panel_records">
+        <item quantity="one">%1$d record</item>
+        <item quantity="other">%1$d records</item>
+    </plurals>
+    <string name="profile_not_configured">This profile page has not been configured for this program.</string>
+</resources>

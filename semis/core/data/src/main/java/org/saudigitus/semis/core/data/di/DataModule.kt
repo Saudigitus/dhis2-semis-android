@@ -1,0 +1,166 @@
+package org.saudigitus.semis.core.data.di
+
+import android.content.Context
+import dagger.Module
+import dagger.Provides
+import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
+import dagger.hilt.components.SingletonComponent
+import org.dhis2.commons.network.NetworkUtils
+import org.dhis2.commons.prefs.PreferenceProvider
+import org.dhis2.commons.prefs.PreferenceProviderImpl
+import org.dhis2.commons.resources.ResourceManager
+import org.hisp.dhis.android.core.D2
+import org.saudigitus.semis.core.data.repository.AppConfigRepository
+import org.saudigitus.semis.core.data.repository.AppConfigRepositoryImpl
+import org.saudigitus.semis.core.data.repository.AppModulesRepository
+import org.saudigitus.semis.core.data.repository.AppModulesRepositoryImpl
+import org.saudigitus.semis.core.data.repository.EventRepository
+import org.saudigitus.semis.core.data.repository.EventRepositoryImpl
+import org.saudigitus.semis.core.data.repository.FilterRepository
+import org.saudigitus.semis.core.data.repository.FilterRepositoryImpl
+import org.saudigitus.semis.core.data.repository.FilterSelectionRepository
+import org.saudigitus.semis.core.data.repository.FilterSelectionRepositoryImpl
+import org.saudigitus.semis.core.data.repository.OptionRepository
+import org.saudigitus.semis.core.data.repository.OptionRepositoryImpl
+import org.saudigitus.semis.core.data.repository.OrgUnitRepository
+import org.saudigitus.semis.core.data.repository.OrgUnitRepositoryImpl
+import org.saudigitus.semis.core.data.repository.ProgramStageRepository
+import org.saudigitus.semis.core.data.repository.ProgramStageRepositoryImpl
+import org.saudigitus.semis.core.data.repository.SyncRepository
+import org.saudigitus.semis.core.data.repository.SyncRepositoryImpl
+import org.saudigitus.semis.core.data.repository.TeiDownloaderRepository
+import org.saudigitus.semis.core.data.repository.TeiDownloaderRepositoryImpl
+import org.saudigitus.semis.core.data.repository.TeiProfileRepository
+import org.saudigitus.semis.core.data.repository.TeiProfileRepositoryImpl
+import org.saudigitus.semis.core.data.repository.TeiRepository
+import org.saudigitus.semis.core.data.repository.TeiRepositoryImpl
+import org.saudigitus.semis.core.data.repository.TeiTransferRepository
+import org.saudigitus.semis.core.data.repository.TeiTransferRepositoryImpl
+import org.saudigitus.semis.core.data.rules.RuleEngineRepository
+import org.saudigitus.semis.core.data.utils.Transformations
+import javax.inject.Singleton
+
+@Module
+@InstallIn(SingletonComponent::class)
+object DataModule {
+
+    @Provides
+    @Singleton
+    fun provideAppConfigRepository(d2: D2): AppConfigRepository =
+        AppConfigRepositoryImpl(d2)
+
+    @Provides
+    @Singleton
+    fun provideOptionRepository(
+        d2: D2,
+        ruleEngineRepository: RuleEngineRepository
+    ): OptionRepository = OptionRepositoryImpl(d2, ruleEngineRepository)
+
+    @Provides
+    @Singleton
+    fun provideFilterRepository(
+        configRepository: AppConfigRepository,
+        optionRepository: OptionRepository
+    ): FilterRepository = FilterRepositoryImpl(configRepository, optionRepository)
+
+    @Provides
+    @Singleton
+    fun provideAppModulesRepository(
+        configRepository: AppConfigRepository,
+        resourceManager: ResourceManager
+    ): AppModulesRepository = AppModulesRepositoryImpl(configRepository, resourceManager)
+
+    @Provides
+    @Singleton
+    fun provideNetworkUtils(@ApplicationContext context: Context): NetworkUtils =
+        NetworkUtils(context)
+
+    /**
+     * The preferences the base app already writes to, reached without changing it.
+     *
+     * Reusing that store rather than opening one of our own is what makes anything SEMIS remembers
+     * disappear together with the rest when local data is deleted.
+     */
+    @Provides
+    @Singleton
+    fun providePreferenceProvider(@ApplicationContext context: Context): PreferenceProvider =
+        PreferenceProviderImpl(context)
+
+    @Provides
+    @Singleton
+    fun provideFilterSelectionRepository(
+        d2: D2,
+        preferences: PreferenceProvider
+    ): FilterSelectionRepository = FilterSelectionRepositoryImpl(d2, preferences)
+
+    @Provides
+    @Singleton
+    fun provideOrgUnitRepository(d2: D2): OrgUnitRepository = OrgUnitRepositoryImpl(d2)
+
+
+    @Provides
+    @Singleton
+    fun provideTeiDownloaderRepository(
+        d2: D2,
+        networkUtils: NetworkUtils,
+        resourceManager: ResourceManager
+    ): TeiDownloaderRepository = TeiDownloaderRepositoryImpl(d2, networkUtils, resourceManager)
+
+    @Provides
+    @Singleton
+    fun provideTeiRepository(
+        d2: D2,
+        transformations: Transformations,
+        appConfigRepository: AppConfigRepository,
+    ): TeiRepository = TeiRepositoryImpl(d2, transformations, appConfigRepository)
+
+    @Provides
+    @Singleton
+    fun provideTeiProfileRepository(
+        d2: D2,
+        appConfigRepository: AppConfigRepository,
+        transformations: Transformations,
+    ): TeiProfileRepository = TeiProfileRepositoryImpl(
+        d2 = d2,
+        appConfigRepository = appConfigRepository,
+        transformations = transformations,
+    )
+
+    @Provides
+    @Singleton
+    fun provideTeiTransferRepository(
+        d2: D2,
+        appConfigRepository: AppConfigRepository,
+        eventRepository: EventRepository,
+        transformations: Transformations,
+        networkUtils: NetworkUtils,
+        resourceManager: ResourceManager,
+    ): TeiTransferRepository = TeiTransferRepositoryImpl(
+        d2 = d2,
+        appConfigRepository = appConfigRepository,
+        eventRepository = eventRepository,
+        transformations = transformations,
+        networkUtils = networkUtils,
+        resourceManager = resourceManager,
+    )
+
+    @Provides
+    @Singleton
+    fun provideSyncRepository(
+        d2: D2,
+        networkUtils: NetworkUtils,
+    ): SyncRepository = SyncRepositoryImpl(d2, networkUtils)
+
+    @Provides
+    @Singleton
+    fun provideEventRepository(
+        d2: D2,
+    ): EventRepository = EventRepositoryImpl(d2)
+
+    @Provides
+    @Singleton
+    fun provideProgramStageRepository(
+        d2: D2
+    ): ProgramStageRepository = ProgramStageRepositoryImpl(d2)
+}

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="sync_offline_check_connection">Looks like you\\\\\\\'re offline. Please check you connection</string>
+    <string name="not_saved">Not saved</string>
+    <string name="attendance_not_saved">You have unsaved attendance changes. If you go back now, your data will be discarded.</string>
+    <string name="home_modules">Modules</string>
+    <string name="home_select_all_filters">Please select all filters to continue.</string>
+    <plurals name="home_records_downloaded">
+        <item quantity="one">%1$d record downloaded</item>
+        <item quantity="other">%1$d records downloaded</item>
+    </plurals>
+    <string name="home_stat_enrolled">Enrolled</string>
+    <string name="home_stat_modules">Modules</string>
+    <string name="home_stat_status">Status</string>
+    <string name="sync_sent">Sent to the server.</string>
+    <string name="sync_saved_offline">Saved. It will be sent when there is a connection.</string>
+    <string name="sync_saved_not_sent">Saved. It could not be sent yet and will be sent later.</string>
+</resources>

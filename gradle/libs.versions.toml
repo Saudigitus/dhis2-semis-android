@@ -1,4 +1,5 @@
 [versions]
+hilt = "2.60.1"
 kotlinxDatetime = "0.7.1-0.6.x-compat" #Needs to be compatible with the Rule engine, update when it's updated
 lifecycleRuntimeCompose = "2.9.6"
 navigationCompose = "2.9.2"
@@ -6,6 +7,9 @@ sdk = "36"
 minSdk = "23"
 vCode = "157"
 vName = "3.4.2"
+# The SEMIS deployment carries its own version, shown on the About screen.
+semis = "2.1.0-rc1"
+semisDatastore = "2.0"
 gradle = "9.0.1"
 kotlin = '2.3.20'
 dagger = '2.57.2'
@@ -98,6 +102,10 @@ jetbrains-material3="1.9.0"
 materialIconsExtended = "1.7.3"
 
 [libraries]
+hiltPlugin = { group = "com.google.dagger", name = "hilt-android-gradle-plugin", version.ref = "hilt" }
+dagger-hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
+dagger-hilt-android-compiler = { group = "com.google.dagger", name = "hilt-android-compiler", version.ref = "hilt" }
+androidx-hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version = "1.2.0" }
 gradlePlugin = { group = "com.android.tools.build", name = "gradle", version.ref = "gradle" }
 kotlinPlugin = { group = "org.jetbrains.kotlin", name = "kotlin-gradle-plugin", version.ref = "kotlin" }
 kotlinSerialization = { group = "org.jetbrains.kotlin", name = "kotlin-serialization", version.ref = "kotlin" }
@@ -226,7 +234,23 @@ compose-components-resources = { group = "org.jetbrains.compose.components", nam
 compose-desktop-common = { group = "org.jetbrains.compose.desktop", name = "desktop", version.ref = "composePluginVersion" }
 compose-material3-iconsExtendend = { group = "org.jetbrains.compose.material", name = "material-icons-extended", version.ref = "materialIconsExtended" }
 
+
+# EXPERIMENT: entries the SEMIS modules reference and upstream 3.4.2 renamed or dropped
+androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3", version.ref = "material3" }
+androidx-compose-material = { group = "androidx.compose.material", name = "material", version.ref = "compose" }
+androidx-compose-materialIcons = { group = "androidx.compose.material", name = "material-icons-core", version = "1.7.8" }
+androidx-compose-material-iconsExtended = { group = "androidx.compose.material", name = "material-icons-extended", version = "1.7.8" }
+androidx-compose-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics", version = "1.7.8" }
+google-location = { group = "com.google.android.gms", name = "play-services-location", version = "21.3.0" }
+room-runtime = { group = "androidx.room", name = "room-runtime", version = "2.8.2" }
+room-ktx = { group = "androidx.room", name = "room-ktx", version = "2.8.2" }
+room-compiler = { group = "androidx.room", name = "room-compiler", version = "2.8.2" }
+ktor-client-android = { group = "io.ktor", name = "ktor-client-android", version = "2.3.12" }
+ktor-client-content-negotiation = { group = "io.ktor", name = "ktor-client-content-negotiation", version = "2.3.12" }
+ktor-serialization-kotlinx-json = { group = "io.ktor", name = "ktor-serialization-kotlinx-json", version = "2.3.12" }
+
 [plugins]
+androidx-room = { id = "androidx.room", version = "2.8.2" }
 kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 android-kotlin-multiplatform-library = { id = "com.android.kotlin.multiplatform.library", version.ref = "gradle" }
 kotlin-compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
@@ -234,6 +258,7 @@ kotlin-serialization = { id = "kotlinx-serialization" }
 compose = { id = "org.jetbrains.compose", version.ref = "composePluginVersion" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 kotlin-atomicfu = { id = "org.jetbrains.kotlinx.atomicfu", version.ref = "atomicfu" }
+hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
 legacy-kapt = { id = "com.android.legacy-kapt", version.ref = "gradle" }
 ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlint" }
 sonarqube = { id = "org.sonarqube", version.ref = "sonarqube" }

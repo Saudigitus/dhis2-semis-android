@@ -1,0 +1,37 @@
+[
+  {
+    "key": "enrollment",
+    "title": "Enrollment",
+    "enabled": true,
+    "icon": "enrollment",
+    "route": "enrollment"
+  },
+  {
+    "key": "attendance",
+    "title": "Attendance",
+    "enabled": true,
+    "icon": "s_calendar",
+    "route": "attendance"
+  },
+  {
+    "key": "absenteeism",
+    "title": "Absenteeism",
+    "enabled": false,
+    "icon": "s_calendar",
+    "route": "absenteeism"
+  },
+  {
+    "key": "performance",
+    "title": "Performance",
+    "enabled": true,
+    "icon": "performance",
+    "route": "performance"
+  },
+  {
+    "key": "transfer",
+    "title": "Transfer",
+    "enabled": false,
+    "icon": "transfer",
+    "route": "transfer"
+  }
+]

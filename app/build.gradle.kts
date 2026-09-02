@@ -316,6 +316,15 @@ kapt {
 }
 
 dependencies {
+    constraints {
+        // The DHIS2 SDK asks for 4.5.5, whose arm64 library is aligned to 4 KB, and a device with
+        // 16 KB pages tells the user the app was not built for it. This states the floor rather
+        // than forcing a version, so a later SDK that already asks for something newer wins.
+        implementation("net.zetetic:sqlcipher-android:4.6.1") {
+            because("the first release whose native library is aligned to 16 KB pages")
+        }
+    }
+
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
     implementation(project(":dhis_android_analytics"))
     implementation(project(":form"))

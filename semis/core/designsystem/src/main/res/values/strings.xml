@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="academic_year">Academic Year</string>
+    <string name="grade">Grade</string>
+    <string name="cls">Section/class</string>
+    <string name="school">School</string>
+    <string name="filters_download_records">Download records</string>
+    <string name="filters_reset">Reset filters</string>
+    <string name="unknown">Unknown</string>
+    <string name="calendar">Calendar</string>
+    <string name="filters">Filters</string>
+    <string name="back">Back</string>
+    <string name="config_not_found">App not configured, please contact System Administrator.</string>
+    <string name="no_records_found">No records, please update your filters, sync data or add a new enrollment.</string>
+
+    <string name="not_synced">Not synced</string>
+    <string name="programs">Programs</string>
+    <string name="sync_successful">Sync successful</string>
+    <string name="sync_warning">Sync warning</string>
+    <string name="sync_error">Sync Error</string>
+    <string name="sync_dialog_title_not_synced">Sync needed</string>
+    <string name="sync_dialog_title_error">Sync error</string>
+    <string name="sync_dialog_title_synced">Synced</string>
+    <string name="sync_dialog_title_warning">Sync warning</string>
+    <string name="sync_dialog_title_syncing">Syncing</string>
+    <string name="sync_dialog_title_sms_syced">SMS sent</string>
+    <string name="enrolledIn">Enrolled in</string>
+    <string name="marked_follow_up">Marked for follow-up</string>
+    <string name="sync_error_title">Sync Error</string>
+    <string name="update">Update</string>
+    <string name="take_attendance">Take Attendance</string>
+    <string name="complete_attendance">Complete Attendance</string>
+    <string name="update_attendance">Update Attendance</string>
+    <string name="not_recorded">Not recorded</string>
+    <string name="reset_attendance_form">Reset attendance</string>
+    <string name="app_not_properly_config">App not configured properly. Please contact System Administrator</string>
+    <string name="attendance_saved">Attendance saved successfully</string>
+    <string name="not_saved">Not saved</string>
+    <string name="bulk_attendance">Bulk Attendance</string>
+    <string name="yes_no_mandatory_error">Please select Yes or No</string>
+    <string name="required_field">%s is required field</string>
+    <string name="form">Form</string>
+    <string name="form_load_failed">Form could not be loaded</string>
+    <string name="save_alert">Are you sure? If you continue, your changes will be saved and stored permanently.</string>
+    <string name="override_attendance">If you continue, the existing attendance data will be replaced.</string>
+    <string name="program_stages">Program Stages</string>
+    <string name="program_stage">Program Stage</string>
+    <string name="performance">Performance</string>
+    <string name="performance_not_saved">You have unsaved performance changes. If you go back now, your data will be discarded.</string>
+    <string name="performance_saved">Performance saved successfully</string>
+    <string name="cannot_take_attendance">Please select a valid school day to continue!</string>
+    <string name="semis_new_enrollment">New enrollment</string>
+    <string name="save_enrollment">Save enrollment</string>
+    <string name="enrollment_saved">Enrollment saved successfully</string>
+</resources>

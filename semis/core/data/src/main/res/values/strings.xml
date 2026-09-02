@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="download_completed_not_found">Download completed but no TEIs were found in local storage</string>
+    <string name="download_failed">Failed to download TEIs: %s</string>
+    <string name="tei_not_found">TEIs not fount for applied filters. Update your filters and try again</string>
+    <string name="failed_to_search_tei">Failed to search TEIs: %s</string>
+    <string name="transfer_record_required">At least one record must be selected</string>
+    <string name="transfer_destination_required">Destination school is required</string>
+    <string name="transfer_failed">Transfer failed</string>
+    <string name="transfer_request_not_found">Transfer request was not found</string>
+    <string name="transfer_wrong_program">Transfer request belongs to another program</string>
+    <string name="transfer_wrong_program_stage">Transfer request uses an invalid program stage</string>
+    <string name="transfer_not_destination">This school is not the transfer destination</string>
+    <string name="transfer_not_pending">Transfer request is no longer pending</string>
+    <string name="transfer_enrollment_not_found">Enrollment %1$s was not found</string>
+    <string name="transfer_enrollment_school_missing">Enrollment organisation unit is missing</string>
+    <string name="transfer_same_school">Destination school must be different from the current school</string>
+    <string name="transfer_configuration_missing">Transfer configuration is missing</string>
+    <string name="transfer_not_enabled">Transfer is not enabled</string>
+    <string name="transfer_program_stage_missing">Transfer program stage is missing</string>
+    <string name="transfer_destination_school_missing">Destination school data element is missing</string>
+    <string name="transfer_already_pending">This record already has a transfer awaiting a decision</string>
+    <string name="transfer_incoming_download_failed">Incoming transfers could not be downloaded: %1$s</string>
+    <string name="transfer_status_missing">Transfer status data element is missing</string>
+    <string name="transfer_approved_status_missing">Transfer approved status code is missing</string>
+    <string name="transfer_rejected_status_missing">Transfer rejected status code is missing</string>
+    <string name="transfer_pending_status_missing">Pending transfer status option is missing</string>
+</resources>
