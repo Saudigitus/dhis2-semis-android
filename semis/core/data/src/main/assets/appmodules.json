@@ -1,17 +1,17 @@
 [
   {
-    "key": "attendance",
-    "title": "Attendance",
-    "enabled": true,
-    "icon": "s_calendar",
-    "route": "attendance"
-  },
-  {
     "key": "enrollment",
     "title": "Enrollment",
     "enabled": true,
     "icon": "enrollment",
     "route": "enrollment"
+  },
+  {
+    "key": "attendance",
+    "title": "Attendance",
+    "enabled": true,
+    "icon": "s_calendar",
+    "route": "attendance"
   },
   {
     "key": "absenteeism",

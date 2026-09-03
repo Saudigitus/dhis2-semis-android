@@ -9,8 +9,7 @@
     <string name="filters">Filtros</string>
     <string name="back">Voltar</string>
     <string name="config_not_found">Aplicação não configurada, por favor contacte o Administrador do Sistema.</string>
-    <string name="no_records_found">Sem registos. Actualize os filtros e/ou sincronize os dados.</string>
-    <string name="apply_filters">Para começar a transferir os estudantes, selecione os seus filtros (por exemplo, escola, ano ou ano lectivo).\nIsto ajuda-nos a obter apenas os dados de que precisa.</string>
+    <string name="no_records_found">Sem registos. Actualize os filtros, sincronize os dados ou adicione uma nova inscrição.</string>
 
     <string name="not_synced">Não sincronizado</string>
     <string name="programs">Programas</string>

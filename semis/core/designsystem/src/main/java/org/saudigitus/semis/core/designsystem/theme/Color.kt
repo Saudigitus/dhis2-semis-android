@@ -226,4 +226,13 @@ val light_error = Color(0xFFE57373)
 
 val dark_warning = Color(0xFFFD9600)
 
+/**
+ * The three tones of a warning notice: a banner that tells the user what is missing without
+ * blocking them. Kept as a set so the surface, its edge and what is written on it always come from
+ * the same family and the contrast between them is decided once.
+ */
+val warning_notice_surface = Color(0xFFFFEDD5)
+val warning_notice_outline = Color(0xFFFFC98A)
+val warning_notice_content = Color(0xFF8A4B00)
+
 val white = 0xFFFFFFFF

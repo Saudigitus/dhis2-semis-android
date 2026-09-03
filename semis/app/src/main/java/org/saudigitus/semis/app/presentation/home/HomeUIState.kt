@@ -17,4 +17,23 @@ data class HomeUIState(
     val modules: List<Module> = emptyList(),
     val tei: List<SearchTeiModel> = emptyList(),
     val errorMessage: String? = null
-)
+) {
+
+    /**
+     * Whether the user has told the app which class they are working on.
+     *
+     * This is what opens the modules, not how many learners the class already holds. A class that
+     * has none still has to be reachable, otherwise the first learner could never be enrolled into
+     * it, which offline leaves no way out at all.
+     */
+    val areModulesAvailable: Boolean
+        get() = filterState.isFilterSelectionNotEmpty()
+
+    /** What the screen has to tell the user about the class they picked, if anything. */
+    val notice: HomeNotice
+        get() = when {
+            !areModulesAvailable -> HomeNotice.SELECT_FILTERS
+            filterState.filterDetailsState.count == 0 -> HomeNotice.NO_DATA
+            else -> HomeNotice.NONE
+        }
+}

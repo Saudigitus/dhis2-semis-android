@@ -9,16 +9,19 @@ import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import org.koin.compose.viewmodel.koinViewModel
+import org.saudigitus.campaign.core.data.models.OrgUnit
 import org.saudigitus.campaign.core.designsystem.components.bottomsheets.launchDhis2BottomSheet
 import org.saudigitus.campaign.core.designsystem.components.bottomsheets.launchDiscardBottomSheet
 import org.saudigitus.campaign.core.form.R
 import org.saudigitus.campaign.core.form.data.models.FormResult
+import org.saudigitus.campaign.core.form.data.models.FormSectionModel
 import org.saudigitus.campaign.core.form.ui.FormViewModel
 import org.saudigitus.campaign.core.form.ui.screens.FormLoadErrorScreen
 import org.saudigitus.campaign.core.form.ui.screens.FormShimmerScreen
 import org.saudigitus.campaign.core.form.ui.state.FormEvent
 import org.saudigitus.campaign.core.form.ui.state.FormSectionType
 import org.saudigitus.campaign.core.form.ui.state.FormSectionUiState
+import org.saudigitus.campaign.core.form.ui.state.FormStepProgress
 import org.saudigitus.campaign.core.form.utils.completionPercentage
 import org.saudigitus.campaign.core.form.utils.toFormSection
 import org.saudigitus.campaign.core.navigation.AppRoute
@@ -33,14 +36,57 @@ fun FormSectionScreen(
     onNewEnrollmentSaved: (() -> Unit)? = null,
     onFormSaved: ((FormSectionType, FormResult) -> Unit)? = null,
     onNavigateBack: (() -> Unit)? = null,
+    onStepCompleted: ((List<FormSectionModel>) -> Unit)? = null,
+    onError: ((String) -> Unit)? = null,
+    restoredSections: List<FormSectionModel>? = null,
+    stepProgress: FormStepProgress? = null,
+    prefill: Map<String, String> = emptyMap(),
+    onDateChanged: ((String) -> Unit)? = null,
+    onOrgUnitChanged: ((OrgUnit) -> Unit)? = null,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
-    LaunchedEffect(formNav) {
+    // Supplying a step handler is what turns this form into one leg of a longer flow: it gathers
+    // the values and hands them over, and whoever drives the flow decides when anything is written.
+    val collectOnly = onStepCompleted != null
+
+    LaunchedEffect(formNav, collectOnly, stepProgress?.isLast, prefill) {
         viewModel.initialize(
             formSection = formNav?.toFormSection(),
             ouName = formNav?.orgUnitName,
+            collectOnly = collectOnly,
+            restoredSections = restoredSections,
+            confirmOnComplete = stepProgress?.isLast == true,
+            prefill = prefill,
         )
+    }
+
+    LaunchedEffect(onStepCompleted) {
+        if (onStepCompleted == null) return@LaunchedEffect
+
+        viewModel.stepCompleted.collect { formSections ->
+            onStepCompleted(formSections)
+        }
+    }
+
+    LaunchedEffect(onDateChanged) {
+        if (onDateChanged == null) return@LaunchedEffect
+
+        viewModel.dateChanged.collect { date -> onDateChanged(date) }
+    }
+
+    LaunchedEffect(onOrgUnitChanged) {
+        if (onOrgUnitChanged == null) return@LaunchedEffect
+
+        viewModel.orgUnitChanged.collect { orgUnit -> onOrgUnitChanged(orgUnit) }
+    }
+
+    LaunchedEffect(onError) {
+        if (onError == null) return@LaunchedEffect
+
+        viewModel.errorEvent.collect { message ->
+            onError(message)
+        }
     }
 
     LaunchedEffect(onFormSaved, onNewEnrollmentSaved) {
@@ -147,6 +193,7 @@ fun FormSectionScreen(
             FormSectionUi(
                 modifier = modifier,
                 state = formSection,
+                stepProgress = stepProgress,
             ) { event ->
                 when (event) {
                     is FormEvent.NavigateBack -> {

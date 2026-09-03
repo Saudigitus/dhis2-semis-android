@@ -30,7 +30,6 @@ import org.saudigitus.campaign.core.form.utils.CustomValueType
 import org.saudigitus.campaign.core.form.utils.hasBlockingFields
 import org.saudigitus.campaign.core.form.utils.phone.MozambiquePhoneValidator
 import org.saudigitus.campaign.core.navigation.AppRoute
-import org.saudigitus.campaign.core.navigation.FormType
 import org.saudigitus.campaign.core.utils.DateHelper
 import org.saudigitus.campaign.core.utils.formatBoolean
 import org.saudigitus.campaign.core.utils.formatTrueOnly
@@ -72,16 +71,83 @@ class FormViewModel @Inject constructor(
     )
     val handleSave = _handleSave.asSharedFlow()
 
+    /**
+     * Fields captured on a step that is part of a longer flow, handed to whoever drives that flow.
+     *
+     * Nothing is written when this is emitted: the caller accumulates the steps and decides when the
+     * whole thing is committed, which is what keeps an interrupted flow from leaving a half made
+     * record behind.
+     */
+    private val _stepCompleted = MutableSharedFlow<List<FormSectionModel>>(
+        replay = 0,
+        extraBufferCapacity = 1
+    )
+    val stepCompleted = _stepCompleted.asSharedFlow()
+
+    /**
+     * Date the user set for the record, so that whoever drives a longer flow records it once and
+     * applies it to everything the flow produces.
+     */
+    private val _dateChanged = MutableSharedFlow<String>(replay = 1, extraBufferCapacity = 1)
+    val dateChanged = _dateChanged.asSharedFlow()
+
+    /**
+     * School the user set for the record, so that whoever drives a longer flow records it once and
+     * writes everything the flow produces against it.
+     */
+    private val _orgUnitChanged = MutableSharedFlow<OrgUnit>(replay = 1, extraBufferCapacity = 1)
+    val orgUnitChanged = _orgUnitChanged.asSharedFlow()
+
+    /** Message to show when the form could not be saved, already resolved for display. */
+    private val _errorEvent = MutableSharedFlow<String>(
+        replay = 0,
+        extraBufferCapacity = 1
+    )
+    val errorEvent = _errorEvent.asSharedFlow()
+
     private var ruleJob: Job? = null
 
     private var enrollmentUid = MutableStateFlow<String?>(null)
 
+    /** True while this form only gathers values for a caller that saves later. */
+    private var collectsOnly = false
 
-    fun initialize(formSection: FormSection?, ouName: String? = null) {
+    /**
+     * True when finishing this form commits the whole flow, so the user is asked to confirm.
+     *
+     * The steps before it write nothing and move on, and asking to confirm those would be asking
+     * about something that has not happened yet.
+     */
+    private var confirmsOnComplete = false
+
+    /** Guards against a second submission while the first is still running. */
+    private var submitting = false
+
+    /** Values already known for some fields, keyed by field, to be filled in on load. */
+    private var prefillValues: Map<String, String> = emptyMap()
+
+    /**
+     * Prepares the form.
+     *
+     * [restoredSections] carries values already captured for this form, so that returning to a step
+     * of a longer flow shows what was typed instead of a blank form reloaded from configuration.
+     */
+    fun initialize(
+        formSection: FormSection?,
+        ouName: String? = null,
+        collectOnly: Boolean = false,
+        restoredSections: List<FormSectionModel>? = null,
+        confirmOnComplete: Boolean = false,
+        prefill: Map<String, String> = emptyMap(),
+    ) {
         _uiState.value = FormSectionUiState.Loading
+        collectsOnly = collectOnly
+        confirmsOnComplete = confirmOnComplete
+        prefillValues = prefill
+        submitting = false
         when (formSection) {
             is FormSection.NewEnrollment -> {
-                newEnrollment(formSection, ouName)
+                newEnrollment(formSection, ouName, restoredSections)
             }
 
             is FormSection.EditEnrollment -> {
@@ -89,14 +155,18 @@ class FormViewModel @Inject constructor(
             }
 
             is FormSection.NewEvent -> {
-                newEvent(formSection, ouName)
+                newEvent(formSection, ouName, restoredSections)
             }
 
             else -> Unit
         }
     }
 
-    private fun newEvent(eventForm: FormSection.NewEvent, ouName: String? = null) {
+    private fun newEvent(
+        eventForm: FormSection.NewEvent,
+        ouName: String? = null,
+        restoredSections: List<FormSectionModel>? = null,
+    ) {
         viewModelScope.launch {
             formType.value = eventForm.formType
             enrollmentUid.value = eventForm.enrollment
@@ -108,13 +178,13 @@ class FormViewModel @Inject constructor(
                 program = eventForm.program
             )
 
-            val sections = formRepository.getFormSections(
+            val sections = restoredSections ?: formRepository.getFormSections(
                 orgUnit = eventForm.orgUnit,
                 program = eventForm.program,
                 programStages = arrayOf(programStage),
                 tei = eventForm.trackerUid,
                 enrollment = eventForm.enrollment
-            )
+            ).withPrefill()
 
             if (sections.isEmpty()) {
                 _uiState.value = FormSectionUiState.Idle
@@ -134,13 +204,17 @@ class FormViewModel @Inject constructor(
         }
     }
 
-    private fun newEnrollment(enrollmentForm: FormSection.NewEnrollment, ouName: String? = null) {
+    private fun newEnrollment(
+        enrollmentForm: FormSection.NewEnrollment,
+        ouName: String? = null,
+        restoredSections: List<FormSectionModel>? = null,
+    ) {
         viewModelScope.launch {
             formType.value = enrollmentForm.formType
-            val sections = formRepository.getFormSections(
+            val sections = restoredSections ?: formRepository.getFormSections(
                 enrollmentForm.orgUnit,
                 enrollmentForm.program
-            )
+            ).withPrefill()
 
             if (sections.isEmpty()) {
                 _uiState.value = FormSectionUiState.Idle
@@ -196,26 +270,20 @@ class FormViewModel @Inject constructor(
     }
 
     private fun setOrgUnit(orgUnit: OrgUnit) {
-        when (val current = uiState.value) {
-            is FormSectionUiState.HasFormSection -> {
-                _uiState.update {
-                    current.copy(orgUnit = orgUnit)
-                }
-            }
+        _orgUnitChanged.tryEmit(orgUnit)
 
-            else -> {}
+        _uiState.update { latest ->
+            val state = latest as? FormSectionUiState.HasFormSection ?: return@update latest
+            state.copy(orgUnit = orgUnit)
         }
     }
 
     private fun setDate(date: String) {
-        when (val current = uiState.value) {
-            is FormSectionUiState.HasFormSection -> {
-                _uiState.update {
-                    current.copy(date = date)
-                }
-            }
+        _dateChanged.tryEmit(date)
 
-            else -> {}
+        _uiState.update { latest ->
+            val state = latest as? FormSectionUiState.HasFormSection ?: return@update latest
+            state.copy(date = date)
         }
     }
 
@@ -223,10 +291,13 @@ class FormViewModel @Inject constructor(
         event: String,
         formSections: List<FormSectionModel>,
     ): List<FormSectionModel> {
+        // The form can be torn down between the debounce and this call, so the state is read
+        // defensively and the sections are handed back untouched rather than crashing.
         return when (formType.value) {
             FormSectionType.NEW_EVENT_WITH_REGISTRATION,
             FormSectionType.NEW_EVENT_WITHOUT_REGISTRATION -> {
-                val current = uiState.value as FormSectionUiState.HasFormSection
+                val current = uiState.value as? FormSectionUiState.HasFormSection
+                    ?: return formSections
 
                 formRepository.applyProgramRules(
                     orgUnit = current.orgUnit?.uid.orEmpty(),
@@ -239,7 +310,8 @@ class FormViewModel @Inject constructor(
             }
 
             else -> {
-                val current = uiState.value as FormSectionUiState.HasFormSection
+                val current = uiState.value as? FormSectionUiState.HasFormSection
+                    ?: return formSections
 
                 formRepository.applyProgramRules(
                     orgUnit = current.orgUnit?.uid.orEmpty(),
@@ -257,16 +329,83 @@ class FormViewModel @Inject constructor(
 
             delay(300.milliseconds)
 
-            val currentState = _uiState.value as? FormSectionUiState.HasFormSection
+            val evaluatedState = _uiState.value as? FormSectionUiState.HasFormSection
                 ?: return@launch
 
-            val updatedSections = withContext(Dispatchers.IO) {
-                applyRules(eventUid, currentState.formSections)
+            val evaluatedSections = withContext(Dispatchers.IO) {
+                applyRules(eventUid, evaluatedState.formSections)
             }
 
-            _uiState.update {
-                currentState.copy(formSections = updatedSections)
+            _uiState.update { latest ->
+                val state = latest as? FormSectionUiState.HasFormSection ?: return@update latest
+
+                // Whatever was typed while the rules were being evaluated lives in the state that
+                // is current now, not in the snapshot they ran against. Writing that snapshot back
+                // would silently drop those keystrokes, so only the outcome of the rules is taken
+                // and the values are kept as they stand.
+                state.copy(
+                    formSections = state.formSections.withRuleOutcome(evaluatedSections),
+                )
             }
+        }
+    }
+
+    /**
+     * Fills in the values already known before the form is shown.
+     *
+     * What the user picked to get here, such as the class they are enrolling into, is not asked
+     * again. Only fields still empty are filled, so nothing that came with a value of its own,
+     * including a value already stored for the record, is overwritten.
+     */
+    private fun List<FormSectionModel>.withPrefill(): List<FormSectionModel> {
+        if (prefillValues.isEmpty()) return this
+
+        return map { section ->
+            section.copy(
+                formFields = section.formFields.map { field ->
+                    val known = prefillValues[field.uid]?.takeIf { it.isNotBlank() }
+
+                    if (known == null || !field.value.isNullOrBlank()) {
+                        field
+                    } else {
+                        field.copy(value = known)
+                    }
+                },
+            )
+        }
+    }
+
+    /**
+     * Applies the outcome of a rule evaluation to these sections without touching their values.
+     *
+     * The rules decide what is shown, what is required and what is flagged; the values belong to
+     * the user and are the one thing an evaluation that started earlier must not be allowed to
+     * revert.
+     */
+    private fun List<FormSectionModel>.withRuleOutcome(
+        evaluated: List<FormSectionModel>,
+    ): List<FormSectionModel> {
+        val evaluatedFields = evaluated
+            .flatMap { section -> section.formFields }
+            .associateBy { field -> field.uid }
+        val evaluatedSections = evaluated.associateBy { section -> section.uid }
+
+        return map { section ->
+            section.copy(
+                rendered = evaluatedSections[section.uid]?.rendered ?: section.rendered,
+                formFields = section.formFields.map { field ->
+                    val outcome = evaluatedFields[field.uid] ?: return@map field
+                    field.copy(
+                        rendered = outcome.rendered,
+                        mandatory = outcome.mandatory,
+                        enabled = outcome.enabled,
+                        hasError = outcome.hasError,
+                        errorMessage = outcome.errorMessage,
+                        hasWarning = outcome.hasWarning,
+                        warningMessage = outcome.warningMessage,
+                    )
+                },
+            )
         }
     }
 
@@ -276,7 +415,11 @@ class FormViewModel @Inject constructor(
                 ?: return@update current
 
             val updatedSections = state.formSections.map { currentSection ->
-                if (currentSection != section) return@map currentSection
+                // Matched by identity rather than by comparing the whole section: the section the
+                // screen hands back was captured when it was last drawn, so while someone types
+                // faster than the screen redraws it no longer matches the one held here, and every
+                // keystroke after the first would be dropped without a trace.
+                if (currentSection.uid != section.uid) return@map currentSection
 
                 val updatedFields = currentSection.formFields.map { field ->
                     val cleanedValue = when (field.valueType) {
@@ -325,7 +468,9 @@ class FormViewModel @Inject constructor(
             val currentState = _uiState.value as? FormSectionUiState.HasFormSection
                 ?: return@launch
 
-            val sectionIndex = currentState.formSections.indexOf(section)
+            // Found by identity for the same reason the field update is: the section handed back
+            // by the screen goes stale as soon as anything in it changes.
+            val sectionIndex = currentState.formSections.indexOfFirst { it.uid == section.uid }
             if (sectionIndex == -1) return@launch
 
             val targetSection = currentState.formSections[sectionIndex]
@@ -375,15 +520,30 @@ class FormViewModel @Inject constructor(
     }
 
     private fun save() {
+        // A repeated tap must not start a second submission: on this form that would create a
+        // second learner, so the guard is checked before any work begins.
+        if (submitting) return
+        submitting = true
+
         viewModelScope.launch {
             val current = uiState.value as? FormSectionUiState.HasFormSection
-                ?: return@launch
-
-            if (current.formSections.hasBlockingFields()) {
+            if (current == null) {
+                submitting = false
                 return@launch
             }
 
-            val result =
+            if (current.formSections.hasBlockingFields()) {
+                submitting = false
+                return@launch
+            }
+
+            if (collectsOnly) {
+                _stepCompleted.tryEmit(current.formSections)
+                submitting = false
+                return@launch
+            }
+
+            runCatching {
                 if (formResult.value != null &&
                     !formResult.value?.tei.isNullOrEmpty() &&
                     !formResult.value?.enrollment.isNullOrEmpty()
@@ -406,10 +566,19 @@ class FormViewModel @Inject constructor(
                         formSections = current.formSections,
                     )
                 }
-
-            formResult.value = result
-
-            navigate(result, current)
+            }.onSuccess { result ->
+                formResult.value = result
+                submitting = false
+                navigate(result, current)
+            }.onFailure { error ->
+                // Without this the failure would reach the coroutine scope uncaught and take the
+                // app down instead of telling the user the record was not saved.
+                submitting = false
+                _errorEvent.tryEmit(
+                    error.message?.takeIf(String::isNotBlank)
+                        ?: resourceManager.getString(R.string.something_went_wrong_loading_form),
+                )
+            }
         }
     }
 
@@ -487,7 +656,12 @@ class FormViewModel @Inject constructor(
                 }
 
                 is FormEvent.ConfirmSave -> {
-                    _handleSave.tryEmit(true)
+                    if (collectsOnly && !confirmsOnComplete) {
+                        // A step that only moves on writes nothing, so there is nothing to confirm.
+                        save()
+                    } else {
+                        _handleSave.tryEmit(true)
+                    }
                 }
 
                 is FormEvent.SaveEvent -> {
@@ -500,12 +674,19 @@ class FormViewModel @Inject constructor(
     }
 
     fun reset() {
+        // The rule job reads the state a moment after the fact, so it has to stop before the state
+        // is torn down, otherwise it wakes to a form that is no longer there.
+        ruleJob?.cancel()
+        ruleJob = null
+
         deleteEventOnDiscard()
 
         _uiState.value = FormSectionUiState.Idle
         formResult.value = null
         formType.value = FormSectionType.NEW_ENROLLMENT
-        ruleJob = null
+        collectsOnly = false
+        submitting = false
+        prefillValues = emptyMap()
     }
 
 }

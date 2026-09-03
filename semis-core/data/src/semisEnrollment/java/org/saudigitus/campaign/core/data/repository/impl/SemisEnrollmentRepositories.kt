@@ -77,6 +77,15 @@ class SemisEnrollmentRepository(
     }
 }
 
+/**
+ * Heading for the learner attributes when the program groups them into no section of its own.
+ *
+ * Left here as text rather than a string resource: this module has no resources of its own and
+ * reaching one would mean giving the repository a resource lookup it otherwise has no use for. It
+ * is therefore not translated, which is a known gap rather than an oversight.
+ */
+private const val UNSECTIONED_ATTRIBUTES_TITLE = "Personal details"
+
 class SemisEnrollmentProgramRepository(private val d2: D2) : ProgramRepository {
     override suspend fun getTrackedEntityAttribute(program: String, searchable: Boolean): List<TrackedEntityAttributeModel> = withContext(Dispatchers.IO) {
         var query = d2.programModule().programTrackedEntityAttributes().byProgram().eq(program)
@@ -97,21 +106,27 @@ class SemisEnrollmentProgramRepository(private val d2: D2) : ProgramRepository {
                 ?: return@mapNotNull null
             val attribute = attributesByUid[attributeUid] ?: return@mapNotNull null
             TrackedEntityAttributeModel(
-                attribute.uid(),
-                attribute.displayFormName(),
-                attribute.code(),
-                attribute.optionSet()?.uid(),
-                attribute.valueType(),
-                programAttribute.mandatory() ?: false,
+                uid = attribute.uid(),
+                displayFormName = attribute.displayFormName(),
+                code = attribute.code(),
+                optionSetUid = attribute.optionSet()?.uid(),
+                valueType = attribute.valueType(),
+                mandatory = programAttribute.mandatory() ?: false,
+                sortOrder = programAttribute.sortOrder(),
+                generated = attribute.generated() ?: false,
             )
-        }
+        }.sortedBy { it.sortOrder ?: Int.MAX_VALUE }
     }
 
     override suspend fun getTrackedEntityAttributeWithSection(program: String): List<TrackedEntityAttributeSectionModel> = withContext(Dispatchers.IO) {
         val sections = d2.programModule().programSections().byProgramUid().eq(program).withAttributes().blockingGet()
         if (sections.isEmpty()) {
+            // A program that groups nothing still needs a heading for the attributes, and what they
+            // hold is who the learner is, so that is what the single section is called.
             return@withContext listOf(TrackedEntityAttributeSectionModel(
-                uid = UUID.randomUUID().toString(), displayName = "Enrollment", attributes = getTrackedEntityAttribute(program),
+                uid = UUID.randomUUID().toString(),
+                displayName = UNSECTIONED_ATTRIBUTES_TITLE,
+                attributes = getTrackedEntityAttribute(program),
             ))
         }
         val programAttributesByAttribute = d2.programModule().programTrackedEntityAttributes()
@@ -119,18 +134,45 @@ class SemisEnrollmentProgramRepository(private val d2: D2) : ProgramRepository {
             .blockingGet()
             .associateBy { it.trackedEntityAttribute()?.uid() }
 
+        // The attributes linked to a section carry only what the link table holds, so the full
+        // records are read separately to reach the flags the form depends on, such as generated.
+        val sectionAttributeUids = sections.flatMap { section ->
+            section.attributes().orEmpty().map { it.uid() }
+        }.distinct()
+        val attributesByUid = if (sectionAttributeUids.isEmpty()) {
+            emptyMap()
+        } else {
+            d2.trackedEntityModule().trackedEntityAttributes()
+                .byUid().`in`(sectionAttributeUids)
+                .blockingGet()
+                .associateBy { it.uid() }
+        }
+
         sections.map { section ->
             TrackedEntityAttributeSectionModel(
                 uid = section.uid(), code = section.code(), displayName = section.displayName(),
                 description = section.description(), sortOrder = section.sortOrder(),
-                attributes = section.attributes().orEmpty().mapNotNull { attribute ->
-                    val programAttribute = programAttributesByAttribute[attribute.uid()]
+                // A section states the order of the attributes it holds, and that is the order
+                // the form follows, so the list is kept as the section gives it. Sorting it by the
+                // position the program gives the same attribute would replace the section's own
+                // order with one assigned across the whole program, and leave the section shuffled.
+                attributes = section.attributes().orEmpty().mapNotNull { sectionAttribute ->
+                    val programAttribute = programAttributesByAttribute[sectionAttribute.uid()]
                         ?: return@mapNotNull null
-                    TrackedEntityAttributeModel(attribute.uid(), attribute.displayFormName(), attribute.code(),
-                        attribute.optionSet()?.uid(), attribute.valueType(), programAttribute.mandatory() ?: false)
+                    val attribute = attributesByUid[sectionAttribute.uid()] ?: sectionAttribute
+                    TrackedEntityAttributeModel(
+                        uid = attribute.uid(),
+                        displayFormName = attribute.displayFormName(),
+                        code = attribute.code(),
+                        optionSetUid = attribute.optionSet()?.uid(),
+                        valueType = attribute.valueType(),
+                        mandatory = programAttribute.mandatory() ?: false,
+                        sortOrder = programAttribute.sortOrder(),
+                        generated = attribute.generated() ?: false,
+                    )
                 },
             )
-        }.sortedBy { it.sortOrder }
+        }.sortedBy { it.sortOrder ?: Int.MAX_VALUE }
     }
 
     override suspend fun getPrograms() = d2.programModule().programs().blockingGet()
