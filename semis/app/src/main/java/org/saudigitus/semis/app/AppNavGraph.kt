@@ -110,7 +110,8 @@ fun AppNavGraph(
                     homeState.program,
                     homeState.filterState.orgUnit?.uid.orEmpty(),
                     homeState.tei,
-                    homeState.filterState.filterDetailsState
+                    homeState.filterState.filterDetailsState,
+                    homeState.filterState.getAcademicYearSelection()?.code,
                 )
             }
 

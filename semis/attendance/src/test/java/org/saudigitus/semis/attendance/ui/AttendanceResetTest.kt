@@ -93,7 +93,7 @@ class AttendanceResetTest {
                 trackedEntityType = null,
                 transfer = null,
             )
-            onBlocking { allowedCalenderYearDates(any(), any()) } doReturn true
+            onBlocking { allowedCalenderYearDates(any(), any(), anyOrNull()) } doReturn true
         }
 
         return AttendanceViewModel(
