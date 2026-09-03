@@ -37,6 +37,7 @@ import org.dhis2.commons.orgunitselector.OrgUnitSelectorScope
 import org.dhis2.ui.theme.colorPrimary
 import org.hisp.dhis.mobile.ui.designsystem.theme.SurfaceColor
 import org.saudigitus.semis.core.data.model.OrgUnit
+import org.saudigitus.semis.core.designsystem.theme.SemisFieldShape
 
 @Composable
 fun OuField(
@@ -118,11 +119,11 @@ fun OuField(
                     .shadow(
                         elevation = 2.dp,
                         ambientColor = Color.Black.copy(alpha = 0.1f),
-                        shape = RoundedCornerShape(30.dp),
+                        shape = SemisFieldShape,
                         clip = false,
                     )
-                    .background(color = Color.White, shape = RoundedCornerShape(30.dp)),
-                shape = RoundedCornerShape(30.dp),
+                    .background(color = Color.White, shape = SemisFieldShape),
+                shape = SemisFieldShape,
                 value = selectedOrgUnit?.displayName.orEmpty(),
                 onValueChange = {},
                 enabled = selectionEnabled,

@@ -4,6 +4,8 @@
     <string name="grade">Ano</string>
     <string name="cls">Turma/Classe</string>
     <string name="school">Escola</string>
+    <string name="filters_download_records">Transferir registos</string>
+    <string name="filters_reset">Limpar filtros</string>
     <string name="unknown">Desconhecido</string>
     <string name="calendar">Calendário</string>
     <string name="filters">Filtros</string>

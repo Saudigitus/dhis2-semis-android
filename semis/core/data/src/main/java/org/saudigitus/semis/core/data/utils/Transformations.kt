@@ -4,6 +4,7 @@ import org.dhis2.bindings.userFriendlyValue
 import org.hisp.dhis.android.core.D2
 import org.hisp.dhis.android.core.arch.repositories.scope.RepositoryScope
 import org.hisp.dhis.android.core.enrollment.Enrollment
+import org.hisp.dhis.android.core.organisationunit.OrganisationUnit
 import org.hisp.dhis.android.core.trackedentity.TrackedEntityAttribute
 import org.hisp.dhis.android.core.trackedentity.TrackedEntityAttributeValue
 import org.hisp.dhis.android.core.trackedentity.TrackedEntityInstance
@@ -14,6 +15,7 @@ class Transformations @Inject constructor(private val d2: D2) {
 
     private lateinit var currentProgram: String
     private val orgUnitNameCache = HashMap<String?, String?>()
+    private val displayOrgUnitCache = HashMap<String, Boolean>()
 
 
     fun transform(
@@ -94,11 +96,22 @@ class Transformations @Inject constructor(private val d2: D2) {
         searchTei.addAttributeValue(attribute?.displayFormName(), attrValueBuilder.build())
     }
 
-    private fun displayOrgUnit(): Boolean {
-        return d2.organisationUnitModule().organisationUnits()
-            .byProgramUids(listOf(currentProgram))
-            .blockingGet().size > 1
-    }
+    /**
+     * Whether the cards need to name the school at all.
+     *
+     * They do only when the user captures this program in more than one place, which is a
+     * question about the capture scope alone. The search scope holds other people's schools,
+     * possibly the whole country, so counting it would answer the wrong question and read tens
+     * of thousands of rows for every learner on the screen. Counted in the database and
+     * remembered per program, because the answer cannot change while the screen is open.
+     */
+    private fun displayOrgUnit(): Boolean =
+        displayOrgUnitCache.getOrPut(currentProgram) {
+            d2.organisationUnitModule().organisationUnits()
+                .byOrganisationUnitScope(OrganisationUnit.Scope.SCOPE_DATA_CAPTURE)
+                .byProgramUids(listOf(currentProgram))
+                .blockingCount() > 1
+        }
 
     private fun orgUnitName(orgUnitUid: String?): String? {
         if (!orgUnitNameCache.containsKey(orgUnitUid)) {
