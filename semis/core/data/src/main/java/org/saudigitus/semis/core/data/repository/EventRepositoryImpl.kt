@@ -7,6 +7,7 @@ import org.hisp.dhis.android.core.D2
 import org.hisp.dhis.android.core.event.EventCreateProjection
 import org.hisp.dhis.android.core.event.EventStatus
 import org.saudigitus.semis.core.data.model.SearchTeiModel
+import org.saudigitus.semis.core.data.model.contextValuesHeldBy
 import org.saudigitus.semis.core.utils.Constants
 import org.saudigitus.semis.core.utils.DateHelper
 import timber.log.Timber
@@ -107,8 +108,15 @@ class EventRepositoryImpl @Inject constructor(
         uid
     }
 
+    /**
+     * The record a save should update instead of creating a new one, scoped to the school doing
+     * the saving. Without the school in the match, a save for a transferred learner would pick up
+     * the record their previous school wrote for the same day and stage, and the update would
+     * belong to a school the user cannot write into.
+     */
     private fun eventUid(
         tei: String?,
+        orgUnit: String,
         program: String,
         programStage: String,
         date: String?,
@@ -118,6 +126,7 @@ class EventRepositoryImpl @Inject constructor(
         return if (!tei.isNullOrEmpty()) {
             eventsRepo
             .byTrackedEntityInstanceUids(listOf(tei))
+                .byOrganisationUnitUid().eq(orgUnit)
                 .byProgramUid().eq(program)
                 .byProgramStageUid().eq(programStage)
                 .byDeleted().isFalse
@@ -125,6 +134,7 @@ class EventRepositoryImpl @Inject constructor(
                 .one().blockingGet()?.uid()
         } else {
             eventsRepo
+                .byOrganisationUnitUid().eq(orgUnit)
                 .byProgramUid().eq(program)
                 .byProgramStageUid().eq(programStage)
                 .byDeleted().isFalse
@@ -140,7 +150,8 @@ class EventRepositoryImpl @Inject constructor(
         programStage: String,
         tei: SearchTeiModel?,
         data: Map<String, Pair<String, String>>,
-        eventDate: String?
+        eventDate: String?,
+        contextValues: List<Pair<String, String>>
     ) {
         withContext(Dispatchers.IO) {
             val date = eventDate ?: DateHelper.formatDate(System.currentTimeMillis())!!
@@ -148,6 +159,7 @@ class EventRepositoryImpl @Inject constructor(
             try {
                 val uid = event ?: eventUid(
                     tei?.uid(),
+                    orgUnit,
                     program,
                     programStage,
                     date
@@ -171,6 +183,17 @@ class EventRepositoryImpl @Inject constructor(
                         .blockingSet(secondaryDataValue.second.takeIf { it.isNotEmpty() })
                 }
 
+                // The class context is rewritten on every save, not only on the first, so that a
+                // record edited after the class was corrected does not keep the old one.
+                contextValuesHeldBy(
+                    stageDataElements = stageDataElements(programStage),
+                    contextValues = contextValues,
+                ).forEach { (dataElement, value) ->
+                    d2.trackedEntityModule().trackedEntityDataValues()
+                        .value(uid, dataElement)
+                        .blockingSet(value)
+                }
+
                 val repository = d2.eventModule().events().uid(uid)
                 repository.setEventDate(Date.valueOf(date))
                 repository.setStatus(EventStatus.COMPLETED)
@@ -179,6 +202,13 @@ class EventRepositoryImpl @Inject constructor(
             }
         }
     }
+
+    /** The data elements a program stage is configured with. */
+    private fun stageDataElements(programStage: String): List<String> =
+        d2.programModule().programStageDataElements()
+            .byProgramStage().eq(programStage)
+            .blockingGet()
+            .mapNotNull { it.dataElement()?.uid() }
 
     override suspend fun saveEvent(
         event: String?,
@@ -195,6 +225,7 @@ class EventRepositoryImpl @Inject constructor(
             try {
                 val uid = event ?: eventUid(
                     tei?.uid(),
+                    orgUnit,
                     program,
                     programStage,
                     date
@@ -222,6 +253,7 @@ class EventRepositoryImpl @Inject constructor(
 
     override suspend fun getEvents(
         teiUids: List<String>,
+        orgUnit: String,
         program: String,
         programStage: String,
         eventDate: String?
@@ -234,6 +266,7 @@ class EventRepositoryImpl @Inject constructor(
 
         d2.eventModule().events()
             .byTrackedEntityInstanceUids(teiUids)
+            .byOrganisationUnitUid().eq(orgUnit)
             .byProgramUid().eq(program)
             .byProgramStageUid().eq(programStage)
             .byDeleted().isFalse

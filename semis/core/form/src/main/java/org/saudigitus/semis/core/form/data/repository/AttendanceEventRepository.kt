@@ -11,10 +11,21 @@ interface AttendanceEventRepository {
 
     val attendanceButtonStateFlow: StateFlow<AttendanceButtonState>
 
+    /**
+     * @param orgUnit the school of the class being marked, which is where every learner record is
+     * written. The learner's own registration unit is never used: after a transfer it names the
+     * school the learner came from, and a record written there belongs to somebody else and cannot
+     * even be sent by the school taking the attendance.
+     * @param contextValues the configured values saying which class the records belong to, written
+     * on each learner event where the stage holds them. What the app counts on the device does not
+     * depend on them; they are stored so that a report built elsewhere can group by them.
+     */
     suspend fun saveAttendance(
+        orgUnit: String,
         program: String,
         programStage: String,
-        attendanceEvents: List<AttendanceEventWithDecorator>
+        attendanceEvents: List<AttendanceEventWithDecorator>,
+        contextValues: List<Pair<String, String>> = emptyList(),
     )
 
     suspend fun saveAttendanceStatus(
@@ -28,6 +39,7 @@ interface AttendanceEventRepository {
 
     suspend fun getAttendanceEvent(
         teiUids: List<String>,
+        orgUnit: String,
         program: String,
         programStage: String,
         dataElement: String,
@@ -54,6 +66,7 @@ interface AttendanceEventRepository {
 
     suspend fun loadAttendanceEvents(
         teiUids: List<String>,
+        orgUnit: String,
         program: String,
         programStage: String,
         dataElement: String,

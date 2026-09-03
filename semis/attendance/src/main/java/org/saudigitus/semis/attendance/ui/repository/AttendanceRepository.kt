@@ -35,6 +35,18 @@ interface AttendanceRepository {
         attendanceEvents: List<AttendanceEventWithDecorator>,
     ): AttendanceStatus?
 
+    /**
+     * The configured filter values that say which class a record belongs to.
+     *
+     * The same values are written on the class event and on each learner event, so that a report
+     * built from the learner stage and the totals held on the class event cannot disagree. Which
+     * values these are comes from the configuration, not from this code.
+     */
+    suspend fun classContextValues(
+        program: String,
+        filterDetailsState: FilterDetailsState,
+    ): List<Pair<String, String>>
+
     suspend fun getAttendanceStatus(
         orgUnit: String,
         program: String,

@@ -56,6 +56,10 @@ interface EventRepository {
      *
      * @param eventDate The date when the event occurred. If `null`, the current date will be used.
      */
+    /**
+     * @param contextValues the configured values saying which class the record belongs to. Only
+     * those the program stage actually holds are written, so a stage without them is unaffected.
+     */
     suspend fun saveEvent(
         event: String?,
         orgUnit: String,
@@ -64,6 +68,7 @@ interface EventRepository {
         tei: SearchTeiModel? = null,
         data: Map<String, Pair<String, String>>,
         eventDate: String? = null,
+        contextValues: List<Pair<String, String>> = emptyList(),
     )
 
     suspend fun saveEvent(
@@ -78,6 +83,7 @@ interface EventRepository {
 
     suspend fun getEvents(
         teiUids: List<String>,
+        orgUnit: String,
         program: String,
         programStage: String,
         eventDate: String?

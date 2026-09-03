@@ -183,6 +183,7 @@ class AttendanceViewModel @Inject constructor(
 
         val currentButtonState = formRepository.loadAttendanceEvents(
             teiUids = studentsIds,
+            orgUnit = uiState.value.formBuilderState.orgUnit,
             program = uiState.value.program,
             programStage = attendanceConfig?.programStage.orEmpty(),
             dataElement = attendanceConfig?.status.orEmpty(),
@@ -329,9 +330,16 @@ class AttendanceViewModel @Inject constructor(
 
             runCatching {
                 formRepository.saveAttendance(
+                    orgUnit = current.formBuilderState.orgUnit,
                     program = current.program,
                     programStage = attendanceConfig?.programStage.orEmpty(),
-                    attendanceEvents = formRepository.attendanceButtonStateFlow.value.attendanceEvents
+                    attendanceEvents = formRepository.attendanceButtonStateFlow.value.attendanceEvents,
+                    // The same values the class event carries, so a report built from the learner
+                    // records and the totals held on the class event cannot disagree.
+                    contextValues = attendanceRepository.classContextValues(
+                        program = current.program,
+                        filterDetailsState = current.attendanceSummaryState.filterDetailsState,
+                    ),
                 )
                 if (current.allowAttendanceStatus) {
                     attendanceRepository.completeAttendanceStatus(

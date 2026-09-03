@@ -204,6 +204,7 @@ class FormRepositoryImpl @Inject constructor(
 
     override suspend fun loadAttendanceEvents(
         teiUids: List<String>,
+        orgUnit: String,
         program: String,
         programStage: String,
         dataElement: String,
@@ -215,6 +216,7 @@ class FormRepositoryImpl @Inject constructor(
 
         val attendanceEvents = getAttendanceEvent(
             teiUids = teiUids,
+            orgUnit = orgUnit,
             program = program,
             programStage = programStage,
             dataElement = attendanceConfig?.status.orEmpty(),
@@ -393,9 +395,11 @@ class FormRepositoryImpl @Inject constructor(
     }
 
     override suspend fun saveAttendance(
+        orgUnit: String,
         program: String,
         programStage: String,
-        attendanceEvents: List<AttendanceEventWithDecorator>
+        attendanceEvents: List<AttendanceEventWithDecorator>,
+        contextValues: List<Pair<String, String>>,
     ) = withContext(Dispatchers.IO) {
         // A learner dropped from the form no longer holds a status, so the record loaded
         // for them has to go with it rather than linger as a stale event.
@@ -409,7 +413,7 @@ class FormRepositoryImpl @Inject constructor(
         attendanceEvents.forEach { attendanceEvent ->
             eventRepository.saveEvent(
                 event = attendanceEvent.event?.event,
-                orgUnit = attendanceEvent.tei!!.tei.organisationUnit().orEmpty(),
+                orgUnit = orgUnit,
                 tei = attendanceEvent.tei!!,
                 program = program,
                 programStage = programStage,
@@ -423,7 +427,8 @@ class FormRepositoryImpl @Inject constructor(
                         attendanceEvent.event?.reasonOfAbsence.orEmpty()
                     ),
                 ),
-                eventDate = attendanceEvent.event?.date
+                eventDate = attendanceEvent.event?.date,
+                contextValues = contextValues,
             )
         }
     }
@@ -448,6 +453,7 @@ class FormRepositoryImpl @Inject constructor(
 
     override suspend fun getAttendanceEvent(
         teiUids: List<String>,
+        orgUnit: String,
         program: String,
         programStage: String,
         dataElement: String,
@@ -458,6 +464,7 @@ class FormRepositoryImpl @Inject constructor(
 
         eventRepository.getEvents(
             teiUids = teiUids,
+            orgUnit = orgUnit,
             program = program,
             programStage = programStage,
             eventDate = eventDate,
