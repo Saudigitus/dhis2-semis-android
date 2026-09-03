@@ -2,6 +2,7 @@ package org.saudigitus.semis.core.designsystem.components
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -12,7 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.HideSource
+import androidx.compose.material.icons.rounded.WarningAmber
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -33,6 +34,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.saudigitus.semis.core.designsystem.R
 import org.saudigitus.semis.core.designsystem.theme.dark_warning
+import org.saudigitus.semis.core.designsystem.theme.warning_notice_content
+import org.saudigitus.semis.core.designsystem.theme.warning_notice_outline
+import org.saudigitus.semis.core.designsystem.theme.warning_notice_surface
 
 @Composable
 fun ConfigNotFound(
@@ -69,33 +73,46 @@ fun ConfigNotFound(
     }
 }
 
+/**
+ * Banner telling the user what is missing before the screen can be of any use.
+ *
+ * It warns rather than blocks, so it is drawn as a notice and not as an error: a warm surface, a
+ * quiet outline and text small enough to read as a remark beside the content rather than as an
+ * interruption of it. The icon sits after the text because the message is what has to be read
+ * first, and the icon only says how to read it.
+ */
 @Composable
 fun NoRecordsFound(
     modifier: Modifier = Modifier,
-    imageVector: ImageVector = Icons.Default.HideSource,
+    imageVector: ImageVector = Icons.Rounded.WarningAmber,
     message: String = stringResource(R.string.no_records_found)
 ) {
     Row(
-        modifier = modifier.then(
-            Modifier.background(
-                color = Color.LightGray.copy(alpha = .25f),
-                shape = RoundedCornerShape(16.dp)
-            ).padding(16.dp)
-        ),
-        horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.Start),
+        modifier = modifier
+            .background(color = warning_notice_surface, shape = NoticeShape)
+            .border(width = 1.dp, color = warning_notice_outline, shape = NoticeShape)
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.Start),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(
-            imageVector = imageVector,
-            contentDescription = stringResource(R.string.no_records_found),
-            tint = dark_warning
-        )
         Text(
+            modifier = Modifier.weight(1f),
             text = message,
-            color = dark_warning
+            color = warning_notice_content,
+            fontSize = 13.sp,
+            lineHeight = 18.sp,
+            fontFamily = FontFamily(Font(R.font.rubik_regular)),
+        )
+        Icon(
+            modifier = Modifier.size(20.dp),
+            imageVector = imageVector,
+            contentDescription = null,
+            tint = warning_notice_content
         )
     }
 }
+
+private val NoticeShape = RoundedCornerShape(12.dp)
 
 
 @Composable

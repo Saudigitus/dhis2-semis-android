@@ -12,6 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import org.saudigitus.semis.core.designsystem.components.cards.DetailSectionCard
 import org.saudigitus.semis.core.form.data.model.FormType
 import org.saudigitus.semis.core.form.ui.FormContent
 import org.saudigitus.semis.core.form.ui.state.FormEvent
@@ -42,7 +43,7 @@ internal fun DestinationStep(
             )
         }
         item {
-            DestinationCard(
+            DetailSectionCard(
                 icon = Icons.Outlined.School,
                 title = stringResource(R.string.origin_details_section),
                 description = stringResource(R.string.origin_details_hint),
@@ -51,7 +52,7 @@ internal fun DestinationStep(
             }
         }
         item {
-            DestinationCard(
+            DetailSectionCard(
                 icon = Icons.AutoMirrored.Outlined.Assignment,
                 title = stringResource(R.string.transfer_details_section),
                 description = stringResource(R.string.transfer_details_hint),

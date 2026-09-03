@@ -35,6 +35,11 @@ data class TrackedEntityAttributeModel(
     val valueType: ValueType? = ValueType.TEXT,
     val mandatory: Boolean? = false,
     val sortOrder: Int? = -1,
+    /**
+     * The server mints this attribute from a pattern instead of letting anyone type it, so the
+     * form has to obtain the value from the reserve rather than leave the field for the user.
+     */
+    val generated: Boolean = false,
 )
 
 data class TrackedEntityAttributeSectionModel(
