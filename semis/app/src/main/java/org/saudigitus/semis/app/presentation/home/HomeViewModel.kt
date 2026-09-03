@@ -4,8 +4,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
@@ -23,7 +25,6 @@ import org.saudigitus.semis.core.data.model.Module
 import org.saudigitus.semis.core.data.model.OrgUnit
 import org.saudigitus.semis.core.data.model.StoredFilterSelection
 import org.saudigitus.semis.core.data.model.app_config.Registration
-import org.saudigitus.semis.core.data.model.schoolcalendar_config.AcademicYear
 import org.saudigitus.semis.core.data.repository.AppConfigRepository
 import org.saudigitus.semis.core.data.repository.AppModulesRepository
 import org.saudigitus.semis.core.data.repository.FilterRepository
@@ -44,6 +45,7 @@ import org.saudigitus.semis.core.designsystem.utils.withSelectedFilter
 import org.saudigitus.semis.core.designsystem.utils.withSubtitle
 import org.saudigitus.semis.core.utils.onFailure
 import org.saudigitus.semis.core.utils.onSuccess
+import org.saudigitus.semis.app.R as AppR
 import javax.inject.Inject
 
 @HiltViewModel
@@ -62,7 +64,6 @@ class HomeViewModel @Inject constructor(
     private val isAutoHideFilters = MutableStateFlow(true)
 
     private val registration = MutableStateFlow<Registration?>(null)
-    private val academicYear = MutableStateFlow<AcademicYear?>(null)
     private val academicYearDL = MutableStateFlow<String>("")
 
     /**
@@ -87,6 +88,16 @@ class HomeViewModel @Inject constructor(
             SharingStarted.WhileSubscribed(5000),
             HomeUIState()
         )
+
+    /**
+     * What to tell the user once a download has finished.
+     *
+     * A one-shot message rather than something held in the state, because a download that worked is
+     * an event and not a condition: kept in the state it would be shown again on every
+     * recomposition, and there would be no moment at which it is over.
+     */
+    private val _downloadFeedback = MutableSharedFlow<String>()
+    val downloadFeedback: SharedFlow<String> = _downloadFeedback
 
     private var loadJob: Job? = null
 
@@ -215,14 +226,19 @@ class HomeViewModel @Inject constructor(
     }
 
     private suspend fun setAcademicYear() {
-        val schoolCalendar = appConfigRepository.getSchoolCalendar()
-        val default = schoolCalendar?.defaults?.academicYear
-        academicYearDL.value = schoolCalendar?.academicYear.orEmpty()
-
-        academicYear.value = schoolCalendar?.schoolCalendar?.find {
-            it?.academicYear?.code == default
-        }?.academicYear
+        academicYearDL.value = appConfigRepository.getSchoolCalendar()?.academicYear.orEmpty()
     }
+
+    /**
+     * The academic year the user is working in.
+     *
+     * Read from what is selected rather than from the year the configuration names as the default.
+     * The default is where the screen starts, not where the user may have moved to since, and
+     * anything that reads it instead of the selection asks the server, or the device, about a year
+     * other than the one on screen.
+     */
+    private fun selectedAcademicYearCode(): String? =
+        uiState.value.filterState.getAcademicYearSelection()?.code
 
     private suspend fun loadFilters(program: String): List<DropdownState> =
         try {
@@ -379,13 +395,21 @@ class HomeViewModel @Inject constructor(
                         registration.value?.section
                     ),
                     dataValues = listOfNotNull(
-                        academicYear.value?.code,
-                        _uiState.value.filterState.selectedFilters[FilterType.GRADE]?.code,
-                        _uiState.value.filterState.selectedFilters[FilterType.SECTION]?.code
+                        selectedAcademicYearCode(),
+                        uiState.value.filterState.selectedFilters[FilterType.GRADE]?.code,
+                        uiState.value.filterState.selectedFilters[FilterType.SECTION]?.code
                     )
                 )
 
-                result.onSuccess {
+                result.onSuccess { downloaded ->
+                    _uiState.update { it.copy(errorMessage = null) }
+                    _downloadFeedback.emit(
+                        resourceManager.getPlural(
+                            AppR.plurals.home_records_downloaded,
+                            downloaded,
+                            downloaded,
+                        ),
+                    )
                     loadTeis()
                 }.onFailure { f ->
                     _uiState.update { it.copy(isLoading = false, errorMessage = f.message) }
@@ -425,9 +449,9 @@ class HomeViewModel @Inject constructor(
                 registration.value?.section
             ),
             dataValues = listOfNotNull(
-                academicYear.value?.code,
-                _uiState.value.filterState.selectedFilters[FilterType.GRADE]?.code,
-                _uiState.value.filterState.selectedFilters[FilterType.SECTION]?.code
+                selectedAcademicYearCode(),
+                uiState.value.filterState.selectedFilters[FilterType.GRADE]?.code,
+                uiState.value.filterState.selectedFilters[FilterType.SECTION]?.code
             )
         ).collectLatest { data ->
             val currentFieldState = _uiState.value.filterState
