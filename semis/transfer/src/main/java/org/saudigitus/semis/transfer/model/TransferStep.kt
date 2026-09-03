@@ -1,7 +1,8 @@
 package org.saudigitus.semis.transfer.model
 
+/** The three steps of raising a transfer request. */
 enum class TransferStep {
-    SELECT_LEARNERS,
+    ENTITIES,
     DESTINATION,
     REVIEW,
 }

@@ -6,8 +6,10 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -44,9 +46,9 @@ fun SegmentedTabRow(
     ) {
         tabs.forEach { tab ->
             val selected = tab.id == selectedId
+            val contentColor = if (selected) Color.White else SemisPalette.TextSecondary
 
-            Text(
-                text = tab.badge?.let { badge -> "${tab.label} ($badge)" } ?: tab.label,
+            Row(
                 modifier = Modifier
                     .background(
                         color = if (selected) accent else accent.surfaceTone(alpha = .08f),
@@ -58,13 +60,28 @@ fun SegmentedTabRow(
                         onClick = { onSelect(tab) },
                     )
                     .padding(horizontal = 14.dp, vertical = 8.dp),
-                color = if (selected) Color.White else SemisPalette.TextSecondary,
-                fontSize = 12.5.sp,
-                maxLines = 1,
-                fontFamily = FontFamily(
-                    Font(if (selected) R.font.rubik_medium else R.font.rubik_regular),
-                ),
-            )
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                tab.icon?.let { icon ->
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        modifier = Modifier.size(15.dp),
+                        tint = contentColor,
+                    )
+                }
+
+                Text(
+                    text = tab.badge?.let { badge -> "${tab.label} ($badge)" } ?: tab.label,
+                    color = contentColor,
+                    fontSize = 12.5.sp,
+                    maxLines = 1,
+                    fontFamily = FontFamily(
+                        Font(if (selected) R.font.rubik_medium else R.font.rubik_regular),
+                    ),
+                )
+            }
         }
     }
 }

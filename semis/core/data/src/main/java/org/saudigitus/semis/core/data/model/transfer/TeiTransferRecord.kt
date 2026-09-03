@@ -1,6 +1,6 @@
 package org.saudigitus.semis.core.data.model.transfer
 
-data class TeiTransferLearner(
+data class TeiTransferRecord(
     val teiUid: String,
     val enrollmentUid: String,
 )

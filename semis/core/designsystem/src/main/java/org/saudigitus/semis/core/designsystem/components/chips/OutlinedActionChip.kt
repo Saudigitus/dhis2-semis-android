@@ -4,11 +4,15 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
@@ -26,6 +30,7 @@ fun OutlinedActionChip(
     containerColor: Color,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    imageVector: ImageVector? = null,
     onClick: () -> Unit,
 ) {
     OutlinedButton(
@@ -40,6 +45,16 @@ fun OutlinedActionChip(
         ),
         contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
     ) {
+        imageVector?.let { icon ->
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier
+                    .padding(end = 6.dp)
+                    .size(15.dp),
+            )
+        }
+
         Text(
             text = label,
             fontSize = 12.sp,
