@@ -26,4 +26,15 @@
     <string name="profile_no_attendance">No attendance was recorded for the selected academic year.</string>
     <string name="profile_no_performance">No marks were recorded for the selected academic year.</string>
     <string name="profile_not_found">This learner profile could not be loaded.</string>
+
+    <string name="enrollment_config_unavailable">The enrollment setup could not be read. Sync the data and try again.</string>
+    <string name="enrollment_not_saved">The enrollment could not be saved. Nothing was recorded, please try again.</string>
+    <string name="enrollment_complete_step">Complete</string>
+    <string name="enrollment_complete_title">Enrollment complete</string>
+    <string name="enrollment_add_another">Add another record</string>
+    <string name="enrollment_back_to_list">Back to the list</string>
+    <string name="enrollment_summary_registration">Registration details</string>
+    <string name="enrollment_summary_registration_hint">Where the learner was enrolled and what was recorded.</string>
+    <string name="enrollment_summary_org_unit">School</string>
+    <string name="enrollment_summary_date">Registration date</string>
 </resources>

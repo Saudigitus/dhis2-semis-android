@@ -65,6 +65,29 @@ interface FormRepository {
         tei: String? = null,
     ): List<FormSectionModel>
 
+    /**
+     * Writes a whole enrollment in one go, from the values gathered across every step.
+     *
+     * Persisting each step as it is completed leaves a learner behind whenever the user stops or
+     * something fails partway, and that half made record is later synced. Committing once, at the
+     * end, means an interrupted enrollment simply never existed.
+     *
+     * If any part of the write fails, whatever was already created is removed before the failure is
+     * reported, so the device is never left holding a learner without the rest of the enrollment.
+     *
+     * @param attributes the sections captured for the tracked entity attributes.
+     * @param stages the sections captured for each program stage the user filled in, keyed by stage.
+     * @param backgroundStages stages that only need an empty event, created without asking the user.
+     */
+    suspend fun saveEnrollment(
+        orgUnit: String,
+        program: String,
+        date: String,
+        attributes: List<FormSectionModel>,
+        stages: Map<String, List<FormSectionModel>>,
+        backgroundStages: List<String>,
+    ): FormResult
+
     suspend fun applyProgramRules(
         orgUnit: String,
         program: String,
