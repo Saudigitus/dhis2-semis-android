@@ -1,7 +1,6 @@
 package org.saudigitus.semis.core.designsystem.components.notice
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -20,11 +19,14 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.saudigitus.semis.core.designsystem.R
-import org.saudigitus.semis.core.designsystem.theme.borderTone
 import org.saudigitus.semis.core.designsystem.theme.surfaceTone
 
 /**
  * Tinted inline banner carrying a short contextual message about the current screen.
+ *
+ * Drawn as a soft fill with no outline, as the performance capture screen draws its own: an
+ * outline gives a remark the weight of a field waiting to be filled, and these are read in
+ * passing rather than acted on.
  */
 @Composable
 fun InlineNotice(
@@ -40,11 +42,6 @@ fun InlineNotice(
                 color = tone.surfaceTone(alpha = .12f),
                 shape = RoundedCornerShape(12.dp),
             )
-            .border(
-                width = 1.dp,
-                color = tone.borderTone(alpha = .35f),
-                shape = RoundedCornerShape(12.dp),
-            )
             .padding(horizontal = 12.dp, vertical = 10.dp),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -53,15 +50,15 @@ fun InlineNotice(
             imageVector = imageVector,
             contentDescription = null,
             tint = tone,
-            modifier = Modifier.size(18.dp),
+            modifier = Modifier.size(20.dp),
         )
 
         Text(
             text = text,
             color = tone,
-            fontSize = 12.5.sp,
-            lineHeight = 17.sp,
-            fontFamily = FontFamily(Font(R.font.rubik_regular)),
+            fontSize = 13.5.sp,
+            lineHeight = 18.sp,
+            fontFamily = FontFamily(Font(R.font.rubik_medium)),
         )
     }
 }
