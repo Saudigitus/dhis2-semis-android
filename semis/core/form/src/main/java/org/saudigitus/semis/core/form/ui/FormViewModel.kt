@@ -109,6 +109,21 @@ class FormViewModel @Inject constructor(
         _uiState.update {
             it.copy(fieldsData = formFieldData)
         }
+
+        judgeStoredRecords()
+    }
+
+    /**
+     * Judges the values as they were stored, not only what is typed afterwards: a mark saved
+     * against a rule has to say so the moment the screen opens. The values and the form reach
+     * this view model in either order, so whichever arrives last starts the evaluation.
+     */
+    private fun judgeStoredRecords() {
+        val current = uiState.value
+
+        if (current.fieldsData.isNotEmpty() && current.formBuilderState.program.isNotBlank()) {
+            debounceRecordRules()
+        }
     }
 
     fun collectIndividualSummary(getSummaries: (List<BottomSheetModel>) -> Unit) {
@@ -290,6 +305,8 @@ class FormViewModel @Inject constructor(
             _uiState.update {
                 it.copy(isLoading = false, fields = updatedFields, error = null)
             }
+
+            judgeStoredRecords()
         }.onFailure { error ->
             _uiState.update {
                 it.copy(
