@@ -15,6 +15,9 @@ const val PRESENT_STATUS_KEY = "present"
  *
  * Nothing is counted when the program configures no status at all, since there would be
  * no statuses to report against.
+ *
+ * [presentCount], when known, replaces what the records leave over: with the status flow on a
+ * present day leaves no record of the learner, so only the registers of the class can tell it.
  */
 fun attendanceStatusCounts(
     statusOptions: List<StatusOption>,
@@ -22,6 +25,7 @@ fun attendanceStatusCounts(
     recordedStatusCodes: List<String>,
     derivePresent: Boolean,
     fallbackPresentLabel: String = "Present",
+    presentCount: Int? = null,
 ): List<AttendanceStatusCount> {
     val counts = recordedStatusCodes.groupingBy { it }.eachCount()
     val configured = statusOptions.mapNotNull { option ->
@@ -57,8 +61,29 @@ fun attendanceStatusCounts(
         code = presentOption?.key ?: PRESENT_STATUS_KEY,
         label = presentOption?.value ?: fallbackPresentLabel,
         color = null,
-        count = recordedStatusCodes.count { it !in configuredCodes },
+        count = presentCount ?: recordedStatusCodes.count { it !in configuredCodes },
     )
 
     return listOf(present) + configured
+}
+
+/**
+ * Days a learner was present while the attendance status flow is on.
+ *
+ * Present is stored as no record at all, so it is every day the class holds a register for,
+ * complete or not, on which the learner has none of the configured statuses. A record whose code
+ * is none of them, kept from before the flow, is a present day too and is counted once.
+ *
+ * Days are compared as they are given, so both lists have to name a day the same way.
+ */
+fun presentDayCount(
+    registerDays: Collection<String>,
+    recordedDays: List<Pair<String, String>>,
+    configuredStatusCodes: Set<String>,
+): Int {
+    val (notPresent, present) = recordedDays.partition { (_, code) -> code in configuredStatusCodes }
+    val notPresentDays = notPresent.mapTo(mutableSetOf()) { (day, _) -> day }
+
+    return (registerDays.toSet() + present.map { (day, _) -> day })
+        .count { it !in notPresentDays }
 }
