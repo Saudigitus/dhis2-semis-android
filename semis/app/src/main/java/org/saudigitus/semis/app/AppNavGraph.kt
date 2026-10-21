@@ -22,6 +22,7 @@ import org.saudigitus.semis.enrollment.ui.profile.StudentProfileScreen
 import org.saudigitus.semis.enrollment.ui.profile.StudentProfileViewModel
 import org.saudigitus.semis.enrollment.ui.form.SemisCoreEnrollmentFormScreen
 import org.saudigitus.semis.enrollment.ui.form.initializeSemisCoreForm
+import org.saudigitus.semis.core.data.model.SyncTarget
 import org.saudigitus.semis.core.designsystem.components.model.FilterType
 import org.saudigitus.semis.core.designsystem.utils.mapper.TEICardMapper
 import org.saudigitus.semis.core.form.ui.FormViewModel
@@ -36,7 +37,9 @@ fun AppNavGraph(
     teiCardMapper: TEICardMapper,
     navController: NavHostController,
     navBack: () -> Unit,
-    syncData: () -> Unit,
+    syncData: (List<SyncTarget>) -> Unit,
+    syncNow: () -> Unit,
+    syncNowFor: (List<SyncTarget>) -> Unit,
     displayImageDetail: (imagePath: String) -> Unit,
 ) {
     NavHost(
@@ -44,10 +47,13 @@ fun AppNavGraph(
         startDestination = AppRoutes.HOME,
     ) {
         composable(route = AppRoutes.HOME) {
+            // Coming back from a module must show what the module changed: an enrollment
+            // adds a learner to the class, and a transfer decision can take one away.
+            LaunchedEffect(Unit) { viewModel.refreshTeis() }
             AppScreen(
                 viewModel = viewModel,
                 navBack = navBack,
-                syncData = syncData,
+                syncNow = syncNow,
                 navTo = navController::navigate
             )
         }
@@ -60,7 +66,7 @@ fun AppNavGraph(
                 onEvent = {
                     when (it) {
                         is TeiListEvent.OnBack -> navController.navigateUp()
-                        is TeiListEvent.OnSyncClick -> syncData()
+                        is TeiListEvent.OnSyncClick -> syncNow()
                         is TeiListEvent.OnTeiClick -> {
                             navController.navigate(AppRoutes.studentProfile(it.tei))
                         }
@@ -94,6 +100,7 @@ fun AppNavGraph(
                 onEvent = { event ->
                     when (event) {
                         is StudentProfileEvent.OnBack -> navController.navigateUp()
+                        is StudentProfileEvent.OnSyncClick -> syncNow()
                         else -> profileViewModel.handleEvent(event)
                     }
                 },
@@ -120,7 +127,8 @@ fun AppNavGraph(
                 viewModel = attendanceViewModel,
                 formViewModel = formViewModel,
                 navController = navController,
-                syncData = syncData
+                syncData = syncData,
+                syncNow = syncNowFor,
             )
         }
         composable(route = AppRoutes.ENROLLMENT) {
@@ -131,7 +139,7 @@ fun AppNavGraph(
                 tei = homeState.tei,
                 filterState = homeState.filterState,
                 onBack = navController::navigateUp,
-                onSync = syncData,
+                onSync = syncNow,
                 onNewEnrollment = {
                     initializeSemisCoreForm()
                     navController.navigate(AppRoutes.ENROLLMENT_FORM)
@@ -158,9 +166,13 @@ fun AppNavGraph(
                 grade = selectedFilters[FilterType.GRADE]?.code,
                 section = selectedFilters[FilterType.SECTION]?.code,
                 navController = navController,
-                onSaved = {
+                onSaved = { targets ->
                     viewModel.refreshTeis()
-                    navController.navigateUp()
+                    if (targets.isEmpty()) {
+                        navController.navigateUp()
+                    } else {
+                        syncData(targets)
+                    }
                 },
             )
         }
@@ -175,6 +187,7 @@ fun AppNavGraph(
                 homeState.filterState,
                 navController,
                 syncData,
+                syncNow,
             )
         }
         composable(route = AppRoutes.TRANSFER) {
@@ -187,7 +200,7 @@ fun AppNavGraph(
                     transferViewModel.initialize(
                         program = homeState.program,
                         sourceOrgUnit = sourceOrgUnit,
-                        learners = homeState.tei,
+                        records = homeState.tei,
                         originFilterDetails = homeState.filterState.filterDetailsState,
                     )
                 }

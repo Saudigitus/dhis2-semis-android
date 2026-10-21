@@ -2,9 +2,8 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     id("com.android.library")
-    kotlin("android")
-    kotlin("kapt")
-    id("dagger.hilt.android.plugin")
+    id("com.google.devtools.ksp")
+    alias(libs.plugins.hilt)
     alias(libs.plugins.kotlin.compose.compiler)
 }
 
@@ -64,12 +63,8 @@ dependencies {
     implementation(libs.google.material)
     implementation(libs.dagger.hilt.android)
 
-    kapt(libs.dagger.hilt.android.compiler)
+    ksp(libs.dagger.hilt.android.compiler)
     coreLibraryDesugaring(libs.desugar)
 
     testImplementation(libs.test.junit)
-}
-
-kapt {
-    correctErrorTypes = true
 }

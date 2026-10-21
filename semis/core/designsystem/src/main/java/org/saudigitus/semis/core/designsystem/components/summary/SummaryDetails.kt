@@ -22,7 +22,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.unit.dp
-import org.dhis2.ui.theme.colorPrimary
+import org.saudigitus.semis.core.designsystem.theme.colorPrimary
 import org.saudigitus.semis.core.designsystem.components.FilterDetails
 import org.saudigitus.semis.core.designsystem.components.ShowCount
 import org.saudigitus.semis.core.designsystem.utils.UiDefaults

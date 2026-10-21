@@ -9,9 +9,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import org.hisp.dhis.mobile.ui.designsystem.component.ProgressIndicator
 import org.hisp.dhis.mobile.ui.designsystem.component.ProgressIndicatorType
 import org.saudigitus.semis.core.data.model.SearchTeiModel
+import org.saudigitus.semis.core.designsystem.R
 import org.saudigitus.semis.core.form.data.model.FormFieldState
 import org.saudigitus.semis.core.form.data.model.FormType
 import org.saudigitus.semis.core.form.ui.state.FormEvent
@@ -57,7 +59,23 @@ fun FormContent(
                         state.fields.filter { it.rendered }
                     }.filter(fieldFilter)
 
-                    for (field in visibleFields) {
+                    for (visibleField in visibleFields) {
+                        val missing = type == FormType.ATTENDANCE &&
+                            key in state.learnersMissingCompulsory &&
+                            isMissingCompulsoryAttendanceField(
+                                key,
+                                visibleField,
+                                state.attendanceButtonState,
+                            )
+                        val field = if (missing) {
+                            visibleField.copy(
+                                hasError = true,
+                                errorMessage = stringResource(R.string.required_field, visibleField.label),
+                            )
+                        } else {
+                            visibleField
+                        }
+
                         FormFieldItem(
                             key = key,
                             field = field,

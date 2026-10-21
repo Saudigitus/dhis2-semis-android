@@ -2,13 +2,11 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     id("com.android.library")
-    kotlin("android")
-    kotlin("kapt")
+    id("com.google.devtools.ksp")
     id("kotlin-parcelize")
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.kotlin.compose.compiler)
     alias(libs.plugins.androidx.room)
-    alias(libs.plugins.ksp)
 }
 
 apply(from = "${project.rootDir}/jacoco/jacoco.gradle.kts")
@@ -60,7 +58,13 @@ android {
     // Campaign sources are retained in the repository but depend on Campaign-
     // only modules that are not part of SEMIS.
     sourceSets {
+        // Only the enrollment slice is compiled, as before. Up to AGP 8 the Kotlin source set
+        // followed the Java one, so naming the slice here was enough to leave the rest of
+        // src/main/java out of the build. AGP 9 keeps src/main/java in the Kotlin source set
+        // regardless, so the slice has to be named for both languages or the two mutually
+        // exclusive copies of campaignDataModule collide.
         getByName("main").java.setSrcDirs(listOf("src/semisEnrollment/java"))
+        getByName("main").kotlin.setSrcDirs(listOf("src/semisEnrollment/java"))
     }
 
     packaging {
@@ -102,9 +106,6 @@ dependencies {
     implementation(libs.room.ktx)
 
     // Ktor
-    implementation(libs.ktor.client.android)
-    implementation(libs.ktor.client.content.negotiation)
-    implementation(libs.ktor.serialization.kotlinx.json)
 
     ksp(libs.room.compiler)
 
@@ -113,8 +114,4 @@ dependencies {
     testImplementation(libs.test.junit)
     androidTestImplementation(libs.test.junit.ext)
     androidTestImplementation(libs.test.espresso)
-}
-
-kapt {
-    correctErrorTypes = true
 }

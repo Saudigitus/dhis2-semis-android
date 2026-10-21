@@ -36,6 +36,7 @@ class EnrollmentPlanTest {
             lastUpdate = null,
             programStages = performanceStages.map { ProgramStages(it) },
         ),
+        profile = null,
         program = null,
         reenroll = null,
         registration = Registration(

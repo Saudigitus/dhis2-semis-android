@@ -66,15 +66,18 @@ pipeline {
             }
         }
         stage('Unit tests') {
+            when {
+                expression {
+                    return !isSkipUnitTest()
+                }
+            }
             environment {
                 ANDROID_HOME = '/opt/android-sdk'
             }
             steps {
                 script {
-                    echo 'Running unit tests on app module'
-                    sh './gradlew :app:testDhisDebugUnitTest --stacktrace --no-daemon'
-                    echo 'Running unit tests on all other modules'
-                    sh './gradlew testDebugUnitTest --stacktrace --no-daemon'
+                    echo 'Running unit tests'
+                    sh './gradlew testDebugUnitTest testDhis2DebugUnitTest testAndroidHostTest --stacktrace --no-daemon'
                 }
             }
         }
@@ -123,11 +126,6 @@ pipeline {
             }
         }
         stage('Run UI Tests in Landscape') {
-            when {
-                expression {
-                    return JOB_NAME.startsWith('android-multibranch-PUSH')
-                }
-            }
             environment {
                 BROWSERSTACK = credentials('android-browserstack')
                 app_apk = sh(returnStdout: true, script: 'find app/build/outputs/apk/dhis2/debug -iname "*.apk"')
@@ -208,4 +206,10 @@ def isSkipSizeCheck() {
     def prTitle = env.CHANGE_TITLE ?: ""
     def prDescription = env.CHANGE_DESCRIPTION ?: ""
     return (prTitle.contains("[skip size]") || prDescription.contains("[skip size]"))
+}
+
+def isSkipUnitTest() {
+    def prTitle = env.CHANGE_TITLE ?: ""
+    def prDescription = env.CHANGE_DESCRIPTION ?: ""
+    return (prTitle.contains("[skip unitTest]") || prDescription.contains("[skip unitTest]"))
 }

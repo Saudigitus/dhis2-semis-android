@@ -23,7 +23,6 @@ import androidx.test.espresso.matcher.ViewMatchers.withText
 import org.dhis2.R
 import org.dhis2.common.BaseRobot
 import org.dhis2.common.matchers.RecyclerviewMatchers.Companion.atPosition
-import org.dhis2.usescases.enrollment.EnrollmentActivity
 import org.dhis2.usescases.flow.teiFlow.entity.EnrollmentListUIModel
 import org.dhis2.usescases.teiDashboard.dashboardfragments.teidata.DashboardProgramViewHolder
 import org.dhis2.usescases.teiDashboard.teiProgramList.TeiProgramListActivity
@@ -41,10 +40,17 @@ fun enrollmentRobot(
 
 class EnrollmentRobot(val composeTestRule: ComposeTestRule) : BaseRobot() {
 
+    @OptIn(ExperimentalTestApi::class)
     fun clickOnAProgramForEnrollment(composeTestRule: ComposeTestRule, program: String) {
+        val testTag = PROGRAM_TO_ENROLL.format(program)
         composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithTag(PROGRAM_TO_ENROLL.format(program), useUnmergedTree = true)
+        composeTestRule.waitUntilAtLeastOneExists(
+            hasTestTag(testTag),
+            TIMEOUT
+        )
+        composeTestRule.onNodeWithTag(testTag, useUnmergedTree = true)
             .performClick()
+        composeTestRule.waitForIdle()
     }
 
     fun checkEnrollmentListActivityIsLaunched() {
@@ -123,16 +129,19 @@ class EnrollmentRobot(val composeTestRule: ComposeTestRule) : BaseRobot() {
             dateTextFieldNode.performTextReplacement(dateValue)
             dateTextFieldNode.performImeAction()
         }
+        Espresso.closeSoftKeyboard()
     }
 
     @OptIn(ExperimentalTestApi::class)
     fun openFormSection(personAttribute: String) {
         composeTestRule.waitForIdle()
-        composeTestRule.waitUntilAtLeastOneExists(hasText(personAttribute, true))
+        composeTestRule.waitUntilAtLeastOneExists(hasText(personAttribute, true), TIMEOUT)
         composeTestRule.onNodeWithText(personAttribute).performClick()
+        composeTestRule.waitForIdle()
     }
 
     fun typeOnInputDateField(dateValue: String, title: String) {
+        composeTestRule.waitForIdle()
         composeTestRule.apply {
             onNode(
                 hasTestTag(

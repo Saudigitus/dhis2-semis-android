@@ -18,7 +18,8 @@ import org.dhis2.commons.matomo.Labels.Companion.CLICK_ON
 import org.dhis2.commons.matomo.MatomoAnalyticsController
 import org.dhis2.commons.schedulers.SchedulerProvider
 import org.dhis2.commons.viewmodel.DispatcherProvider
-import org.dhis2.data.service.SyncStatusController
+import org.dhis2.mobile.sync.domain.SyncStatusController
+import org.koin.core.component.KoinComponent
 import timber.log.Timber
 import java.util.concurrent.TimeUnit
 
@@ -31,8 +32,8 @@ class ProgramViewModel internal constructor(
     private val filterManager: FilterManager,
     private val syncStatusController: SyncStatusController,
     private val schedulerProvider: SchedulerProvider,
-) : ViewModel() {
-
+) : ViewModel(),
+    KoinComponent {
     private val _programs = MutableLiveData<List<ProgramUiModel>>()
     val programs: LiveData<List<ProgramUiModel>> = _programs
     private val refreshData = PublishProcessor.create<Unit>()
@@ -49,17 +50,18 @@ class ProgramViewModel internal constructor(
         disposable.add(
             applyFilter
                 .switchMap {
-                    refreshData.debounce(
-                        500,
-                        TimeUnit.MILLISECONDS,
-                        schedulerProvider.io(),
-                    ).startWith(Unit).switchMap {
-                        programRepository.homeItems(
-                            syncStatusController.observeDownloadProcess().value,
-                        )
-                    }
-                }
-                .subscribeOn(schedulerProvider.io())
+                    refreshData
+                        .debounce(
+                            500,
+                            TimeUnit.MILLISECONDS,
+                            schedulerProvider.io(),
+                        ).startWith(Unit)
+                        .switchMap {
+                            programRepository.homeItems(
+                                syncStatusController.observeDownloadProcess().value,
+                            )
+                        }
+                }.subscribeOn(schedulerProvider.io())
                 .observeOn(schedulerProvider.ui())
                 .subscribe(
                     { programs ->
@@ -71,7 +73,8 @@ class ProgramViewModel internal constructor(
         )
 
         disposable.add(
-            filterManager.asFlowable()
+            filterManager
+                .asFlowable()
                 .startWith(filterManager)
                 .subscribeOn(schedulerProvider.io())
                 .observeOn(schedulerProvider.ui())
@@ -86,23 +89,27 @@ class ProgramViewModel internal constructor(
 
     private fun fetchPrograms() {
         viewModelScope.launch {
-            val result = async(dispatchers.io()) {
-                val programs = programRepository.homeItems(
-                    syncStatusController.observeDownloadProcess().value,
-                ).blockingLast()
-                if (featureConfigRepository.isFeatureEnable(Feature.RESPONSIVE_HOME)) {
-                    val feature = featureConfigRepository.featuresList.find { it.feature == Feature.RESPONSIVE_HOME }
-                    val totalItems = feature?.extras?.takeIf { it is FeatureOptions.ResponsiveHome }?.let {
-                        it as FeatureOptions.ResponsiveHome
-                        it.totalItems
+            val result =
+                async(dispatchers.io()) {
+                    val programs =
+                        programRepository
+                            .homeItems(
+                                syncStatusController.observeDownloadProcess().value,
+                            ).blockingLast()
+                    if (featureConfigRepository.isFeatureEnable(Feature.RESPONSIVE_HOME)) {
+                        val feature = featureConfigRepository.featuresList.find { it.feature == Feature.RESPONSIVE_HOME }
+                        val totalItems =
+                            feature?.extras?.takeIf { it is FeatureOptions.ResponsiveHome }?.let {
+                                it as FeatureOptions.ResponsiveHome
+                                it.totalItems
+                            }
+                        programs.take(
+                            totalItems ?: programs.size,
+                        )
+                    } else {
+                        programs
                     }
-                    programs.take(
-                        totalItems ?: programs.size,
-                    )
-                } else {
-                    programs
                 }
-            }
             try {
                 _programs.postValue(result.await())
             } catch (e: Exception) {

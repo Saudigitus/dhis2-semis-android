@@ -11,10 +11,6 @@
     <string name="error">Fel</string>
     <string name="choose_date">Välj datum</string>
     <string name="required">Nödvändig</string>
-    <string name="date">Datum</string>
-    <string name="hint_year">År</string>
-    <string name="hint_month">Månader</string>
-    <string name="hint_day">Dagar</string>
     <string name="latitude">Latitud</string>
     <string name="longitude">Longitud</string>
     <string name="enter_positive_integer_or_zero">Ange ett positivt heltal eller noll.</string>
@@ -37,4 +33,14 @@
     <string name="cat_combo">Kategori kombination</string>
     <string name="yes">ja</string>
     <string name="no">nej</string>
-    </resources>
+    <string name="input_action_accept">Acceptera</string>
+    <string name="input_action_cancel">Avbryt</string>
+    <string name="input_coordinate_latitude">Latitud</string>
+    <string name="input_coordinate_longitude">Longitud</string>
+    <string name="add_file">Lägg till fil</string>
+    <string name="no_results_found">Inga resultat hittades</string>
+    <string name="online_search_parsing_error">Fel vid tolkning av resultat</string>
+    <string name="cancel">Avbryt</string>
+    <string name="ok">ok</string>
+
+</resources>

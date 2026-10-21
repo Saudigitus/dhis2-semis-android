@@ -30,3 +30,14 @@ internal fun orphanedAttendanceEvents(
 
     return loaded.filter { it.event?.tei !in keptTeis }
 }
+
+/**
+ * The stored record of a learner the form let go of and is now given a status again.
+ *
+ * Reusing it keeps one record per learner and date: a new one would be saved next to the
+ * stored record, which the save no longer deletes once the learner is back in the form.
+ */
+internal fun loadedAttendanceEventUid(
+    loaded: List<AttendanceEventWithDecorator>,
+    tei: String?,
+): String? = loaded.find { it.event?.tei == tei }?.event?.event

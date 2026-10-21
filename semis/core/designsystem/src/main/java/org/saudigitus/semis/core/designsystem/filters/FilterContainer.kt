@@ -109,6 +109,8 @@ fun FilterContainer(
                 label = stringResource(R.string.filters_download_records),
                 icon = Icons.Default.Download,
                 filled = true,
+                // An incomplete selection names no class, so there is nothing to download yet.
+                enabled = state.isFilterSelectionNotEmpty(),
                 onClick = { onEvent(FilterComponentEvent.Sync) },
             )
             FilterActionButton(
@@ -139,6 +141,7 @@ private fun FilterActionButton(
     label: String,
     icon: ImageVector,
     filled: Boolean,
+    enabled: Boolean = true,
     onClick: () -> Unit,
 ) {
     val content: @Composable RowScope.() -> Unit = {
@@ -165,6 +168,7 @@ private fun FilterActionButton(
         Button(
             modifier = modifier.height(ACTION_HEIGHT),
             onClick = onClick,
+            enabled = enabled,
             shape = SemisFieldShape,
             contentPadding = ACTION_PADDING,
             content = content,
@@ -173,6 +177,7 @@ private fun FilterActionButton(
         OutlinedButton(
             modifier = modifier.height(ACTION_HEIGHT),
             onClick = onClick,
+            enabled = enabled,
             shape = SemisFieldShape,
             contentPadding = ACTION_PADDING,
             colors = ButtonDefaults.outlinedButtonColors(

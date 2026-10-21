@@ -3,6 +3,8 @@ package org.saudigitus.semis.core.form.ui
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.collectLatest
@@ -25,11 +27,15 @@ import org.saudigitus.semis.core.form.ui.state.FormEvent
 import org.saudigitus.semis.core.form.ui.state.FormUiState
 import javax.inject.Inject
 
+private const val RULE_DEBOUNCE = 300L
+
 @HiltViewModel
 class FormViewModel @Inject constructor(
     private val formRepository: FormRepository,
     private val resourceManager: ResourceManager
 ) : ViewModel() {
+
+    private var recordRulesJob: Job? = null
 
     private val _uiState = MutableStateFlow(
         FormUiState(
@@ -59,7 +65,19 @@ class FormViewModel @Inject constructor(
             formRepository.attendanceButtonStateFlow
                 .collectLatest { newAttendanceState ->
                     _uiState.update { currentState ->
-                        currentState.copy(attendanceButtonState = newAttendanceState)
+                        currentState.copy(
+                            attendanceButtonState = newAttendanceState,
+                            // Once flagged, a learner is cleared as soon as the field is filled,
+                            // rather than only on the next attempt to save.
+                            learnersMissingCompulsory = if (currentState.learnersMissingCompulsory.isEmpty()) {
+                                emptySet()
+                            } else {
+                                learnersMissingCompulsoryAttendanceFields(
+                                    fields = currentState.fields,
+                                    attendanceState = newAttendanceState,
+                                )
+                            },
+                        )
                     }
                 }
         }
@@ -103,6 +121,21 @@ class FormViewModel @Inject constructor(
         _uiState.update {
             it.copy(fieldsData = formFieldData)
         }
+
+        judgeStoredRecords()
+    }
+
+    /**
+     * Judges the values as they were stored, not only what is typed afterwards: a mark saved
+     * against a rule has to say so the moment the screen opens. The values and the form reach
+     * this view model in either order, so whichever arrives last starts the evaluation.
+     */
+    private fun judgeStoredRecords() {
+        val current = uiState.value
+
+        if (current.fieldsData.isNotEmpty() && current.formBuilderState.program.isNotBlank()) {
+            debounceRecordRules()
+        }
     }
 
     fun collectIndividualSummary(getSummaries: (List<BottomSheetModel>) -> Unit) {
@@ -126,11 +159,73 @@ class FormViewModel @Inject constructor(
             _uiState.update {
                 it.copy(hasCachedData = true, fieldsData = currentFormData)
             }
+
+            debounceRecordRules()
+        }
+    }
+
+    /**
+     * Judges what has been captured, once the typing settles.
+     *
+     * Every keystroke would otherwise start an evaluation that reads the rules, the variables and
+     * the constants, and the answer to a half typed number is not worth that. The job is replaced
+     * rather than queued, so only the values as they stand are ever judged.
+     */
+    private fun debounceRecordRules() {
+        recordRulesJob?.cancel()
+
+        recordRulesJob = viewModelScope.launch {
+            delay(RULE_DEBOUNCE)
+
+            val current = uiState.value
+            val evaluated = formRepository.applyProgramRulesToRecords(
+                orgUnit = current.formBuilderState.orgUnit,
+                program = current.formBuilderState.program,
+                programStage = current.formBuilderState.programStage,
+                fieldsData = current.fieldsData,
+            )
+
+            // What was typed while the rules were running lives in the state that is current now,
+            // so only what the rules decided is taken and the values are left as they stand.
+            _uiState.update { latest ->
+                val outcomes = evaluated.associateBy { it.tei to it.dataElement }
+
+                latest.copy(
+                    fieldsData = latest.fieldsData.map { record ->
+                        val outcome = outcomes[record.tei to record.dataElement] ?: record
+
+                        record.copy(
+                            hasError = outcome.hasError,
+                            errorMessage = outcome.errorMessage,
+                            hasWarning = outcome.hasWarning,
+                            warningMessage = outcome.warningMessage,
+                        )
+                    },
+                )
+            }
         }
     }
 
     fun enableForm(enable: Boolean = true) {
         _uiState.update { it.copy(isEnabled = enable) }
+    }
+
+    /**
+     * Shows [message] on the field of [dataElementUid], or clears it when null, for a rule the
+     * screen holding the form knows and the form cannot: whether a school is allowed there.
+     */
+    fun showFieldError(dataElementUid: String, message: String?) {
+        _uiState.update { current ->
+            current.copy(
+                fields = current.fields.map { field ->
+                    if (field.dataElementUid == dataElementUid) {
+                        field.copy(hasError = message != null, errorMessage = message)
+                    } else {
+                        field
+                    }
+                },
+            )
+        }
     }
 
     fun applyPresetValue(dataElementUid: String, value: String, locked: Boolean = false) {
@@ -169,6 +264,22 @@ class FormViewModel @Inject constructor(
         _uiState.update { it.copy(hasCachedData = true) }
     }
 
+    /**
+     * Flags and returns the learners whose register leaves a compulsory field empty; the
+     * register can be saved only when there are none. Compulsory is what the metadata says of
+     * the field, nothing more, and it holds on the first completion as on every later update.
+     */
+    fun validateAttendanceFields(): Set<String> {
+        val missing = learnersMissingCompulsoryAttendanceFields(
+            fields = _uiState.value.fields,
+            attendanceState = formRepository.attendanceButtonStateFlow.value,
+        )
+
+        _uiState.update { it.copy(learnersMissingCompulsory = missing) }
+
+        return missing
+    }
+
     fun handleUiEvent(uiEvent: FormEvent) {
         viewModelScope.launch {
             when (uiEvent) {
@@ -189,11 +300,15 @@ class FormViewModel @Inject constructor(
                 is FormEvent.UpdateField -> {
                     when (uiEvent.formType) {
                         FormType.ATTENDANCE -> {
-                            formRepository.updateAttendanceReason(
+                            val updated = formRepository.updateAttendanceReason(
                                 uiEvent.tei,
                                 uiEvent.dataElementUid,
                                 uiEvent.value
                             )
+
+                            // A reason is as much a change as a status: without this, leaving
+                            // after changing only a reason drops it without a word.
+                            if (updated != null) markAttendanceChanged()
                         }
 
                         FormType.INDIVIDUAL -> {
@@ -240,6 +355,8 @@ class FormViewModel @Inject constructor(
             _uiState.update {
                 it.copy(isLoading = false, fields = updatedFields, error = null)
             }
+
+            judgeStoredRecords()
         }.onFailure { error ->
             _uiState.update {
                 it.copy(

@@ -12,6 +12,7 @@ import org.dhis2.commons.bindings.programStage
 import org.dhis2.commons.rules.RuleEngineContextData
 import org.dhis2.mobileProgramRules.toRuleDataValue
 import org.dhis2.mobileProgramRules.toRuleEngineInstant
+import org.dhis2.mobileProgramRules.toRuleEngineInstantOrNow
 import org.dhis2.mobileProgramRules.toRuleEngineLocalDate
 import org.dhis2.mobileProgramRules.toRuleEngineObject
 import org.dhis2.mobileProgramRules.toRuleVariable
@@ -20,6 +21,7 @@ import org.hisp.dhis.android.core.event.EventStatus
 import org.hisp.dhis.android.core.program.ProgramRuleActionType
 import org.hisp.dhis.rules.api.RuleEngine
 import org.hisp.dhis.rules.api.RuleEngineContext
+import org.hisp.dhis.rules.api.RuleSupplementaryData
 import org.hisp.dhis.rules.models.Rule
 import org.hisp.dhis.rules.models.RuleDataValue
 import org.hisp.dhis.rules.models.RuleEvent
@@ -37,21 +39,23 @@ class RuleEngineRepository @Inject constructor(
     private val ruleEngine by lazy { RuleEngine.getInstance() }
 
     private suspend fun supplementaryData(ou: String) = withContext(Dispatchers.IO) {
-        val suppData = HashMap<String, List<String>>()
+        val orgUnitGroups = HashMap<String, List<String>>()
 
         d2.organisationUnitModule().organisationUnits()
             .withOrganisationUnitGroups()
             .uid(ou).blockingGet()
             .let { orgUnit ->
-                orgUnit?.organisationUnitGroups()?.mapNotNull {
-                    if (it.code() != null) {
-                        suppData[it.code()!!] = listOf(orgUnit.uid())
-                    }
-                    suppData[it.uid()] = listOf(orgUnit.uid())
+                orgUnit?.organisationUnitGroups()?.forEach {
+                    it.code()?.let { code -> orgUnitGroups[code] = listOf(orgUnit.uid()) }
+                    orgUnitGroups[it.uid()] = listOf(orgUnit.uid())
                 }
             }
 
-        return@withContext suppData
+        return@withContext RuleSupplementaryData(
+            userGroups = d2.userModule().userGroups().blockingGetUids(),
+            userRoles = d2.userModule().userRoles().blockingGetUids(),
+            orgUnitGroups = orgUnitGroups,
+        )
     }
 
     private suspend fun ruleVariables(program: String) = withContext(Dispatchers.IO) {
@@ -60,6 +64,7 @@ class RuleEngineRepository @Inject constructor(
             .blockingGet()
             .map {
                 it.toRuleVariable(
+                    d2.optionModule().options(),
                     d2.trackedEntityModule().trackedEntityAttributes(),
                     d2.dataElementModule().dataElements(),
                 )
@@ -106,27 +111,18 @@ class RuleEngineRepository @Inject constructor(
                     } else {
                         RuleEventStatus.valueOf(event.status()!!.name)
                     },
-                    eventDate = Instant.fromEpochMilliseconds(event.eventDate()!!.time),
-                    dueDate = event.dueDate()?.let {
-                        Instant.fromEpochMilliseconds(it.time)
-                            .toLocalDateTime(TimeZone.currentSystemDefault()).date
-                    },
-                    completedDate = event.completedDate()?.let {
-                        Instant.fromEpochMilliseconds(it.time)
-                            .toLocalDateTime(TimeZone.currentSystemDefault()).date
-                    },
+                    eventDate = event.eventDate()!!.toRuleEngineLocalDate(),
+                    dueDate = event.dueDate()?.toRuleEngineLocalDate(),
+                    completedDate = event.completedDate()?.toRuleEngineLocalDate(),
                     organisationUnit = event.organisationUnit()!!,
                     organisationUnitCode = d2.organisationUnitModule().organisationUnits()
                         .uid(
                             event.organisationUnit(),
                         ).blockingGet()?.code(),
-                    dataValues = event.trackedEntityDataValues()?.toRuleDataValue(
-                        event,
-                        dataElementRepository = d2.dataElementModule().dataElements(),
-                        ruleVariableRepository = d2.programModule().programRuleVariables(),
-                        optionRepository = d2.optionModule().options(),
-                    ) ?: emptyList(),
-                    createdDate = Instant.fromEpochMilliseconds(event.created()!!.time),
+                    dataValues = event.trackedEntityDataValues()?.toRuleDataValue()
+                        ?: emptyList(),
+                    createdDate = event.created().toRuleEngineInstantOrNow(),
+                    createdAtClientDate = event.createdAtClient()?.toRuleEngineInstant(),
                 )
             }
     }
@@ -134,13 +130,13 @@ class RuleEngineRepository @Inject constructor(
     private suspend fun ruleContext(
         ruleVariables: List<RuleVariable>,
         rules: List<Rule>,
-        supplementaryData: Map<String, List<String>> = emptyMap(),
+        supplementaryData: RuleSupplementaryData,
         constants: Map<String, String>,
     ) = withContext(Dispatchers.IO) {
         return@withContext RuleEngineContext(
             rules = rules,
             ruleVariables = ruleVariables,
-            supplementaryData = supplementaryData,
+            ruleSupplementaryData = supplementaryData,
             constantsValues = constants,
         )
     }
@@ -154,7 +150,7 @@ class RuleEngineRepository @Inject constructor(
         val constants = async { constants() }.await()
         val supplementaryData = ou?.let {
             async { supplementaryData(it) }.await()
-        } ?: emptyMap()
+        } ?: RuleSupplementaryData()
 
         return@withContext ruleContext(
             ruleVariables,
@@ -196,13 +192,14 @@ class RuleEngineRepository @Inject constructor(
             programStage = event.programStage()!!,
             programStageName = d2.programStage(event.programStage()!!)?.name()!!,
             status = RuleEventStatus.valueOf(event.status()!!.name),
-            eventDate = event.eventDate()!!.toRuleEngineInstant(),
+            eventDate = event.eventDate()!!.toRuleEngineLocalDate(),
             dueDate = event.dueDate()?.toRuleEngineLocalDate(),
             completedDate = event.completedDate()?.toRuleEngineLocalDate(),
             organisationUnit = event.organisationUnit()!!,
             organisationUnitCode = d2.organisationUnit(event.organisationUnit()!!)?.code(),
             dataValues = dataValues,
-            createdDate = Instant.fromEpochSeconds(event.created()!!.time),
+            createdDate = event.created().toRuleEngineInstantOrNow(),
+            createdAtClientDate = event.createdAtClient()?.toRuleEngineInstant(),
         )
     }
 
@@ -274,8 +271,9 @@ class RuleEngineRepository @Inject constructor(
             programStage = "",
             programStageName = "",
             status = RuleEventStatus.ACTIVE,
-            eventDate = now.toRuleEngineInstant(),
+            eventDate = now.toRuleEngineLocalDate(),
             createdDate = now.toRuleEngineInstant(),
+            createdAtClientDate = now.toRuleEngineInstant(),
             dueDate = null,
             completedDate = null,
             organisationUnit = ou.orEmpty(),
@@ -331,5 +329,95 @@ class RuleEngineRepository @Inject constructor(
             ruleEvents = events,
             executionContext = ruleEngineContextData.ruleEngineContext,
         )
+    }
+
+    /**
+     * Evaluates the rules for a record that has not been saved yet.
+     *
+     * The values a person is being given are not in the database while they are being typed, and
+     * for a person with nothing recorded yet there is no event at all, so a throwaway target
+     * carries the school, the stage and [dataValues] as they stand. Rules scoped to another stage
+     * are left out, and no neighbouring events are loaded: what is being judged is this record.
+     */
+    suspend fun evaluateUnsavedEvent(
+        ou: String,
+        program: String,
+        programStage: String,
+        dataValues: Map<String, String>,
+    ) = withContext(Dispatchers.IO) {
+        val stageRules = rules(program).filter { rule ->
+            rule.programStage == null || rule.programStage == programStage
+        }
+        val engineContext = ruleContext(
+            ruleVariables = ruleVariables(program),
+            rules = stageRules,
+            supplementaryData = supplementaryData(ou),
+            constants = constants(),
+        )
+
+        val ruleDataValues = dataValues.mapNotNull { (dataElement, value) ->
+            engineValue(program, dataElement, value)
+                ?.takeIf { it.isNotEmpty() }
+                ?.let { RuleDataValue(dataElement = dataElement, value = it) }
+        }
+
+        return@withContext ruleEngine.evaluate(
+            target = unsavedEvent(ou, programStage, ruleDataValues),
+            ruleEnrollment = null,
+            ruleEvents = emptyList(),
+            executionContext = engineContext,
+        )
+    }
+
+    /** The stand-in target carrying what an unsaved record knows: the school, the stage, the values. */
+    private fun unsavedEvent(
+        ou: String,
+        programStage: String,
+        dataValues: List<RuleDataValue>,
+    ): RuleEvent {
+        val now = Date()
+        return RuleEvent(
+            event = UUID.randomUUID().toString(),
+            programStage = programStage,
+            programStageName = d2.programStage(programStage)?.name().orEmpty(),
+            status = RuleEventStatus.ACTIVE,
+            eventDate = now.toRuleEngineLocalDate(),
+            createdDate = now.toRuleEngineInstant(),
+            createdAtClientDate = now.toRuleEngineInstant(),
+            dueDate = null,
+            completedDate = null,
+            organisationUnit = ou,
+            organisationUnitCode = d2.organisationUnit(ou)?.code(),
+            dataValues = dataValues,
+        )
+    }
+
+    /**
+     * The value the engine reads for [dataElement], given [raw] as the form holds it.
+     *
+     * A field backed by an option set holds the option code, but a rule variable is configured to
+     * read either that code or the option name, and the conditions are written against whichever
+     * it reads. Translating here is what keeps a rule from holding on a saved record and failing
+     * on one still being typed.
+     */
+    private fun engineValue(program: String, dataElement: String, raw: String): String? {
+        val optionSet = d2.dataElementModule().dataElements()
+            .uid(dataElement)
+            .blockingGet()
+            ?.optionSetUid()
+            ?: return raw
+
+        val readsCode = !d2.programModule().programRuleVariables()
+            .byProgramUid().eq(program)
+            .byDataElementUid().eq(dataElement)
+            .byUseCodeForOptionSet().isTrue
+            .blockingIsEmpty()
+
+        if (readsCode) return raw
+
+        return d2.optionModule().options()
+            .byOptionSetUid().eq(optionSet)
+            .byCode().eq(raw)
+            .one().blockingGet()?.name()
     }
 }

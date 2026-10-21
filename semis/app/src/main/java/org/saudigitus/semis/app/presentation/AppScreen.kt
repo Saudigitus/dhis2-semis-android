@@ -1,6 +1,8 @@
 package org.saudigitus.semis.app.presentation
 
-import androidx.compose.material3.SnackbarHost
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -10,41 +12,57 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import kotlinx.coroutines.flow.collectLatest
 import org.saudigitus.semis.app.presentation.home.HomeScreen
 import org.saudigitus.semis.app.presentation.home.HomeViewModel
 import org.saudigitus.semis.app.presentation.navigation.HomeBarNavigation
 import org.saudigitus.semis.app.presentation.navigation.NavBar
+import org.saudigitus.semis.core.designsystem.components.SnackBar
 import org.saudigitus.semis.core.designsystem.templates.TopAppBarScaffold
+import org.saudigitus.semis.core.designsystem.theme.light_success
+import org.saudigitus.semis.core.designsystem.R as DesignSystemR
 
 @Composable
 fun AppScreen(
     viewModel: HomeViewModel,
     navBack: () -> Unit,
-    syncData: () -> Unit,
+    syncNow: () -> Unit,
     navTo: (String) -> Unit
 ) {
     val internalNavController = rememberNavController()
     var route by rememberSaveable { mutableStateOf(HomeBarNavigation.HOME) }
 
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-
-    // A download that worked leaves no trace on the screen beyond a number that may not have
-    // changed, so what it did is said once and then gone, which is what a snackbar is for.
     val snackbarHostState = remember { SnackbarHostState() }
+
+    // A download that succeeds closes the filters and nothing else shows it happened, so how
+    // many records came down is said here.
     LaunchedEffect(Unit) {
-        viewModel.downloadFeedback.collect { message ->
-            snackbarHostState.showSnackbar(message)
+        viewModel.downloadFeedback.collectLatest { message ->
+            snackbarHostState.showSnackbar(message = message, duration = SnackbarDuration.Short)
         }
     }
 
     TopAppBarScaffold(
         toolbarHeaders = uiState.toolbarHeaders,
+        snackbarHost = {
+            SnackBar(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                hostState = snackbarHostState,
+                containerColor = light_success,
+                painter = painterResource(DesignSystemR.drawable.success_icon),
+            )
+        },
         navigationAction = navBack,
-        snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
             NavBar(destination = route.ordinal) {
                 route = when (it) {
@@ -54,7 +72,7 @@ fun AppScreen(
                 }
             }
         },
-        syncAction = syncData,
+        syncAction = syncNow,
         filterAction = viewModel::hideShowFilter
     ) {
         NavHost(

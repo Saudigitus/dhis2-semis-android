@@ -26,7 +26,6 @@ import org.mockito.kotlin.mock
 import java.util.Date
 
 class FilterManagerTest {
-
     private val resourceManger: ResourceManager = mock()
 
     @Rule
@@ -163,12 +162,14 @@ class FilterManagerTest {
 
     @Test
     fun `Should count filters in total for event working list`() {
-        val workingListScope = EventWorkingListScope(
-            stageUid = "uid",
-            eventDate = "23/11/2023",
-            eventStatusList = listOf("status"),
-            assignedToMe = AssignedUserMode.CURRENT,
-        )
+        val workingListScope =
+            EventWorkingListScope(
+                workingListUid = "uid",
+                stageUid = "uid",
+                eventDate = "23/11/2023",
+                eventStatusList = listOf("status"),
+                assignedToMe = AssignedUserMode.CURRENT,
+            )
         filterManager.setWorkingListScope(workingListScope)
 
         assertTrue(filterManager.totalFilters == 3)
@@ -177,16 +178,18 @@ class FilterManagerTest {
 
     @Test
     fun `Should count filters in total for tei working list`() {
-        val workingListScope = TeiWorkingListScope(
-            enrollmentStatusList = listOf("status", "status"),
-            enrollmentDate = null,
-            eventStatusList = listOf(),
-            eventDateList = listOf("date"),
-            assignedToMe = listOf(),
-            filters = mapOf(),
-            stageUid = "stageUid",
-            dataValues = mapOf(),
-        )
+        val workingListScope =
+            TeiWorkingListScope(
+                workingListUid = "uid",
+                enrollmentStatusList = listOf("status", "status"),
+                enrollmentDate = null,
+                eventStatusList = listOf(),
+                eventDateList = listOf("date"),
+                assignedToMe = listOf(),
+                filters = mapOf(),
+                stageUid = "stageUid",
+                dataValues = mapOf(),
+            )
         filterManager.setWorkingListScope(workingListScope)
 
         assertTrue(filterManager.totalFilters == 2)

@@ -34,25 +34,26 @@ class StudentProfileViewModel @Inject constructor(
         if (initialized) return
         initialized = true
 
-        _uiState.update {
-            it.copy(
-                isLoading = true,
-                filterDetailsState = filterDetailsState.copy(
-                    enable = false,
-                    enableCounter = false,
-                ),
-            )
-        }
+        _uiState.update { it.copy(isLoading = true) }
 
         viewModelScope.launch {
             runCatching {
-                repository.getProfile(
+                // The configured page is what the deployment asked for; the fixed one is kept as
+                // what a deployment that has configured nothing still gets.
+                repository.getConfiguredProfile(teiUid, program) to repository.getProfile(
                     teiUid = teiUid,
                     program = program,
                     academicYear = filterDetailsState.academicYear,
                 )
-            }.onSuccess { profile ->
-                _uiState.update { it.copy(isLoading = false, profile = profile) }
+            }.onSuccess { (configured, profile) ->
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        profile = profile,
+                        configured = configured,
+                        selectedTabId = configured?.tabs?.firstOrNull()?.id,
+                    )
+                }
             }.onFailure { error ->
                 _uiState.update {
                     it.copy(isLoading = false, errorMessage = error.message)
@@ -67,7 +68,15 @@ class StudentProfileViewModel @Inject constructor(
                 _uiState.update { it.copy(selectedTab = event.tab) }
             }
 
-            StudentProfileEvent.OnBack -> Unit
+            is StudentProfileEvent.SelectConfiguredTab -> {
+                _uiState.update { it.copy(selectedTabId = event.tabId) }
+            }
+
+            // Leaving the page and sending what the device holds are both answered by whoever
+            // hosts the page, because neither is a question about the record being read.
+            StudentProfileEvent.OnBack,
+            StudentProfileEvent.OnSyncClick,
+            -> Unit
         }
     }
 }

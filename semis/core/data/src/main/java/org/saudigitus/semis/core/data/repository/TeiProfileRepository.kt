@@ -1,5 +1,6 @@
 package org.saudigitus.semis.core.data.repository
 
+import org.saudigitus.semis.core.data.model.profile.ConfiguredProfile
 import org.saudigitus.semis.core.data.model.profile.TeiProfile
 
 interface TeiProfileRepository {
@@ -16,4 +17,15 @@ interface TeiProfileRepository {
         program: String,
         academicYear: String?,
     ): TeiProfile?
+
+    /**
+     * Reads the record of one person in the shape the deployment configured for the program.
+     *
+     * Returns null when nothing is configured, which is what lets the page say so plainly rather
+     * than show a page assembled from assumptions the deployment never made.
+     */
+    suspend fun getConfiguredProfile(
+        teiUid: String,
+        program: String,
+    ): ConfiguredProfile?
 }

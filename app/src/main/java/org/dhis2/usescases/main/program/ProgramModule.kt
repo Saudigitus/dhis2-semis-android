@@ -2,7 +2,6 @@ package org.dhis2.usescases.main.program
 
 import dagger.Module
 import dagger.Provides
-import kotlinx.coroutines.Dispatchers
 import org.dhis2.commons.di.dagger.PerFragment
 import org.dhis2.commons.featureconfig.data.FeatureConfigRepository
 import org.dhis2.commons.filters.FilterManager
@@ -14,14 +13,16 @@ import org.dhis2.commons.resources.ResourceManager
 import org.dhis2.commons.schedulers.SchedulerProvider
 import org.dhis2.commons.viewmodel.DispatcherProvider
 import org.dhis2.data.dhislogic.DhisProgramUtils
-import org.dhis2.data.dhislogic.DhisTrackedEntityInstanceUtils
-import org.dhis2.data.service.SyncStatusController
+import org.dhis2.mobile.sync.domain.SyncStatusController
 import org.hisp.dhis.android.core.D2
+import kotlinx.coroutines.Dispatchers
 import org.saudigitus.semis.core.utils.ProgramValidator
 
 @Module
-class ProgramModule(private val view: ProgramView) {
-
+class ProgramModule(
+    private val view: ProgramView,
+    private val syncStatusController: SyncStatusController,
+) {
     @Provides
     @PerFragment
     internal fun programViewModelFactory(
@@ -30,10 +31,9 @@ class ProgramModule(private val view: ProgramView) {
         featureConfigRepository: FeatureConfigRepository,
         matomoAnalyticsController: MatomoAnalyticsController,
         filterManager: FilterManager,
-        syncStatusController: SyncStatusController,
         schedulerProvider: SchedulerProvider,
-    ): ProgramViewModelFactory {
-        return ProgramViewModelFactory(
+    ): ProgramViewModelFactory =
+        ProgramViewModelFactory(
             view,
             programRepository,
             featureConfigRepository,
@@ -43,13 +43,14 @@ class ProgramModule(private val view: ProgramView) {
             syncStatusController,
             schedulerProvider,
         )
-    }
 
+    /**
+     * Decides whether a programme is claimed by SEMIS, which is what sends the home card to
+     * [org.saudigitus.semis.app.SEMISActivity] instead of the base app's tracker screens.
+     */
     @Provides
     @PerFragment
-    internal fun programValidator(d2: D2): ProgramValidator {
-        return ProgramValidator(d2, Dispatchers.IO)
-    }
+    internal fun programValidator(d2: D2): ProgramValidator = ProgramValidator(d2, Dispatchers.IO)
 
     @Provides
     @PerFragment
@@ -57,21 +58,18 @@ class ProgramModule(private val view: ProgramView) {
         d2: D2,
         filterPresenter: FilterPresenter,
         dhisProgramUtils: DhisProgramUtils,
-        dhisTrackedEntityInstanceUtils: DhisTrackedEntityInstanceUtils,
         schedulerProvider: SchedulerProvider,
         colorUtils: ColorUtils,
         metadataIconProvider: MetadataIconProvider,
         programValidator: ProgramValidator,
-    ): ProgramRepository {
-        return ProgramRepositoryImpl(
+    ): ProgramRepository =
+        ProgramRepositoryImpl(
             d2,
             filterPresenter,
             dhisProgramUtils,
-            dhisTrackedEntityInstanceUtils,
             ResourceManager(view.context, colorUtils),
             metadataIconProvider,
             schedulerProvider,
-            programValidator
+            programValidator,
         )
-    }
 }

@@ -5,6 +5,10 @@
     <string name="attendance_not_saved">You have unsaved attendance changes. If you go back now, your data will be discarded.</string>
     <string name="attendance_form_reset">Attendance form reset</string>
     <string name="attendance_status_incomplete">Select an attendance status for every learner before saving. %1$d selections remaining.</string>
+    <plurals name="attendance_compulsory_missing">
+        <item quantity="one">Fill in the required fields of %1$d learner before saving.</item>
+        <item quantity="other">Fill in the required fields of %1$d learners before saving.</item>
+    </plurals>
     <string name="attendance_total">Total</string>
     <string name="attendance_synced">Synced</string>
     <string name="attendance_unsynced_count">%1$d unsynced</string>

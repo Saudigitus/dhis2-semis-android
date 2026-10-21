@@ -4,32 +4,33 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
+import org.saudigitus.semis.core.data.model.SyncTarget
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.flow.collectLatest
-import org.saudigitus.semis.transfer.event.TransferUiEvent
-import org.saudigitus.semis.transfer.model.TransferMessageType
-import org.saudigitus.semis.transfer.model.TransferStep
-import org.saudigitus.semis.core.form.data.model.FormType
+import org.saudigitus.semis.core.data.R as CoreDataR
 import org.saudigitus.semis.core.form.ui.FormViewModel
 import org.saudigitus.semis.core.form.ui.state.FormBuilderState
-import org.saudigitus.semis.core.form.ui.state.FormEvent
+import org.saudigitus.semis.transfer.event.TransferUiEvent
+import org.saudigitus.semis.transfer.model.TransferMessageType
 
 @Composable
 fun TransferUi(
     viewModel: TransferViewModel,
     formViewModel: FormViewModel,
     navigateBack: () -> Unit,
-    syncData: () -> Unit,
+    syncData: (List<SyncTarget>) -> Unit,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val formState by formViewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     var snackbarMessageType by remember { mutableStateOf(TransferMessageType.SUCCESS) }
+    val sameSchoolMessage = stringResource(CoreDataR.string.transfer_same_school)
 
     LaunchedEffect(Unit) {
         viewModel.messageEvent.collectLatest { message ->
@@ -42,7 +43,7 @@ fun TransferUi(
     }
 
     LaunchedEffect(Unit) {
-        viewModel.syncEvent.collectLatest { syncData() }
+        viewModel.syncEvent.collectLatest { targets -> syncData(targets) }
     }
 
     LaunchedEffect(Unit) {
@@ -70,12 +71,16 @@ fun TransferUi(
                     lockedDataElements = setOf(state.statusDataElement)
                         .filter(String::isNotBlank)
                         .toSet(),
-                )
+                ),
             )
             formViewModel.enableForm()
         }
     }
 
+    /**
+     * The pending status is never shown, so it is kept applied rather than left to the
+     * form: the request has to reach the server carrying it.
+     */
     LaunchedEffect(
         formState.fields,
         formState.isLoading,
@@ -97,48 +102,52 @@ fun TransferUi(
 
     LaunchedEffect(
         formState.fields,
-        state.originSchoolDataElement,
-        state.sourceOrgUnit?.uid,
+        formState.isLoading,
+        state.destinationSchoolDataElement,
+        state.statusDataElement,
     ) {
-        val sourceUid = state.sourceOrgUnit?.uid.orEmpty()
-        val originField = formState.fields.find {
-            it.dataElementUid == state.originSchoolDataElement
-        }
-        if (originField != null && originField.value != sourceUid) {
-            formViewModel.handleUiEvent(
-                FormEvent.UpdateField(
-                    formType = FormType.DEFAULT,
-                    tei = "",
-                    dataElementUid = originField.dataElementUid,
-                    value = sourceUid,
-                )
-            )
-        }
-    }
-
-    LaunchedEffect(formState.fields, formState.isLoading, state.destinationSchoolDataElement) {
         val destinationField = formState.fields.find {
             it.dataElementUid == state.destinationSchoolDataElement
         }
-        val isValid = !formState.isLoading && formState.fields
+        // The schools offered are the ones the user can search, which include the one the
+        // learners are leaving. Choosing it is refused here, on the field, instead of at the
+        // submission, learner by learner, after the review.
+        val destinationIsOrigin = destinationField?.selectedOrgUnit?.uid
+            ?.let { it == state.sourceOrgUnit?.uid } == true
+        val destinationError = sameSchoolMessage.takeIf { destinationIsOrigin }
+        if (destinationField != null && destinationField.errorMessage != destinationError) {
+            formViewModel.showFieldError(destinationField.dataElementUid, destinationError)
+        }
+        val isValid = !formState.isLoading && !destinationIsOrigin && formState.fields
             .filter {
                 it.rendered &&
                     it.enabled &&
                     it.mandatory &&
-                    it.dataElementUid != state.originSchoolDataElement
+                    it.dataElementUid != state.statusDataElement
             }
             .all { !it.value.isNullOrBlank() }
-        viewModel.updateTransferForm(
+        // Everything the form collected travels with the request. The destination and
+        // the status are set by the flow itself, so they are left out here.
+        val values = formState.fields
+            .filter { it.rendered }
+            .filterNot { it.dataElementUid == state.statusDataElement }
+            .filterNot { it.dataElementUid == state.destinationSchoolDataElement }
+            .mapNotNull { field ->
+                field.value?.takeIf { it.isNotBlank() }?.let { field.dataElementUid to it }
+            }
+
+        viewModel.updateRequestForm(
             destinationOrgUnit = destinationField?.selectedOrgUnit,
             isValid = isValid,
+            values = values,
         )
     }
 
     fun handleBack() {
-        if (state.step == TransferStep.SELECT_LEARNERS) {
-            navigateBack()
+        if (state.isRequesting) {
+            viewModel.handleUiEvent(TransferUiEvent.Back)
         } else {
-            viewModel.handleEvent(TransferUiEvent.Back)
+            navigateBack()
         }
     }
 
@@ -149,7 +158,7 @@ fun TransferUi(
         formState = formState,
         snackbarHostState = snackbarHostState,
         snackbarMessageType = snackbarMessageType,
-        onEvent = viewModel::handleEvent,
+        onEvent = viewModel::handleUiEvent,
         onFormEvent = formViewModel::handleUiEvent,
         navigateBack = ::handleBack,
     )

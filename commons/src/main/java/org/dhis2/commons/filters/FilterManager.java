@@ -37,7 +37,7 @@ import kotlin.collections.CollectionsKt;
 import kotlinx.coroutines.CoroutineScope;
 import kotlinx.coroutines.flow.Flow;
 import kotlinx.coroutines.flow.MutableSharedFlow;
-import kotlinx.coroutines.flow.MutableStateFlow;
+import timber.log.Timber;
 
 public class FilterManager implements Serializable {
 
@@ -273,6 +273,8 @@ public class FilterManager implements Serializable {
     }
 
     public void addEnrollmentStatus(boolean remove, EnrollmentStatus enrollmentStatus) {
+        CountingIdlingResourceSingleton.INSTANCE.increment();
+
         boolean changed = true;
         if (remove) {
             enrollmentStatusFilters.remove(enrollmentStatus);
@@ -286,6 +288,8 @@ public class FilterManager implements Serializable {
         enrollmentStatusFiltersApplied.set(enrollmentStatusFilters.size());
         if (!workingListActive() && changed)
             publishData();
+        CountingIdlingResourceSingleton.INSTANCE.decrement();
+
     }
 
     public void addPeriod(List<DatePeriod> datePeriod) {
@@ -528,7 +532,7 @@ public class FilterManager implements Serializable {
             try {
                 enrollmentPeriodFilters.clear();
             } catch (Exception e) {
-                e.printStackTrace();
+                Timber.e(e);
             }
         }
         enrollmentPeriodIdSelected.set(R.id.anytime);
@@ -585,7 +589,7 @@ public class FilterManager implements Serializable {
         stateFilters.clear();
         observableStates.postValue(stateFilters);
         ouFilters.clear();
-        liveDataOUFilter.setValue(ouFilters);
+        liveDataOUFilter.postValue(ouFilters);
         periodFilters = new ArrayList<>();
         observablePeriodFilters.set(periodFilters);
         enrollmentPeriodFilters = new ArrayList<>();
@@ -679,7 +683,7 @@ public class FilterManager implements Serializable {
     }
 
     public void setWorkingListScope(WorkingListScope scope) {
-        if (!currentWorkingListScope.get().equals(scope)) {
+        if (!Objects.equals(currentWorkingListScope.get().workingListUid(), scope.workingListUid())) {
             currentWorkingListScope.set(scope);
             setFilterCountersForWorkingList(scope);
         }

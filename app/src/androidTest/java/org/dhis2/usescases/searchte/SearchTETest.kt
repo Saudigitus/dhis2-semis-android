@@ -3,10 +3,7 @@ package org.dhis2.usescases.searchte
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.text.capitalize
 import androidx.compose.ui.text.intl.Locale
-import dispatch.android.espresso.IdlingDispatcherProvider
-import dispatch.android.espresso.IdlingDispatcherProviderRule
 import org.dhis2.R
-import org.dhis2.bindings.app
 import org.dhis2.common.mockwebserver.MockWebServerRobot.Companion.API_EVENTS_EMPTY_RESPONSE
 import org.dhis2.common.mockwebserver.MockWebServerRobot.Companion.API_EVENTS_PATH
 import org.dhis2.common.mockwebserver.MockWebServerRobot.Companion.API_TRACKED_ENTITY_EMPTY_RESPONSE
@@ -22,23 +19,20 @@ import org.dhis2.usescases.searchte.robot.searchTeiRobot
 import org.hisp.dhis.android.core.mockwebserver.ResponseController
 import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.RuleChain
 
 class SearchTETest : BaseTest() {
 
+    // Create the rules as fields (not annotated) so we can control their order via RuleChain
+    private val rule = lazyActivityScenarioRule<SearchTEActivity>(launchActivity = false)
+
+    private val composeTestRule = createComposeRule()
+
+    // Compose must be inner, so its disposal runs before we close the activity
     @get:Rule
-    val rule = lazyActivityScenarioRule<SearchTEActivity>(launchActivity = false)
-
-    private val customDispatcherProvider =
-        context.applicationContext.app().appComponent().customDispatcherProvider()
-
-    @JvmField
-    @Rule
-    val idlingRule = IdlingDispatcherProviderRule {
-        IdlingDispatcherProvider(customDispatcherProvider)
-    }
-
-    @get:Rule
-    val composeTestRule = createComposeRule()
+    val ruleChain: RuleChain = RuleChain
+        .outerRule(rule)
+        .around(composeTestRule)
 
     override fun setUp() {
         super.setUp()
@@ -111,8 +105,80 @@ class SearchTETest : BaseTest() {
         prepareChildProgrammeIntentAndLaunchActivity(rule)
 
         searchTeiRobot(composeTestRule) {
+            waitUntilActivityVisible<SearchTEActivity>()
             clickOnShowMap()
             checkCarouselTEICardInfo(firstName)
+        }
+    }
+
+    @Test
+    fun shouldFollowTBProgramSearchFlow() {
+        mockWebServerRobot.addResponse(
+            ResponseController.GET,
+            API_TRACKED_ENTITY_PATH,
+            API_TRACKED_ENTITY_EMPTY_RESPONSE,
+        )
+
+        prepareTBIntentAndLaunchActivity(rule)
+
+        searchTeiRobot(composeTestRule) {
+            waitUntilActivityVisible<SearchTEActivity>()
+
+            // ANDROAPP-5971: Verify the button is displayed and enabled before opening search
+            checkAddNewTEIButtonIsDisplayedAndEnabled()
+
+            // Open the search parameters panel
+            clickOnOpenSearch()
+
+            // ANDROAPP-5861: Unique attribute (TB identifier) is first after sort ordering
+            checkFirstSearchParamIsBarcodeOrQROrUnique(TB_IDENTIFIER_LABEL)
+
+            // Check that all 9 search fields are displayed
+            checkSearchParamCount(9)
+
+            // ANDROAPP-5862: Search button is disabled when no values are entered
+            checkSearchButtonIsDisabled()
+
+            // Enter a value to enable the search button (Part A entry)
+            typeOnSearchParameter(TB_SEARCH_ATTR_CITY, TB_SEARCH_CITY_SHORT)
+
+            // ANDROAPP-5862: Search button is now enabled
+            checkSearchButtonIsEnabled()
+
+            // Re-enter a short value (1 char) to enable the button
+            checkFocusedFieldShowsOperatorSupportingText()
+            typeOnSearchParameter(TB_SEARCH_ATTR_STATE, TB_SEARCH_CITY_SHORT)
+            checkFocusedFieldShowsOperatorSupportingText()
+            typeOnSearchParameter(TB_SEARCH_ATTR_TB_NUMBER, TB_SEARCH_CITY_SHORT)
+
+            // Click Search – triggers per-field min-character validation
+            clickOnSearch()
+
+            // ANDROAPP-7489/7490 & ANDROAPP-1056/7491:
+            checkMinCharactersErrorIsDisplayed(
+                TB_SEARCH_ATTR_CITY,
+                TB_SEARCH_ATTR_STATE,
+                TB_SEARCH_ATTR_TB_NUMBER,
+            )
+            clickOnClearSearch()
+            closeKeyboard()
+
+            // Update to valid search values and search again
+            openNextSearchParameter(TB_SEARCH_ATTR_CITY)
+            typeOnSearchParameter(TB_SEARCH_ATTR_CITY, TB_SEARCH_CITY)
+            closeKeyboard()
+            openNextSearchParameter(TB_SEARCH_ATTR_STATE)
+            typeOnSearchParameter(TB_SEARCH_ATTR_STATE, TB_SEARCH_STATE)
+            closeKeyboard()
+            typeOnSearchParameter(TB_SEARCH_ATTR_TB_NUMBER, TB_SEARCH_TB_NUMBER)
+
+            // Click Search with valid values
+            clickOnSearch()
+
+            // Verify results: Lynn Dunn and Inés Bebea are displayed
+            checkSearchResultDisplayed(TB_RESULT_DUNN)
+            checkSearchResultDisplayed(TB_RESULT_BEBEA)
+
         }
     }
 
@@ -144,5 +210,20 @@ class SearchTETest : BaseTest() {
 
         const val CHILD_TE_TYPE_VALUE = "nEenWmSyUEp"
         const val CHILD_TE_TYPE = "TRACKED_ENTITY_UID"
+
+        // TB Program search flow test constants
+        const val TB_IDENTIFIER_LABEL = "TB identifier"
+
+        const val TB_SEARCH_ATTR_CITY = "City"
+        const val TB_SEARCH_ATTR_STATE = "State"
+        const val TB_SEARCH_ATTR_TB_NUMBER = "TB number"
+
+        const val TB_SEARCH_CITY_SHORT = "C"
+        const val TB_SEARCH_CITY = "Cit"
+        const val TB_SEARCH_STATE = "Sta"
+        const val TB_SEARCH_TB_NUMBER = "34567"
+
+        const val TB_RESULT_DUNN = "Dunn"
+        const val TB_RESULT_BEBEA = "Bebea"
     }
 }

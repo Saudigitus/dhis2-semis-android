@@ -19,5 +19,6 @@ data class FormUiState(
     val fields: List<FormFieldState> = emptyList(),
     val fieldsData: List<FormFieldData> = emptyList(),
     val error: String? = null,
-    val isSaved: Boolean = false
+    val isSaved: Boolean = false,
+    val learnersMissingCompulsory: Set<String> = emptySet(),
 )

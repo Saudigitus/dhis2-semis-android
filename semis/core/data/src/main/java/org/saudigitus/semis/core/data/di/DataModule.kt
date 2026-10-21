@@ -27,6 +27,8 @@ import org.saudigitus.semis.core.data.repository.OrgUnitRepository
 import org.saudigitus.semis.core.data.repository.OrgUnitRepositoryImpl
 import org.saudigitus.semis.core.data.repository.ProgramStageRepository
 import org.saudigitus.semis.core.data.repository.ProgramStageRepositoryImpl
+import org.saudigitus.semis.core.data.repository.SyncRepository
+import org.saudigitus.semis.core.data.repository.SyncRepositoryImpl
 import org.saudigitus.semis.core.data.repository.TeiDownloaderRepository
 import org.saudigitus.semis.core.data.repository.TeiDownloaderRepositoryImpl
 import org.saudigitus.semis.core.data.repository.TeiProfileRepository
@@ -109,8 +111,9 @@ object DataModule {
     @Singleton
     fun provideTeiRepository(
         d2: D2,
-        transformations: Transformations
-    ): TeiRepository = TeiRepositoryImpl(d2, transformations)
+        transformations: Transformations,
+        appConfigRepository: AppConfigRepository,
+    ): TeiRepository = TeiRepositoryImpl(d2, transformations, appConfigRepository)
 
     @Provides
     @Singleton
@@ -131,14 +134,23 @@ object DataModule {
         appConfigRepository: AppConfigRepository,
         eventRepository: EventRepository,
         transformations: Transformations,
+        networkUtils: NetworkUtils,
         resourceManager: ResourceManager,
     ): TeiTransferRepository = TeiTransferRepositoryImpl(
         d2 = d2,
         appConfigRepository = appConfigRepository,
         eventRepository = eventRepository,
         transformations = transformations,
+        networkUtils = networkUtils,
         resourceManager = resourceManager,
     )
+
+    @Provides
+    @Singleton
+    fun provideSyncRepository(
+        d2: D2,
+        networkUtils: NetworkUtils,
+    ): SyncRepository = SyncRepositoryImpl(d2, networkUtils)
 
     @Provides
     @Singleton

@@ -14,9 +14,11 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.distinctUntilChanged
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import org.dhis2.R
 import org.dhis2.commons.resources.ResourceManager
@@ -46,7 +48,9 @@ class ProgramEventDetailViewModel(
     var recreationActivity: Boolean = false
 
     enum class EventProgramScreen {
-        LIST, MAP, ANALYTICS
+        LIST,
+        MAP,
+        ANALYTICS,
     }
 
     private val _currentScreen = MutableLiveData(EventProgramScreen.LIST)
@@ -56,11 +60,10 @@ class ProgramEventDetailViewModel(
     private val _backdropActive = MutableLiveData<Boolean>()
     val backdropActive: LiveData<Boolean> get() = _backdropActive
 
-    private val _shouldNavigateToEventDetails: MutableSharedFlow<String> = MutableSharedFlow(
-        replay = Int.MAX_VALUE,
-    )
-    val shouldNavigateToEventDetails: SharedFlow<String>
-        get() = _shouldNavigateToEventDetails
+    private val _shouldNavigateToEventDetails = Channel<String>()
+
+    val shouldNavigateToEventDetails: Flow<String>
+        get() = _shouldNavigateToEventDetails.receiveAsFlow()
 
     private val _navigationBarUIState = mutableStateOf(NavigationBarUIState<NavigationPage>())
     val navigationBarUIState: State<NavigationBarUIState<NavigationPage>> = _navigationBarUIState
@@ -108,13 +111,18 @@ class ProgramEventDetailViewModel(
             )
         }
 
-        _navigationBarUIState.value = _navigationBarUIState.value.copy(
-            items = navItems,
-            selectedItem = navItems.firstOrNull()?.id,
-        )
+        _navigationBarUIState.value =
+            _navigationBarUIState.value.copy(
+                items = navItems,
+                selectedItem = navItems.firstOrNull()?.id,
+            )
 
         if (_navigationBarUIState.value.selectedItem != null) {
-            onNavigationPageChanged(navigationBarUIState.value.items.first().id)
+            onNavigationPageChanged(
+                navigationBarUIState.value.items
+                    .first()
+                    .id,
+            )
         }
     }
 
@@ -148,13 +156,9 @@ class ProgramEventDetailViewModel(
         _backdropActive.value = isActive
     }
 
-    fun fetchMapStyles(): List<BaseMapStyle> {
-        return mapStyleConfig.fetchMapStyles()
-    }
+    fun fetchMapStyles(): List<BaseMapStyle> = mapStyleConfig.fetchMapStyles()
 
-    fun isEditable(eventUid: String): Boolean {
-        return eventRepository.isEventEditable(eventUid)
-    }
+    fun isEditable(eventUid: String): Boolean = eventRepository.isEventEditable(eventUid)
 
     fun onOrgUnitForNewEventSelected(
         orgUnitUid: String,
@@ -168,7 +172,7 @@ class ProgramEventDetailViewModel(
                 programStageUid = programStageUid,
                 enrollmentUid = null,
             ).getOrNull()?.let { eventUid ->
-                _shouldNavigateToEventDetails.emit(eventUid)
+                _shouldNavigateToEventDetails.send(eventUid)
             }
         }
     }

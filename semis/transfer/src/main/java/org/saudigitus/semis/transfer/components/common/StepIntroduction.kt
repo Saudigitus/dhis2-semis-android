@@ -13,10 +13,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import org.saudigitus.semis.core.designsystem.components.pills.StatusPill
+import org.saudigitus.semis.core.designsystem.theme.SemisAccent
+import org.saudigitus.semis.core.designsystem.theme.surfaceTone
 
+/**
+ * What a step is asking for. The title is optional: a step whose card above it already
+ * names the group only needs the instruction.
+ */
 @Composable
 internal fun StepIntroduction(
-    title: String,
+    title: String?,
     description: String,
     horizontalPadding: Dp = 16.dp,
     badge: String? = null,
@@ -32,13 +39,25 @@ internal fun StepIntroduction(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(5.dp),
         ) {
-            Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold)
+            title?.let {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.ExtraBold,
+                )
+            }
             Text(
                 description,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        badge?.let { StatusPill(it) }
+        badge?.let {
+            StatusPill(
+                text = it,
+                containerColor = SemisAccent.Blue.surfaceTone(alpha = .12f),
+                contentColor = SemisAccent.Blue,
+            )
+        }
     }
 }

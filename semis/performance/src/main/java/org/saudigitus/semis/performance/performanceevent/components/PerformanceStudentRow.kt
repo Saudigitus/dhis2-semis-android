@@ -1,10 +1,18 @@
 package org.saudigitus.semis.performance.performanceevent.components
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import org.saudigitus.semis.core.data.model.SearchTeiModel
 import org.saudigitus.semis.core.designsystem.components.cards.TeiLearnerCard
+import org.saudigitus.semis.core.designsystem.theme.dark_warning
+import org.saudigitus.semis.core.designsystem.theme.light_error
 import org.saudigitus.semis.core.form.data.model.FormFieldState
 import org.saudigitus.semis.core.form.data.model.FormType
 import org.saudigitus.semis.core.form.ui.FormContent
@@ -46,19 +54,24 @@ internal fun PerformanceStudentRow(
         return
     }
 
-    val value = formState.fieldsData
+    val record = formState.fieldsData
         .firstOrNull { it.tei == teiUid && it.dataElement == markField.dataElementUid }
-        ?.value
-        .orEmpty()
 
+    val ruleMessage = record?.errorMessage ?: record?.warningMessage
+
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
     TeiLearnerCard(
         tei = learner,
-        modifier = modifier,
         maxAdditionalInfo = 0,
         trailing = {
             MarkInputField(
-                value = value,
+                value = record?.value.orEmpty(),
                 enabled = formState.isEnabled && markField.enabled,
+                hasError = record?.hasError == true,
+                hasWarning = record?.hasWarning == true,
                 onValueChange = { mark ->
                     onFormEvent(
                         FormEvent.UpdateField(
@@ -72,4 +85,16 @@ internal fun PerformanceStudentRow(
             )
         },
     )
+
+        // The colour of the box says a mark is being questioned; this says why, and says it under
+        // the learner it concerns rather than somewhere the reader has to match up.
+        ruleMessage?.takeIf { it.isNotBlank() }?.let { message ->
+            Text(
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp),
+                text = message,
+                style = MaterialTheme.typography.bodySmall,
+                color = if (record?.hasError == true) light_error else dark_warning,
+            )
+        }
+    }
 }

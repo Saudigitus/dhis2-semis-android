@@ -7,6 +7,10 @@ import org.saudigitus.semis.core.data.model.app_config.SEMISConfig
 import org.saudigitus.semis.core.data.model.schoolcalendar_config.calendarOfYear
 import org.saudigitus.semis.core.data.model.schoolcalendar_config.isSchoolDay
 import org.saudigitus.semis.core.data.model.schoolcalendar_config.SchoolCalendarConfig
+import org.saudigitus.semis.core.data.model.app_config.AndroidSettings
+import org.saudigitus.semis.core.data.model.app_config.SyncMode
+import org.saudigitus.semis.core.data.model.app_config.syncModeOf
+import org.saudigitus.semis.core.utils.Constants.ANDROID_KEY
 import org.saudigitus.semis.core.utils.Constants.CALENDAR_KEY
 import org.saudigitus.semis.core.utils.Constants.DATASTORE_KEY
 import org.saudigitus.semis.core.utils.Constants.DATASTORE_NAMESPACE
@@ -32,6 +36,24 @@ class AppConfigRepositoryImpl
         val semisConfig = SEMISConfig.fromJson(decodedJson)
 
         return@withContext semisConfig?.firstOrNull { it.program == program }
+    }
+
+    override suspend fun getSyncMode(): SyncMode = withContext(Dispatchers.IO) {
+        // Every way of not knowing means DEFAULT: the key absent, the value unreadable, the mode
+        // one this version has never heard of. None of them is worth an error on a capture screen.
+        runCatching {
+            val dataStore = d2.dataStoreModule()
+                .dataStore()
+                .byNamespace().eq(DATASTORE_NAMESPACE)
+                .byKey().eq(ANDROID_KEY)
+                .one().blockingGet()
+
+            val settings = JsonMapper.json.decodeFromString<AndroidSettings?>(
+                decodeJson(dataStore?.value()),
+            )
+
+            syncModeOf(settings?.syncMode)
+        }.getOrDefault(SyncMode.DEFAULT)
     }
 
     override suspend fun getSchoolCalendar() = withContext(Dispatchers.IO) {

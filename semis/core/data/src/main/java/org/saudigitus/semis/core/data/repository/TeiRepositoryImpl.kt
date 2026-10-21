@@ -6,6 +6,9 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import org.dhis2.commons.bindings.enrollment
 import org.hisp.dhis.android.core.D2
+import org.saudigitus.semis.core.data.model.SearchTeiModel
+import org.saudigitus.semis.core.data.model.orderedBy
+import org.saudigitus.semis.core.data.model.recordOrderOf
 import org.saudigitus.semis.core.data.utils.Transformations
 import org.saudigitus.semis.core.data.utils.eventsWithTrackedDataValues
 import javax.inject.Inject
@@ -13,7 +16,8 @@ import javax.inject.Inject
 class TeiRepositoryImpl
 @Inject constructor(
     val d2: D2,
-    val transformations: Transformations
+    val transformations: Transformations,
+    private val appConfigRepository: AppConfigRepository,
 ) : TeiRepository {
 
     override suspend fun getTrackerEntities(
@@ -49,10 +53,23 @@ class TeiRepositoryImpl
             }
             .toList()
 
-        emit(teis)
+        // Every listing in the app is fed from this one, so the order the deployment configured
+        // for the program is applied here rather than repeated in each screen.
+        val order = recordOrderOf(appConfigRepository.getAppConfig(program)?.defaults?.defaultOrder)
+
+        emit(teis.orderedBy(order) { it.attributeValue(order?.attribute) })
     }
     .flowOn(Dispatchers.IO)
     .catch { e ->
         emit(emptyList())
     }
+}
+
+/** The value this record holds for [attribute], which the listing is ordered by. */
+private fun SearchTeiModel.attributeValue(attribute: String?): String? {
+    if (attribute == null) return null
+
+    return attributeValues.values
+        .firstOrNull { it.trackedEntityAttribute() == attribute }
+        ?.value()
 }

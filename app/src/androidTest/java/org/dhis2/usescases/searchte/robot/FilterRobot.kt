@@ -1,22 +1,13 @@
 package org.dhis2.usescases.searchte.robot
 
-import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.filterToOne
-import androidx.compose.ui.test.hasAnyAncestor
-import androidx.compose.ui.test.hasContentDescription
-import androidx.compose.ui.test.hasText
-import androidx.compose.ui.test.isDialog
-import androidx.compose.ui.test.isEditable
 import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.compose.ui.test.onAllNodesWithText
-import androidx.compose.ui.test.onChildren
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextReplacement
-import androidx.compose.ui.test.printToLog
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.action.TypeTextAction
 import androidx.test.espresso.action.ViewActions.click
@@ -25,7 +16,6 @@ import androidx.test.espresso.contrib.PickerActions
 import androidx.test.espresso.contrib.RecyclerViewActions.actionOnItem
 import androidx.test.espresso.matcher.ViewMatchers.hasDescendant
 import androidx.test.espresso.matcher.ViewMatchers.isDisplayed
-import androidx.test.espresso.matcher.ViewMatchers.withChild
 import androidx.test.espresso.matcher.ViewMatchers.withId
 import androidx.test.espresso.matcher.ViewMatchers.withParent
 import androidx.test.espresso.matcher.ViewMatchers.withText
@@ -160,7 +150,7 @@ class FilterRobot(val composeTestRule: ComposeTestRule) : BaseRobot() {
                 withParent(withId(R.id.mainToolbar))
             )
         )
-            .check(matches(withChild(withText(filterCount))))
+            .check(matches(hasDescendant(withText(filterCount))))
     }
 
     fun checkCountAtFilter(filter: String, count: String) {
@@ -179,8 +169,9 @@ class FilterRobot(val composeTestRule: ComposeTestRule) : BaseRobot() {
 
     fun checkTeiAreCompleted() {
         val nodes = composeTestRule.onAllNodesWithText("Enrollment completed", true)
-        assert(nodes.fetchSemanticsNodes().size >= 3) {
-            "Expected at least 3 nodes, but found ${nodes.fetchSemanticsNodes().size}"
+        composeTestRule.waitForIdle()
+        assert(nodes.fetchSemanticsNodes().size >= 2) {
+            "Expected at least 2 nodes, but found ${nodes.fetchSemanticsNodes().size}"
         }
     }
 

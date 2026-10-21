@@ -22,13 +22,9 @@ internal interface DataSetInstanceRepository {
         attrOptionComboUid: String,
     ): DataSetDetails
 
-    suspend fun getDataSetInstanceSections(
-        dataSetUid: String,
-    ): List<DataSetSection>
+    suspend fun getDataSetInstanceSections(dataSetUid: String): List<DataSetSection>
 
-    suspend fun getRenderingConfig(
-        dataSetUid: String,
-    ): DataSetRenderingConfig
+    suspend fun getRenderingConfig(dataSetUid: String): DataSetRenderingConfig
 
     suspend fun dataSetInstanceConfiguration(
         dataSetUid: String,
@@ -53,6 +49,7 @@ internal interface DataSetInstanceRepository {
     ): Int
 
     suspend fun dataSetInstanceSectionConfiguration(sectionUid: String): DataSetInstanceSectionConfiguration?
+
     suspend fun conflicts(
         dataSetUid: String,
         periodId: String,
@@ -90,6 +87,7 @@ internal interface DataSetInstanceRepository {
         attrOptionComboUid: String,
         dataElementUid: String,
         categoryOptionComboUid: String,
+        sourceDataSetUid: String,
     ): String?
 
     suspend fun updateValue(
@@ -99,9 +97,14 @@ internal interface DataSetInstanceRepository {
         dataElementUid: String,
         categoryOptionComboUid: String,
         value: String?,
+        sourceDataSetUid: String,
     ): Result<Unit>
 
-    suspend fun categoryOptionComboFromCategoryOptions(dataSetUid: String, dataElementUid: String, categoryOptions: List<String>): String
+    suspend fun categoryOptionComboFromCategoryOptions(
+        dataSetUid: String,
+        dataElementUid: String,
+        categoryOptions: List<String>,
+    ): String
 
     suspend fun getCoordinatesFrom(coordinatesValue: String): Pair<Double, Double>
 
@@ -164,6 +167,7 @@ internal interface DataSetInstanceRepository {
         orgUnitUid: String,
         categoryOptionComboUid: String,
         attrOptionComboUid: String,
+        sourceDataSetUid: String,
     ): Pair<ColorString?, LegendLabel?>?
 
     suspend fun uploadFile(

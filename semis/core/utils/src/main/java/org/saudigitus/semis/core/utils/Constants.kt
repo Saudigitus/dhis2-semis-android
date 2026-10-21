@@ -4,6 +4,7 @@ object Constants {
     const val DATASTORE_NAMESPACE = "semis"
     const val DATASTORE_KEY = "values"
     const val CALENDAR_KEY = "schoolCalendar"
+    const val ANDROID_KEY = "android"
 
     const val DEFAULT = "default"
 

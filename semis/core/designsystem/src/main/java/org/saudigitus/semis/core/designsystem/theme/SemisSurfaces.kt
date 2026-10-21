@@ -21,6 +21,7 @@ object SemisAccent {
     val Purple = Color(0xFF7C3AED)
     val Amber = Color(0xFFD97706)
     val Teal = Color(0xFF0D9488)
+    val Red = Color(0xFFDC2626)
 }
 
 /** Shape of the content area right below the toolbar. */
