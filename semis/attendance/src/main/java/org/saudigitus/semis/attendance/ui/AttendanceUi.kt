@@ -82,6 +82,9 @@ fun AttendanceUi(
                 supportFragmentManager = activity.supportFragmentManager,
                 onDiscard = {
                     viewModel.resetForm()
+                    // Discarding ends the edit as leaving without changes does: the editing state
+                    // outlives this screen, and the register would otherwise open still editable.
+                    viewModel.disableEditing()
                     navController.navigateUp()
                 },
                 onKeepEdition = { },
