@@ -177,4 +177,51 @@ class AttendanceStatusCountsTest {
         assertEquals("Present", counts.first().label)
         assertEquals("1", counts.first().code)
     }
+
+    @Test
+    fun `a present count given from the registers replaces the records`() {
+        val counts = attendanceStatusCounts(
+            statusOptions = listOf(option("ABSENT", "absent")),
+            optionLabels = mapOf("ABSENT" to "Absent"),
+            recordedStatusCodes = listOf("ABSENT"),
+            derivePresent = true,
+            presentCount = 2,
+        )
+
+        assertEquals(2, counts.first().count)
+        assertEquals(1, counts.last().count)
+    }
+
+    @Test
+    fun `every register day without a configured status is a present day`() {
+        val present = presentDayCount(
+            registerDays = listOf("2026-10-16", "2026-10-19", "2026-10-20"),
+            recordedDays = listOf("2026-10-16" to "ABSENT"),
+            configuredStatusCodes = setOf("ABSENT", "LATE"),
+        )
+
+        assertEquals(2, present)
+    }
+
+    @Test
+    fun `a record kept from before the status flow counts once`() {
+        val present = presentDayCount(
+            registerDays = listOf("2026-10-19"),
+            recordedDays = listOf("2026-10-19" to "PRESENT", "2026-08-05" to "PRESENT"),
+            configuredStatusCodes = setOf("ABSENT"),
+        )
+
+        assertEquals(2, present)
+    }
+
+    @Test
+    fun `no register and no record leaves no present day`() {
+        val present = presentDayCount(
+            registerDays = emptyList(),
+            recordedDays = listOf("2026-08-05" to "ABSENT"),
+            configuredStatusCodes = setOf("ABSENT"),
+        )
+
+        assertEquals(0, present)
+    }
 }

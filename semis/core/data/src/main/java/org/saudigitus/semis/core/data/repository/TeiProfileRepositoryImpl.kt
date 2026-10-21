@@ -20,6 +20,7 @@ import org.saudigitus.semis.core.data.model.profile.ProfileTabContent
 import org.saudigitus.semis.core.data.model.profile.ProfileValue
 import org.saudigitus.semis.core.data.model.profile.AttendanceRecord
 import org.saudigitus.semis.core.data.model.profile.attendanceStatusCounts
+import org.saudigitus.semis.core.data.model.profile.presentDayCount
 import org.saudigitus.semis.core.data.model.profile.ProfileAttribute
 import org.saudigitus.semis.core.data.model.profile.ProfileMark
 import org.saudigitus.semis.core.data.model.profile.SocioEconomicRecord
@@ -27,6 +28,7 @@ import org.saudigitus.semis.core.data.model.profile.SubjectPerformance
 import org.saudigitus.semis.core.data.model.profile.TeiProfile
 import org.saudigitus.semis.core.data.model.transfer.learnerIdentity
 import org.saudigitus.semis.core.data.utils.Transformations
+import org.saudigitus.semis.core.utils.Constants
 import org.saudigitus.semis.core.utils.DateHelper
 import java.util.Date
 import javax.inject.Inject
@@ -59,6 +61,15 @@ class TeiProfileRepositoryImpl @Inject constructor(
         val identity = learner.learnerIdentity()
         val config = appConfigRepository.getAppConfig(program)
         val range = academicYearRange(academicYear)
+        val classRegisterDays = classRegisterDays(
+            teiUid = teiUid,
+            program = program,
+            orgUnit = enrollment?.organisationUnit(),
+            config = config,
+            academicYear = academicYear,
+            academicYearDataElement = appConfigRepository.getSchoolCalendar()?.academicYear,
+            range = range,
+        )
 
         TeiProfile(
             teiUid = teiUid,
@@ -68,7 +79,7 @@ class TeiProfileRepositoryImpl @Inject constructor(
                 ProfileAttribute(label = label, value = attribute.value())
             },
             socioEconomics = socioEconomicRecords(teiUid, program, config),
-            attendance = attendanceHistory(teiUid, program, config, range),
+            attendance = attendanceHistory(teiUid, program, config, range, classRegisterDays),
             performance = subjectPerformance(teiUid, program, config, range),
         )
     }
@@ -106,6 +117,7 @@ class TeiProfileRepositoryImpl @Inject constructor(
         program: String,
         config: SEMISConfigItem?,
         range: ClosedRange<Date>?,
+        classRegisterDays: Set<String>?,
     ): AttendanceHistory {
         val attendance = config?.attendance ?: return AttendanceHistory()
         val programStage = attendance.programStage?.takeIf { it.isNotBlank() }
@@ -133,16 +145,91 @@ class TeiProfileRepositoryImpl @Inject constructor(
             }
             .sortedByDescending { it.date }
 
+        val statusOptions = attendance.statusOptions?.filterNotNull().orEmpty()
+        val derivePresent = attendance.attendanceStatus.isEnabledAndConfigured()
+
         return AttendanceHistory(
             records = records,
             statusCounts = attendanceStatusCounts(
-                statusOptions = attendance.statusOptions?.filterNotNull().orEmpty(),
+                statusOptions = statusOptions,
                 optionLabels = statusLabels,
                 recordedStatusCodes = records.map { it.statusCode },
-                derivePresent = attendance.attendanceStatus.isEnabledAndConfigured(),
+                derivePresent = derivePresent,
+                presentCount = classRegisterDays?.takeIf { derivePresent }?.let { registerDays ->
+                    presentDayCount(
+                        registerDays = registerDays,
+                        recordedDays = records.mapNotNull { record ->
+                            record.date?.let { dayOf(it) to record.statusCode }
+                        },
+                        configuredStatusCodes = statusOptions
+                            .mapNotNullTo(mutableSetOf()) { it.code?.takeIf(String::isNotBlank) },
+                    )
+                },
             ),
         )
     }
+
+    /**
+     * Days the class of the learner holds an attendance register for, complete or not.
+     *
+     * The class is read from the registration of the learner for the selected year, through the
+     * same values the register itself carries: academic year, grade and section. Returns null when
+     * there is nothing to recognise the class by, so the count falls back to the records instead of
+     * counting every register of the school.
+     */
+    private fun classRegisterDays(
+        teiUid: String,
+        program: String,
+        orgUnit: String?,
+        config: SEMISConfigItem?,
+        academicYear: String?,
+        academicYearDataElement: String?,
+        range: ClosedRange<Date>?,
+    ): Set<String>? {
+        val attendanceStatus = config?.attendance?.attendanceStatus
+            ?.takeIf { it.isEnabledAndConfigured() }
+            ?: return null
+        val school = orgUnit?.takeIf { it.isNotBlank() } ?: return null
+        val registrationStage = config.registration?.programStage
+            ?.takeIf { it.isNotBlank() }
+            ?: return null
+        val filterDataElements = config.filters?.dataElements?.filterNotNull().orEmpty()
+        val contextDataElements = listOfNotNull(
+            academicYearDataElement,
+            filterDataElements.find { it.code == Constants.GRADE }?.dataElement,
+            filterDataElements.find { it.code in SECTION_CODES }?.dataElement,
+        ).filter { it.isNotBlank() }
+
+        val registrations = events(teiUid, program, registrationStage)
+        val registration = registrations.firstOrNull { event ->
+            academicYearDataElement != null &&
+                !academicYear.isNullOrBlank() &&
+                event.dataValue(academicYearDataElement) == academicYear
+        } ?: registrations.maxByOrNull { it.eventDate()?.time ?: 0L }
+            ?: return null
+
+        val classContext = contextDataElements.mapNotNull { dataElement ->
+            registration.dataValue(dataElement)
+                ?.takeIf { it.isNotBlank() }
+                ?.let { dataElement to it }
+        }
+        if (classContext.isEmpty()) return null
+
+        return d2.eventModule().events()
+            .byOrganisationUnitUid().eq(school)
+            .byProgramUid().eq(attendanceStatus.program.orEmpty())
+            .byProgramStageUid().eq(attendanceStatus.programStage.orEmpty())
+            .byDeleted().isFalse
+            .withTrackedEntityDataValues()
+            .blockingGet()
+            .filter { register ->
+                register.eventDate().inRange(range) &&
+                    classContext.all { (dataElement, value) -> register.dataValue(dataElement) == value }
+            }
+            .mapNotNullTo(mutableSetOf()) { register -> register.eventDate()?.let(::dayOf) }
+    }
+
+    private fun dayOf(date: Date): String = DateHelper.formatDate(date.time).orEmpty()
 
     private fun subjectPerformance(
         teiUid: String,
@@ -255,7 +342,8 @@ class TeiProfileRepositoryImpl @Inject constructor(
         val start = parseDate(configured.startDate) ?: return null
         val end = parseDate(configured.endDate) ?: return null
 
-        return start..end
+        // The calendar names the last day, not its midnight: a record taken on it belongs.
+        return start..Date(end.time + ONE_DAY_MILLIS - 1)
     }
 
     private fun parseDate(value: String?): Date? = value
@@ -541,5 +629,9 @@ class TeiProfileRepositoryImpl @Inject constructor(
         const val COMPONENT_TEI_FORM = "TEI_FORM"
         const val COMPONENT_EVENT_CARDS = "EVENT_CARDS"
         const val COMPONENT_EVENT_TABLE = "EVENT_TABLE"
+        const val ONE_DAY_MILLIS = 24 * 60 * 60 * 1000L
+
+        /** Filter codes a deployment may give the section, as the home filters accept them. */
+        val SECTION_CODES = listOf(Constants.SECTION, Constants.SECTION_CLASS, Constants.CLASS)
     }
 }
