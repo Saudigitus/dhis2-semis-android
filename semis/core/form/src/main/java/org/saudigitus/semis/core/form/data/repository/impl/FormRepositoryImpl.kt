@@ -85,8 +85,9 @@ class FormRepositoryImpl @Inject constructor(
             it.event?.tei == tei?.uid()
         }
 
+        // Only the form lets go of the record here: the stored one is deleted on save, as an
+        // orphan, so leaving with the changes discarded keeps the register as it was.
         if (buttonModel.code == null) {
-            event?.event?.event?.let { eventRepository.deleteEvent(it) }
             attendanceEvents.removeIf { it.event?.tei == tei?.uid() }
 
             return attendanceButtonState.updateAndGet {
@@ -124,6 +125,10 @@ class FormRepositoryImpl @Inject constructor(
                     event = AttendanceEvent(
                         tei = tei?.uid().orEmpty(),
                         enrollment = tei?.selectedEnrollment?.uid().orEmpty(),
+                        event = loadedAttendanceEventUid(
+                            loaded = loadedAttendanceButtonState.attendanceEvents,
+                            tei = tei?.uid(),
+                        ),
                         dataElement = buttonModel.dataElement.orEmpty(),
                         value = buttonModel.code.orEmpty(),
                         date = eventDate ?: DateHelper.formatDate(System.currentTimeMillis())
