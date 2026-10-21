@@ -9,12 +9,15 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 import org.saudigitus.semis.attendance.R
+import org.saudigitus.semis.attendance.ui.model.BottomSheetType
 import org.saudigitus.semis.core.designsystem.components.bottomsheet.launchBottomSheet
 import org.saudigitus.semis.core.form.ui.FormViewModel
 
@@ -28,6 +31,7 @@ fun AttendanceUi(
     syncNow: () -> Unit,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
     var snackbarIsError by remember { mutableStateOf(false) }
 
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -109,6 +113,31 @@ fun AttendanceUi(
                 is AttendanceUiEvent.OnAttendanceClick -> {
                     formViewModel.markAttendanceChanged()
                     viewModel.handleUiEvent(it)
+                }
+                // The save is refused before it is even confirmed when a field the metadata
+                // makes compulsory is left empty, and the learners concerned are flagged.
+                is AttendanceUiEvent.ShowBottomSheet -> {
+                    val missing = if (it.type == BottomSheetType.SUMMARY) {
+                        formViewModel.validateAttendanceFields().size
+                    } else {
+                        0
+                    }
+
+                    if (missing == 0) {
+                        viewModel.handleUiEvent(it)
+                    } else {
+                        scope.launch {
+                            snackbarIsError = true
+                            snackbarHostState.showSnackbar(
+                                message = activity.resources.getQuantityString(
+                                    R.plurals.attendance_compulsory_missing,
+                                    missing,
+                                    missing,
+                                ),
+                                duration = SnackbarDuration.Long,
+                            )
+                        }
+                    }
                 }
                 AttendanceUiEvent.ResetForm -> {
                     formViewModel.resetCacheStatus()
