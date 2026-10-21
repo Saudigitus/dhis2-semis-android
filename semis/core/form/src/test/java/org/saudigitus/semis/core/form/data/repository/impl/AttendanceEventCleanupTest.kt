@@ -111,4 +111,18 @@ class AttendanceEventCleanupTest {
                 .map { it.event?.tei },
         )
     }
+
+    @Test
+    fun `a learner given a status again reuses their stored record`() {
+        val loaded = listOf(record("a", "ABSENT"), record("b", "LATE"))
+
+        assertEquals("event-b", loadedAttendanceEventUid(loaded = loaded, tei = "b"))
+    }
+
+    @Test
+    fun `a learner without a stored record starts a new one`() {
+        val loaded = listOf(record("a", "ABSENT"))
+
+        assertEquals(null, loadedAttendanceEventUid(loaded = loaded, tei = "c"))
+    }
 }
