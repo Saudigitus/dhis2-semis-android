@@ -65,7 +65,19 @@ class FormViewModel @Inject constructor(
             formRepository.attendanceButtonStateFlow
                 .collectLatest { newAttendanceState ->
                     _uiState.update { currentState ->
-                        currentState.copy(attendanceButtonState = newAttendanceState)
+                        currentState.copy(
+                            attendanceButtonState = newAttendanceState,
+                            // Once flagged, a learner is cleared as soon as the field is filled,
+                            // rather than only on the next attempt to save.
+                            learnersMissingCompulsory = if (currentState.learnersMissingCompulsory.isEmpty()) {
+                                emptySet()
+                            } else {
+                                learnersMissingCompulsoryAttendanceFields(
+                                    fields = currentState.fields,
+                                    attendanceState = newAttendanceState,
+                                )
+                            },
+                        )
                     }
                 }
         }
@@ -217,6 +229,22 @@ class FormViewModel @Inject constructor(
 
     fun markAttendanceChanged() {
         _uiState.update { it.copy(hasCachedData = true) }
+    }
+
+    /**
+     * Flags and returns the learners whose register leaves a compulsory field empty; the
+     * register can be saved only when there are none. Compulsory is what the metadata says of
+     * the field, nothing more, and it holds on the first completion as on every later update.
+     */
+    fun validateAttendanceFields(): Set<String> {
+        val missing = learnersMissingCompulsoryAttendanceFields(
+            fields = _uiState.value.fields,
+            attendanceState = formRepository.attendanceButtonStateFlow.value,
+        )
+
+        _uiState.update { it.copy(learnersMissingCompulsory = missing) }
+
+        return missing
     }
 
     fun handleUiEvent(uiEvent: FormEvent) {
