@@ -555,9 +555,10 @@ class AttendanceViewModel @Inject constructor(
      *
      * The learner records are one program and the class summary is another, written on the same
      * screen and by the same action. Offering only the first is what leaves a summary sitting on
-     * the device while the roster it summarises is already on the server.
+     * the device while the roster it summarises is already on the server. The sync action of the
+     * screen sends the same, for the same reason.
      */
-    private fun syncTargets(): List<SyncTarget> {
+    fun syncTargets(): List<SyncTarget> {
         val summaryProgram = attendanceConfig?.attendanceStatus?.program
             ?.takeIf { it.isNotBlank() && uiState.value.allowAttendanceStatus }
 

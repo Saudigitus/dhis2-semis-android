@@ -67,7 +67,8 @@ class SEMISActivity : FragmentActivity() {
                     navController = navController,
                     navBack = { finish() },
                     syncData = ::syncTargets,
-                    syncNow = ::syncNow,
+                    syncNow = { syncNow() },
+                    syncNowFor = ::syncNow,
                     displayImageDetail = ::displayImageDetail,
                 )
             }
@@ -102,8 +103,11 @@ class SEMISActivity : FragmentActivity() {
      * when someone asks for it: a deployment that chose to be left alone after saving still has a
      * button on the toolbar, and a button that decides for itself not to do anything is worse than
      * no button at all.
+     *
+     * A screen that knows it wrote into more than one program names them, as it does after a
+     * save, so the button sends the class summary along with the learners instead of leaving it.
      */
-    private fun syncNow() = promptToSync(emptyList())
+    private fun syncNow(targets: List<SyncTarget> = emptyList()) = promptToSync(targets)
 
     /**
      * Sends what was captured without asking, and says how it went when it is done.
