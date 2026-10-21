@@ -239,11 +239,15 @@ class FormViewModel @Inject constructor(
                 is FormEvent.UpdateField -> {
                     when (uiEvent.formType) {
                         FormType.ATTENDANCE -> {
-                            formRepository.updateAttendanceReason(
+                            val updated = formRepository.updateAttendanceReason(
                                 uiEvent.tei,
                                 uiEvent.dataElementUid,
                                 uiEvent.value
                             )
+
+                            // A reason is as much a change as a status: without this, leaving
+                            // after changing only a reason drops it without a word.
+                            if (updated != null) markAttendanceChanged()
                         }
 
                         FormType.INDIVIDUAL -> {
