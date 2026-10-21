@@ -28,6 +28,7 @@ import org.saudigitus.semis.core.utils.ButtonStep
 import org.saudigitus.semis.core.utils.DateHelper
 import org.saudigitus.semis.performance.data.repository.PerformanceRepository
 import javax.inject.Inject
+import org.saudigitus.semis.performance.R as PerformanceRes
 
 @HiltViewModel
 class PerformanceViewModel @Inject constructor(
@@ -131,20 +132,50 @@ class PerformanceViewModel @Inject constructor(
 
     }
 
-    fun performSave(resetFormCache: () -> Unit) {
+    /**
+     * Saves the marks, leaving out only those a program rule raises an error on.
+     *
+     * The rules are judged again on the values as they stand, since the last mark typed may not
+     * have been judged yet. A warning never holds a mark back, as in DHIS2: only an error does,
+     * and only for the mark that raised it. When some are left out the form stays open on them,
+     * so they can be corrected and saved without starting over.
+     */
+    fun performSave(onSaved: (allSaved: Boolean) -> Unit) {
         viewModelScope.launch {
+            val formBuilderState = uiState.value.formBuilderState
+
             runCatching {
-                performanceRepository.savePerformance(
-                    orgUnit = uiState.value.formBuilderState.orgUnit,
-                    program = uiState.value.formBuilderState.program,
-                    programStage = uiState.value.formBuilderState.programStage,
-                    teiList = uiState.value.tei,
-                    formFieldsData = formFields.value
+                val judged = formRepository.applyProgramRulesToRecords(
+                    orgUnit = formBuilderState.orgUnit,
+                    program = formBuilderState.program,
+                    programStage = formBuilderState.programStage,
+                    fieldsData = formFields.value,
                 )
-            }.onSuccess {
-                resetFormCache()
-                _snackbarEvent.emit(resourceManager.getString(R.string.performance_saved))
-                _syncEvent.emit(listOf(SyncTarget.Tracker(uiState.value.formBuilderState.program)))
+                val (withError, valid) = judged.partition { it.hasError }
+
+                performanceRepository.savePerformance(
+                    orgUnit = formBuilderState.orgUnit,
+                    program = formBuilderState.program,
+                    programStage = formBuilderState.programStage,
+                    teiList = uiState.value.tei,
+                    formFieldsData = valid
+                )
+
+                withError.count { it.isUpdated }
+            }.onSuccess { notSaved ->
+                onSaved(notSaved == 0)
+                _snackbarEvent.emit(
+                    if (notSaved == 0) {
+                        resourceManager.getString(R.string.performance_saved)
+                    } else {
+                        resourceManager.getPlural(
+                            PerformanceRes.plurals.performance_marks_not_saved,
+                            notSaved,
+                            notSaved,
+                        )
+                    },
+                )
+                _syncEvent.emit(listOf(SyncTarget.Tracker(formBuilderState.program)))
             }.onFailure { error ->
                 val friendlyMessage = when (error) {
                     is D2Error -> {
@@ -194,8 +225,12 @@ class PerformanceViewModel @Inject constructor(
 
             is PerformanceUiEvent.SaveEvent -> {
                 _uiState.update { it.copy(isConfirmDialog = false) }
-                performSave(resetFormCache)
-                enableForm(false)
+                performSave { allSaved ->
+                    if (allSaved) {
+                        resetFormCache()
+                        enableForm(false)
+                    }
+                }
             }
 
             else -> {}

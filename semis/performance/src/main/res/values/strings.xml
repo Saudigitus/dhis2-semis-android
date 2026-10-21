@@ -10,6 +10,10 @@
         <item quantity="one">%1$d student without marks</item>
         <item quantity="other">%1$d students without marks</item>
     </plurals>
+    <plurals name="performance_marks_not_saved">
+        <item quantity="one">%1$d mark was not saved because of an error. Correct it and save again.</item>
+        <item quantity="other">%1$d marks were not saved because of an error. Correct them and save again.</item>
+    </plurals>
     <string name="performance_save_marks">Save Marks</string>
     <string name="performance_edit_marks">Edit Marks</string>
 </resources>
