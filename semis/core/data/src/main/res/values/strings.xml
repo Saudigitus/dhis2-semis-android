@@ -2,7 +2,7 @@
 <resources>
     <string name="download_completed_not_found">Download completed but no TEIs were found in local storage</string>
     <string name="download_failed">Failed to download TEIs: %s</string>
-    <string name="tei_not_found">TEIs not fount for applied filters. Update your filters and try again</string>
+    <string name="tei_not_found">This class has no learner enrolled on the server for the selected academic year</string>
     <string name="failed_to_search_tei">Failed to search TEIs: %s</string>
     <string name="transfer_record_required">At least one record must be selected</string>
     <string name="transfer_destination_required">Destination school is required</string>
