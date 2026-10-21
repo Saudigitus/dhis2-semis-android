@@ -80,6 +80,9 @@ class TransferViewModel @Inject constructor(
         loadTransferMetadata(program)
         loadOutgoingTransfers()
         refreshIncomingTransfers()
+        // The decisions on the requests this school raised are fetched on arrival too, quietly:
+        // without a connection the list shown is simply what the device already holds.
+        refreshOutgoingTransfers(quiet = true)
     }
 
     fun handleUiEvent(event: TransferUiEvent) {
@@ -214,7 +217,7 @@ class TransferViewModel @Inject constructor(
      * learners behind the sent requests are downloaded again, and both the statuses and
      * the classes they left are read back from what arrived.
      */
-    private fun refreshOutgoingTransfers() {
+    private fun refreshOutgoingTransfers(quiet: Boolean = false) {
         val current = _uiState.value
         val orgUnit = current.sourceOrgUnit ?: return
         if (current.isRefreshingOutgoing) return
@@ -224,7 +227,7 @@ class TransferViewModel @Inject constructor(
             runCatching {
                 repository.refreshOutgoingTransfers(current.program, orgUnit.uid)
             }.onFailure { error ->
-                emitError(error, R.string.outgoing_transfer_load_failed)
+                if (!quiet) emitError(error, R.string.outgoing_transfer_load_failed)
             }
             _uiState.update { it.copy(isRefreshingOutgoing = false) }
             loadOutgoingTransfers()

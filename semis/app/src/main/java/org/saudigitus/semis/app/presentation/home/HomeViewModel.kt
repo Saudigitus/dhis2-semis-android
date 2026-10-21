@@ -32,6 +32,7 @@ import org.saudigitus.semis.core.data.repository.FilterSelectionRepository
 import org.saudigitus.semis.core.data.repository.OrgUnitRepository
 import org.saudigitus.semis.core.data.repository.TeiDownloaderRepository
 import org.saudigitus.semis.core.data.repository.TeiRepository
+import org.saudigitus.semis.core.data.repository.TeiTransferRepository
 import org.saudigitus.semis.core.designsystem.R
 import org.saudigitus.semis.core.designsystem.components.fields.DropdownState
 import org.saudigitus.semis.core.designsystem.components.model.DropdownItem
@@ -57,7 +58,8 @@ class HomeViewModel @Inject constructor(
     private val teiDownloaderRepository: TeiDownloaderRepository,
     private val teiRepository: TeiRepository,
     private val filterSelectionRepository: FilterSelectionRepository,
-    private val orgUnitRepository: OrgUnitRepository
+    private val orgUnitRepository: OrgUnitRepository,
+    private val teiTransferRepository: TeiTransferRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUIState())
@@ -473,6 +475,25 @@ class HomeViewModel @Inject constructor(
     fun refreshTeis() {
         loadJob?.cancel()
         loadJob = viewModelScope.launch { loadTeis() }
+    }
+
+    /**
+     * Brings what a sync cannot: the decisions taken at other schools on the transfers this one
+     * raised. The sync downloads what this school owns, and a learner approved elsewhere is no
+     * longer among it, so the requests are asked for one by one and the class is counted again.
+     *
+     * Never fails the sync that triggered it: without a connection the class is simply recounted.
+     */
+    fun refreshAfterSync() {
+        val program = _uiState.value.program
+        val orgUnit = _uiState.value.filterState.orgUnit?.uid
+
+        viewModelScope.launch {
+            if (program.isNotBlank() && !orgUnit.isNullOrBlank()) {
+                runCatching { teiTransferRepository.refreshOutgoingTransfers(program, orgUnit) }
+            }
+            refreshTeis()
+        }
     }
 
     private fun handleFilterValueChange(event: FilterComponentEvent.FilterValueChange<*>) {
