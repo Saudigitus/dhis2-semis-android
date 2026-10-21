@@ -196,6 +196,18 @@ class TeiTransferRepositoryImpl @Inject constructor(
                 }
             }
             .distinct()
+            // Downloading overwrites the learner, so one still holding unsent records waits for
+            // the next refresh: this runs on its own now, and must never cost a teacher a register.
+            .let { candidates ->
+                if (candidates.isEmpty()) {
+                    candidates
+                } else {
+                    d2.trackedEntityModule().trackedEntityInstances()
+                        .byUid().`in`(candidates)
+                        .byAggregatedSyncState().eq(State.SYNCED)
+                        .blockingGetUids()
+                }
+            }
 
         if (teiUids.isEmpty()) return@withContext 0
 

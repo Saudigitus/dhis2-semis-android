@@ -10,6 +10,7 @@ import com.google.android.material.snackbar.Snackbar
 import dagger.hilt.android.AndroidEntryPoint
 import org.dhis2.commons.Constants
 import org.dhis2.commons.dialogs.imagedetail.ImageDetailActivity
+import org.dhis2.commons.sync.OnDismissListener
 import org.dhis2.commons.sync.SyncContext
 import android.widget.Toast
 import androidx.lifecycle.lifecycleScope
@@ -146,6 +147,13 @@ class SEMISActivity : FragmentActivity() {
             activity = this@SEMISActivity,
             recordUid = context.recordUid(),
             syncContext = context,
+            // A sync leaves the class as this school owns it, which says nothing of the learners
+            // approved elsewhere: those, and the count of the class, are refreshed once it ends.
+            dismissListener = object : OnDismissListener {
+                override fun onDismiss(hasChanged: Boolean) {
+                    viewModel.refreshAfterSync()
+                }
+            },
             onNoConnectionListener = {
                 Snackbar.make(
                     this.window.decorView.rootView,
