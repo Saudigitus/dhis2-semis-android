@@ -28,7 +28,7 @@ fun AttendanceUi(
     formViewModel: FormViewModel,
     navController: NavHostController,
     syncData: (List<SyncTarget>) -> Unit,
-    syncNow: () -> Unit,
+    syncNow: (List<SyncTarget>) -> Unit,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -112,7 +112,7 @@ fun AttendanceUi(
                     navigationBack()
                 }
 
-                is AttendanceUiEvent.OnSyncClicked -> syncNow()
+                is AttendanceUiEvent.OnSyncClicked -> syncNow(viewModel.syncTargets())
                 is AttendanceUiEvent.OnAttendanceClick -> {
                     formViewModel.markAttendanceChanged()
                     viewModel.handleUiEvent(it)

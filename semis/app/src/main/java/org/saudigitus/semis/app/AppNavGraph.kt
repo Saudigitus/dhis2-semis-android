@@ -39,6 +39,7 @@ fun AppNavGraph(
     navBack: () -> Unit,
     syncData: (List<SyncTarget>) -> Unit,
     syncNow: () -> Unit,
+    syncNowFor: (List<SyncTarget>) -> Unit,
     displayImageDetail: (imagePath: String) -> Unit,
 ) {
     NavHost(
@@ -127,7 +128,7 @@ fun AppNavGraph(
                 formViewModel = formViewModel,
                 navController = navController,
                 syncData = syncData,
-                syncNow = syncNow,
+                syncNow = syncNowFor,
             )
         }
         composable(route = AppRoutes.ENROLLMENT) {
