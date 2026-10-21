@@ -10,8 +10,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.flow.collectLatest
+import org.saudigitus.semis.core.data.R as CoreDataR
 import org.saudigitus.semis.core.form.ui.FormViewModel
 import org.saudigitus.semis.core.form.ui.state.FormBuilderState
 import org.saudigitus.semis.transfer.event.TransferUiEvent
@@ -28,6 +30,7 @@ fun TransferUi(
     val formState by formViewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     var snackbarMessageType by remember { mutableStateOf(TransferMessageType.SUCCESS) }
+    val sameSchoolMessage = stringResource(CoreDataR.string.transfer_same_school)
 
     LaunchedEffect(Unit) {
         viewModel.messageEvent.collectLatest { message ->
@@ -106,7 +109,16 @@ fun TransferUi(
         val destinationField = formState.fields.find {
             it.dataElementUid == state.destinationSchoolDataElement
         }
-        val isValid = !formState.isLoading && formState.fields
+        // The schools offered are the ones the user can search, which include the one the
+        // learners are leaving. Choosing it is refused here, on the field, instead of at the
+        // submission, learner by learner, after the review.
+        val destinationIsOrigin = destinationField?.selectedOrgUnit?.uid
+            ?.let { it == state.sourceOrgUnit?.uid } == true
+        val destinationError = sameSchoolMessage.takeIf { destinationIsOrigin }
+        if (destinationField != null && destinationField.errorMessage != destinationError) {
+            formViewModel.showFieldError(destinationField.dataElementUid, destinationError)
+        }
+        val isValid = !formState.isLoading && !destinationIsOrigin && formState.fields
             .filter {
                 it.rendered &&
                     it.enabled &&

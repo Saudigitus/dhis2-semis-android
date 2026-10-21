@@ -183,6 +183,24 @@ class FormViewModel @Inject constructor(
         _uiState.update { it.copy(isEnabled = enable) }
     }
 
+    /**
+     * Shows [message] on the field of [dataElementUid], or clears it when null, for a rule the
+     * screen holding the form knows and the form cannot: whether a school is allowed there.
+     */
+    fun showFieldError(dataElementUid: String, message: String?) {
+        _uiState.update { current ->
+            current.copy(
+                fields = current.fields.map { field ->
+                    if (field.dataElementUid == dataElementUid) {
+                        field.copy(hasError = message != null, errorMessage = message)
+                    } else {
+                        field
+                    }
+                },
+            )
+        }
+    }
+
     fun applyPresetValue(dataElementUid: String, value: String, locked: Boolean = false) {
         if (dataElementUid.isBlank() || value.isBlank()) return
 
