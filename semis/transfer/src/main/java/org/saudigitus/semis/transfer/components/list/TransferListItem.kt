@@ -23,7 +23,6 @@ import org.saudigitus.semis.core.designsystem.theme.surfaceTone
 import org.saudigitus.semis.transfer.R
 import org.saudigitus.semis.transfer.components.common.DetailRows
 import org.saudigitus.semis.transfer.model.RelativeTimeUnit
-import org.saudigitus.semis.transfer.model.TransferTab
 import org.saudigitus.semis.transfer.model.relativeTime
 import java.util.Date
 
@@ -31,10 +30,9 @@ import java.util.Date
  * One request in either list: the learner as the enrollment list shows them, the status
  * on the right in the colour of its state, and how long ago the request was raised.
  *
- * The other school, the class and the reason are stated under the name because they are
- * what a school weighs when deciding, and opening the request to find them would cost a
- * screen. Which school that is depends on the side being read: the destination on the
- * way out, the origin on the way in.
+ * Under the name come the values the web shows as columns for the request, the ones its
+ * stages display in reports, so a school weighs the same facts on both apps without
+ * opening the request.
  *
  * [onDecide] is only supplied on the incoming tab, where this school is the one that
  * has to answer.
@@ -42,7 +40,6 @@ import java.util.Date
 @Composable
 internal fun TransferListItem(
     transfer: TeiTransfer,
-    tab: TransferTab,
     now: Date,
     modifier: Modifier = Modifier,
     processing: Boolean = false,
@@ -54,7 +51,9 @@ internal fun TransferListItem(
     LearnerCard(
         name = transfer.recordName,
         modifier = modifier.fillMaxWidth(),
-        supportingText = transfer.firstAttributeValue.takeIf { it.isNotBlank() },
+        supportingText = transfer.identifier.takeIf { it.isNotBlank() },
+        photoPath = transfer.photoPath,
+        tags = transfer.tags,
         avatarColor = AvatarInitials.colorFor(transfer.teiUid),
         containerColor = SemisPalette.CardSurface,
         trailing = {
@@ -72,33 +71,10 @@ internal fun TransferListItem(
             }
         },
         supportingContent = {
-            val counterpartLabel = when (tab) {
-                TransferTab.OUTGOING -> stringResource(R.string.transfer_destination_school)
-                TransferTab.INCOMING -> stringResource(R.string.transfer_origin_school)
-            }
-            val counterpart = when (tab) {
-                TransferTab.OUTGOING ->
-                    transfer.destinationSchoolName.ifBlank { transfer.destinationOrgUnit }
-
-                TransferTab.INCOMING ->
-                    transfer.originSchoolName.ifBlank { transfer.originOrgUnit }
-            }
-
+            // The values the web shows as columns for the request, as the metadata marks them.
+            val missing = stringResource(R.string.transfer_detail_missing)
             DetailRows(
-                details = listOf(
-                    counterpartLabel to
-                        counterpart.ifBlank {
-                            stringResource(R.string.transfer_detail_missing)
-                        },
-                    stringResource(R.string.transfer_grade) to
-                        transfer.grade.ifBlank {
-                            stringResource(R.string.transfer_detail_missing)
-                        },
-                    stringResource(R.string.transfer_reason) to
-                        transfer.reason.ifBlank {
-                            stringResource(R.string.transfer_detail_missing)
-                        },
-                ),
+                details = transfer.details.map { detail -> detail.label to (detail.value ?: missing) },
                 modifier = Modifier.padding(top = 6.dp),
                 horizontalPadding = 0.dp,
                 verticalPadding = 8.dp,

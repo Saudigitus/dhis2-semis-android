@@ -2,48 +2,58 @@ package org.saudigitus.semis.core.data.repository
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.dhis2.commons.resources.ResourceManager
 import org.hisp.dhis.android.core.D2
+import org.hisp.dhis.android.core.arch.repositories.scope.RepositoryScope
+import org.hisp.dhis.android.core.common.ValueType
+import org.hisp.dhis.android.core.enrollment.Enrollment
 import org.hisp.dhis.android.core.event.Event
-import org.hisp.dhis.android.core.event.EventStatus
+import org.hisp.dhis.android.core.trackedentity.TrackedEntityAttribute
+import org.hisp.dhis.android.core.trackedentity.TrackedEntityInstance
+import org.saudigitus.semis.core.data.R
 import org.saudigitus.semis.core.data.model.app_config.SEMISConfigItem
-import org.saudigitus.semis.core.data.model.app_config.isEnabledAndConfigured
-import org.saudigitus.semis.core.data.model.app_config.Profile
-import org.saudigitus.semis.core.data.model.app_config.ProfileComponent
-import org.saudigitus.semis.core.data.model.profile.AttendanceHistory
-import org.saudigitus.semis.core.data.model.profile.ConfiguredProfile
-import org.saudigitus.semis.core.data.model.profile.ProfileIdentity
+import org.saudigitus.semis.core.data.model.person.PersonTag
+import org.saudigitus.semis.core.data.model.person.identity
+import org.saudigitus.semis.core.data.model.profile.PersonProfile
+import org.saudigitus.semis.core.data.model.profile.ProfileFigure
+import org.saudigitus.semis.core.data.model.profile.ProfileFigureKind
 import org.saudigitus.semis.core.data.model.profile.ProfilePanel
-import org.saudigitus.semis.core.data.model.profile.ProfilePanelKind
 import org.saudigitus.semis.core.data.model.profile.ProfileRecord
 import org.saudigitus.semis.core.data.model.profile.ProfileSection
 import org.saudigitus.semis.core.data.model.profile.ProfileTabContent
+import org.saudigitus.semis.core.data.model.profile.ProfileTabKind
 import org.saudigitus.semis.core.data.model.profile.ProfileValue
-import org.saudigitus.semis.core.data.model.profile.AttendanceRecord
-import org.saudigitus.semis.core.data.model.profile.attendanceStatusCounts
-import org.saudigitus.semis.core.data.model.profile.presentDayCount
-import org.saudigitus.semis.core.data.model.profile.ProfileAttribute
-import org.saudigitus.semis.core.data.model.profile.ProfileMark
-import org.saudigitus.semis.core.data.model.profile.SocioEconomicRecord
-import org.saudigitus.semis.core.data.model.profile.SubjectPerformance
-import org.saudigitus.semis.core.data.model.profile.TeiProfile
-import org.saudigitus.semis.core.data.model.transfer.learnerIdentity
 import org.saudigitus.semis.core.data.utils.Transformations
-import org.saudigitus.semis.core.utils.Constants
+import org.saudigitus.semis.core.data.utils.ValueDisplay
+import org.saudigitus.semis.core.data.utils.stageDataElements
 import org.saudigitus.semis.core.utils.DateHelper
-import java.util.Date
+import java.util.Locale
 import javax.inject.Inject
 
+/**
+ * Builds the page of a person by the rules the web shares, from the program metadata alone.
+ *
+ * - The header is the shared identity, plus the final decision of the year as a tag.
+ * - Personal details holds every attribute, the registration record and the socio-economics
+ *   record. Attendance, Performance, Final result and Transfer follow, each only when its module
+ *   is enabled for the program.
+ * - Every record belongs to the enrollment of the selected year and shows the data elements marked
+ *   "display in reports"; with none marked, it shows its school and date.
+ * - The summary is counted from those records, so it needs neither analytics nor a connection.
+ */
 class TeiProfileRepositoryImpl @Inject constructor(
     private val d2: D2,
     private val appConfigRepository: AppConfigRepository,
     private val transformations: Transformations,
+    private val valueDisplay: ValueDisplay,
+    private val resourceManager: ResourceManager,
 ) : TeiProfileRepository {
 
     override suspend fun getProfile(
         teiUid: String,
         program: String,
         academicYear: String?,
-    ): TeiProfile? = withContext(Dispatchers.IO) {
+    ): PersonProfile? = withContext(Dispatchers.IO) {
         val tei = d2.trackedEntityModule().trackedEntityInstances()
             .byUid().eq(teiUid)
             .withTrackedEntityAttributeValues()
@@ -51,524 +61,303 @@ class TeiProfileRepositoryImpl @Inject constructor(
             .blockingGet()
             ?: return@withContext null
 
-        val enrollment = d2.enrollmentModule().enrollments()
+        val config = appConfigRepository.getAppConfig(program)
+        val enrollment = enrollmentOfYear(teiUid, program, config, academicYear)
+        val events = enrollment?.let { eventsOf(it.uid()) }.orEmpty()
+        val identity = transformations.transform(tei, program, enrollment).identity()
+
+        PersonProfile(
+            identity = identity.copy(
+                tags = identity.tags + listOfNotNull(finalDecisionTag(config, events)),
+            ),
+            academicYear = academicYear?.takeIf { it.isNotBlank() },
+            summary = summary(config, events),
+            tabs = tabs(tei, program, config, events),
+        )
+    }
+
+    private fun tabs(
+        tei: TrackedEntityInstance,
+        program: String,
+        config: SEMISConfigItem?,
+        events: List<Event>,
+    ): List<ProfileTabContent> = buildList {
+        add(
+            ProfileTabContent(
+                kind = ProfileTabKind.PERSONAL_DETAILS,
+                panels = listOfNotNull(
+                    attributesPanel(tei, program),
+                    config?.registration?.programStage.stage()?.let { stagePanel(it, events) },
+                    config?.socioEconomics?.programStage.stage()?.let { stagePanel(it, events) },
+                ),
+            ),
+        )
+
+        config?.attendance
+            ?.takeIf { it.enabled == true }
+            ?.programStage.stage()
+            ?.let { add(ProfileTabContent(ProfileTabKind.ATTENDANCE, listOf(stagePanel(it, events)))) }
+
+        config?.performance
+            ?.takeIf { it.enabled == true }
+            ?.let {
+                val panels = performanceStages(config).map { stagePanel(it, events) }
+                if (panels.isNotEmpty()) add(ProfileTabContent(ProfileTabKind.PERFORMANCE, panels))
+            }
+
+        config?.finalResult
+            ?.takeIf { it.enabled == true }
+            ?.programStage.stage()
+            ?.let { add(ProfileTabContent(ProfileTabKind.FINAL_RESULT, listOf(stagePanel(it, events)))) }
+
+        config?.transfer
+            ?.takeIf { it.enabled == true }
+            ?.programStage.stage()
+            ?.let { add(ProfileTabContent(ProfileTabKind.TRANSFER, listOf(stagePanel(it, events)))) }
+    }
+
+    /**
+     * The figures at the top of the page: the absences of the year when attendance is enabled, and
+     * the average of each performance stage that holds marks.
+     */
+    private fun summary(config: SEMISConfigItem?, events: List<Event>): List<ProfileFigure> =
+        buildList {
+            val attendance = config?.attendance?.takeIf { it.enabled == true }
+            val attendanceStage = attendance?.programStage.stage()
+            val statusElement = attendance?.status.stage()
+            if (attendanceStage != null && statusElement != null) {
+                // Being present leaves no record, so every status the deployment lists is one the
+                // learner was not present with; absent is what a teacher counts.
+                val options = attendance?.statusOptions.orEmpty().filterNotNull()
+                val absentCodes = options.filter { it.key == ABSENT_KEY }
+                    .ifEmpty { options }
+                    .mapNotNull { it.code?.takeIf(String::isNotBlank) }
+                    .toSet()
+                val absences = events.count { event ->
+                    event.programStage() == attendanceStage &&
+                        event.dataValue(statusElement) in absentCodes
+                }
+                add(ProfileFigure(kind = ProfileFigureKind.ABSENCES, value = absences.toString()))
+            }
+
+            if (config?.performance?.enabled == true) {
+                performanceStages(config).forEach { stage ->
+                    average(stage, events)?.let { average ->
+                        add(
+                            ProfileFigure(
+                                kind = ProfileFigureKind.AVERAGE,
+                                value = String.format(Locale.getDefault(), "%.1f", average),
+                                subject = programStageName(stage),
+                            ),
+                        )
+                    }
+                }
+            }
+        }
+
+    /** The mean of the numeric marks recorded in [stage], or null when it holds none. */
+    private fun average(stage: String, events: List<Event>): Double? {
+        val numeric = d2.stageDataElements(stage)
+            .filter { it.valueType?.isNumeric == true && it.optionSet == null }
+            .map { it.uid }
+            .toSet()
+        val marks = events
+            .filter { it.programStage() == stage }
+            .flatMap { event ->
+                event.trackedEntityDataValues().orEmpty()
+                    .filter { it.dataElement() in numeric }
+                    .mapNotNull { it.value()?.toDoubleOrNull() }
+            }
+
+        return marks.takeIf { it.isNotEmpty() }?.average()
+    }
+
+    /** The final decision of the year, in the colour of its option when that option has one. */
+    private fun finalDecisionTag(config: SEMISConfigItem?, events: List<Event>): PersonTag? {
+        val finalResult = config?.finalResult?.takeIf { it.enabled == true } ?: return null
+        val stage = finalResult.programStage.stage() ?: return null
+        val statusElement = finalResult.status.stage() ?: return null
+        val code = events
+            .filter { it.programStage() == stage }
+            .maxByOrNull { it.eventDate()?.time ?: 0L }
+            ?.dataValue(statusElement)
+            ?.takeIf { it.isNotBlank() }
+            ?: return null
+
+        val optionSet = d2.dataElementModule().dataElements().uid(statusElement).blockingGet()
+            ?.optionSetUid()
+        val option = optionSet?.let {
+            d2.optionModule().options()
+                .byOptionSetUid().eq(it)
+                .byCode().eq(code)
+                .one()
+                .blockingGet()
+        }
+
+        return PersonTag(
+            label = option?.displayName() ?: code,
+            color = option?.style()?.color()?.takeIf { it.isNotBlank() },
+        )
+    }
+
+    /**
+     * The enrollment of [academicYear], recognised by the academic year its registration record
+     * carries.
+     *
+     * When the year or the way to recognise it is unknown, the latest enrollment stands in, so the
+     * page is not emptied by a missing setting. When the year is known and no enrollment carries
+     * it, there is none: the page then says that nothing was recorded for that year.
+     */
+    private suspend fun enrollmentOfYear(
+        teiUid: String,
+        program: String,
+        config: SEMISConfigItem?,
+        academicYear: String?,
+    ): Enrollment? {
+        val enrollments = d2.enrollmentModule().enrollments()
             .byTrackedEntityInstance().eq(teiUid)
             .byProgram().eq(program)
             .byDeleted().isFalse
-            .one()
             .blockingGet()
-        val learner = transformations.transform(tei, program, enrollment)
-        val identity = learner.learnerIdentity()
-        val config = appConfigRepository.getAppConfig(program)
-        val range = academicYearRange(academicYear)
-        val classRegisterDays = classRegisterDays(
-            teiUid = teiUid,
-            program = program,
-            orgUnit = enrollment?.organisationUnit(),
-            config = config,
-            academicYear = academicYear,
-            academicYearDataElement = appConfigRepository.getSchoolCalendar()?.academicYear,
-            range = range,
-        )
+        val latest = enrollments.maxByOrNull { it.enrollmentDate()?.time ?: 0L }
 
-        TeiProfile(
-            teiUid = teiUid,
-            name = identity.name,
-            systemId = identity.firstAttributeValue,
-            identity = learner.attributeValues.map { (label, attribute) ->
-                ProfileAttribute(label = label, value = attribute.value())
-            },
-            socioEconomics = socioEconomicRecords(teiUid, program, config),
-            attendance = attendanceHistory(teiUid, program, config, range, classRegisterDays),
-            performance = subjectPerformance(teiUid, program, config, range),
-        )
-    }
+        val year = academicYear?.takeIf { it.isNotBlank() } ?: return latest
+        val registrationStage = config?.registration?.programStage.stage() ?: return latest
+        val calendar = appConfigRepository.getSchoolCalendar()
+        val yearElement = calendar?.academicYear.stage() ?: return latest
+        // The filter may hold the label or the code of the year; the record holds the code.
+        val yearValues = calendar?.schoolCalendar.orEmpty()
+            .filterNotNull()
+            .mapNotNull { it.academicYear }
+            .filter { it.code == year || it.label == year }
+            .flatMap { listOfNotNull(it.code, it.label) }
+            .toSet() + year
 
-    private fun socioEconomicRecords(
-        teiUid: String,
-        program: String,
-        config: SEMISConfigItem?,
-    ): List<SocioEconomicRecord> {
-        val programStage = config?.socioEconomics?.programStage
-            ?.takeIf { it.isNotBlank() }
-            ?: return emptyList()
-        val labels = dataElementLabels(programStage)
-
-        return events(teiUid, program, programStage)
-            .map { event ->
-                SocioEconomicRecord(
-                    eventUid = event.uid(),
-                    occurredAt = event.eventDate(),
-                    orgUnitName = orgUnitName(event.organisationUnit()),
-                    isActive = event.status() == EventStatus.ACTIVE,
-                    details = event.trackedEntityDataValues().orEmpty().map { value ->
-                        ProfileAttribute(
-                            label = labels[value.dataElement()] ?: value.dataElement().orEmpty(),
-                            value = value.value(),
-                        )
-                    },
-                )
+        return enrollments.firstOrNull { enrollment ->
+            eventsOf(enrollment.uid()).any { event ->
+                event.programStage() == registrationStage &&
+                    event.dataValue(yearElement) in yearValues
             }
-            .sortedByDescending { it.occurredAt }
-    }
-
-    private fun attendanceHistory(
-        teiUid: String,
-        program: String,
-        config: SEMISConfigItem?,
-        range: ClosedRange<Date>?,
-        classRegisterDays: Set<String>?,
-    ): AttendanceHistory {
-        val attendance = config?.attendance ?: return AttendanceHistory()
-        val programStage = attendance.programStage?.takeIf { it.isNotBlank() }
-            ?: return AttendanceHistory()
-        val statusDataElement = attendance.status.orEmpty()
-        val reasonDataElement = attendance.absenceReason.orEmpty()
-        val statusLabels = optionLabels(statusDataElement)
-        val reasonLabels = optionLabels(reasonDataElement)
-
-        val records = events(teiUid, program, programStage)
-            .filter { it.eventDate().inRange(range) }
-            .mapNotNull { event ->
-                val statusCode = event.dataValue(statusDataElement)
-                    ?.takeIf { it.isNotBlank() }
-                    ?: return@mapNotNull null
-                val reasonCode = event.dataValue(reasonDataElement)?.takeIf { it.isNotBlank() }
-
-                AttendanceRecord(
-                    eventUid = event.uid(),
-                    date = event.eventDate(),
-                    statusCode = statusCode,
-                    statusLabel = statusLabels[statusCode] ?: statusCode,
-                    absenceReason = reasonCode?.let { reasonLabels[it] ?: it },
-                )
-            }
-            .sortedByDescending { it.date }
-
-        val statusOptions = attendance.statusOptions?.filterNotNull().orEmpty()
-        val derivePresent = attendance.attendanceStatus.isEnabledAndConfigured()
-
-        return AttendanceHistory(
-            records = records,
-            statusCounts = attendanceStatusCounts(
-                statusOptions = statusOptions,
-                optionLabels = statusLabels,
-                recordedStatusCodes = records.map { it.statusCode },
-                derivePresent = derivePresent,
-                presentCount = classRegisterDays?.takeIf { derivePresent }?.let { registerDays ->
-                    presentDayCount(
-                        registerDays = registerDays,
-                        recordedDays = records.mapNotNull { record ->
-                            record.date?.let { dayOf(it) to record.statusCode }
-                        },
-                        configuredStatusCodes = statusOptions
-                            .mapNotNullTo(mutableSetOf()) { it.code?.takeIf(String::isNotBlank) },
-                    )
-                },
-            ),
-        )
-    }
-
-    /**
-     * Days the class of the learner holds an attendance register for, complete or not.
-     *
-     * The class is read from the registration of the learner for the selected year, through the
-     * same values the register itself carries: academic year, grade and section. Returns null when
-     * there is nothing to recognise the class by, so the count falls back to the records instead of
-     * counting every register of the school.
-     */
-    private fun classRegisterDays(
-        teiUid: String,
-        program: String,
-        orgUnit: String?,
-        config: SEMISConfigItem?,
-        academicYear: String?,
-        academicYearDataElement: String?,
-        range: ClosedRange<Date>?,
-    ): Set<String>? {
-        val attendanceStatus = config?.attendance?.attendanceStatus
-            ?.takeIf { it.isEnabledAndConfigured() }
-            ?: return null
-        val school = orgUnit?.takeIf { it.isNotBlank() } ?: return null
-        val registrationStage = config.registration?.programStage
-            ?.takeIf { it.isNotBlank() }
-            ?: return null
-        val filterDataElements = config.filters?.dataElements?.filterNotNull().orEmpty()
-        val contextDataElements = listOfNotNull(
-            academicYearDataElement,
-            filterDataElements.find { it.code == Constants.GRADE }?.dataElement,
-            filterDataElements.find { it.code in SECTION_CODES }?.dataElement,
-        ).filter { it.isNotBlank() }
-
-        val registrations = events(teiUid, program, registrationStage)
-        val registration = registrations.firstOrNull { event ->
-            academicYearDataElement != null &&
-                !academicYear.isNullOrBlank() &&
-                event.dataValue(academicYearDataElement) == academicYear
-        } ?: registrations.maxByOrNull { it.eventDate()?.time ?: 0L }
-            ?: return null
-
-        val classContext = contextDataElements.mapNotNull { dataElement ->
-            registration.dataValue(dataElement)
-                ?.takeIf { it.isNotBlank() }
-                ?.let { dataElement to it }
         }
-        if (classContext.isEmpty()) return null
-
-        return d2.eventModule().events()
-            .byOrganisationUnitUid().eq(school)
-            .byProgramUid().eq(attendanceStatus.program.orEmpty())
-            .byProgramStageUid().eq(attendanceStatus.programStage.orEmpty())
-            .byDeleted().isFalse
-            .withTrackedEntityDataValues()
-            .blockingGet()
-            .filter { register ->
-                register.eventDate().inRange(range) &&
-                    classContext.all { (dataElement, value) -> register.dataValue(dataElement) == value }
-            }
-            .mapNotNullTo(mutableSetOf()) { register -> register.eventDate()?.let(::dayOf) }
     }
 
-    private fun dayOf(date: Date): String = DateHelper.formatDate(date.time).orEmpty()
-
-    private fun subjectPerformance(
-        teiUid: String,
-        program: String,
-        config: SEMISConfigItem?,
-        range: ClosedRange<Date>?,
-    ): List<SubjectPerformance> {
-        val performance = config?.performance?.takeIf { it.enabled == true } ?: return emptyList()
-
-        return performance.programStages
-            ?.mapNotNull { stage -> stage?.programStage?.takeIf { it.isNotBlank() } }
-            .orEmpty()
-            .map { programStage ->
-                val labels = dataElementLabels(programStage)
-                val marks = events(teiUid, program, programStage)
-                    .filter { it.eventDate().inRange(range) }
-                    .flatMap { event ->
-                        event.trackedEntityDataValues().orEmpty().mapNotNull { value ->
-                            val raw = value.value()?.takeIf { it.isNotBlank() }
-                                ?: return@mapNotNull null
-
-                            ProfileMark(
-                                eventUid = event.uid(),
-                                date = event.eventDate(),
-                                label = labels[value.dataElement()]
-                                    ?: value.dataElement().orEmpty(),
-                                value = raw.toDoubleOrNull(),
-                                displayValue = raw,
-                            )
-                        }
-                    }
-                    .sortedByDescending { it.date }
-
-                SubjectPerformance(
-                    programStage = programStage,
-                    subject = programStageName(programStage),
-                    marks = marks,
-                )
-            }
-    }
-
-    private fun events(teiUid: String, program: String, programStage: String): List<Event> =
+    /** Every event of [enrollment], newest first. */
+    private fun eventsOf(enrollment: String): List<Event> =
         d2.eventModule().events()
-            .byTrackedEntityInstanceUids(listOf(teiUid))
-            .byProgramUid().eq(program)
-            .byProgramStageUid().eq(programStage)
+            .byEnrollmentUid().eq(enrollment)
             .byDeleted().isFalse
             .withTrackedEntityDataValues()
             .blockingGet()
+            .sortedByDescending { it.eventDate()?.time ?: 0L }
 
-    private fun dataElementLabels(programStage: String): Map<String, String> =
-        d2.programModule().programStageDataElements()
-            .byProgramStage().eq(programStage)
-            .blockingGet()
-            .mapNotNull { it.dataElement()?.uid() }
+    /** The stages of the performance module, in the order the deployment lists them. */
+    private fun performanceStages(config: SEMISConfigItem): List<String> =
+        config.performance?.programStages.orEmpty()
+            .mapNotNull { it?.programStage.stage() }
             .distinct()
+
+    /**
+     * Every attribute of the person, grouped as the program groups them. A photo or a file is
+     * left out: the photo is already the avatar, and a file path tells the reader nothing.
+     */
+    private fun attributesPanel(tei: TrackedEntityInstance, program: String): ProfilePanel {
+        val stored = tei.trackedEntityAttributeValues().orEmpty()
+            .associateBy { it.trackedEntityAttribute() }
+        val values = d2.programModule().programTrackedEntityAttributes()
+            .byProgram().eq(program)
+            .orderBySortOrder(RepositoryScope.OrderByDirection.ASC)
+            .blockingGet()
+            .mapNotNull { it.trackedEntityAttribute()?.uid() }
             .mapNotNull { uid ->
-                d2.dataElementModule().dataElements().uid(uid).blockingGet()?.let { element ->
-                    uid to (element.displayFormName() ?: element.displayName() ?: uid)
-                }
+                val attribute = d2.trackedEntityModule().trackedEntityAttributes().uid(uid)
+                    .blockingGet()
+                    ?.takeUnless { it.valueType() in FILE_VALUE_TYPES }
+                    ?: return@mapNotNull null
+                val shown = valueDisplay.of(
+                    stored[uid]?.value(),
+                    attribute.valueType(),
+                    attribute.optionSet()?.uid(),
+                ) ?: return@mapNotNull null
+
+                uid to ProfileValue(label = attribute.formLabel(), value = shown)
             }
             .toMap()
-
-    /** Display names of the options of [dataElement], keyed by option code. */
-    private fun optionLabels(dataElement: String): Map<String, String> {
-        if (dataElement.isBlank()) return emptyMap()
-
-        val optionSet = d2.dataElementModule().dataElements()
-            .uid(dataElement)
-            .blockingGet()
-            ?.optionSetUid()
-            ?: return emptyMap()
-
-        return d2.optionModule().options()
-            .byOptionSetUid().eq(optionSet)
-            .blockingGet()
-            .mapNotNull { option ->
-                option.code()?.let { code -> code to (option.displayName() ?: code) }
-            }
-            .toMap()
-    }
-
-    private fun programStageName(programStage: String): String =
-        d2.programModule().programStages()
-            .uid(programStage)
-            .blockingGet()
-            ?.displayName()
-            .orEmpty()
-            .ifBlank { programStage }
-
-    private fun orgUnitName(orgUnit: String?): String =
-        orgUnit?.let {
-            d2.organisationUnitModule().organisationUnits().uid(it).blockingGet()?.displayName()
-        }.orEmpty()
-
-    /**
-     * Start and end of the selected academic year, taken from the school calendar. Returns
-     * null when the year cannot be resolved, which keeps the whole history visible instead
-     * of silently emptying the dashboard.
-     */
-    private suspend fun academicYearRange(academicYear: String?): ClosedRange<Date>? {
-        val year = academicYear?.takeIf { it.isNotBlank() } ?: return null
-        val configured = appConfigRepository.getSchoolCalendar()?.schoolCalendar
-            ?.filterNotNull()
-            ?.firstOrNull { entry ->
-                entry.academicYear?.let { it.label == year || it.code == year } == true
-            }
-            ?.academicYear
-            ?: return null
-        val start = parseDate(configured.startDate) ?: return null
-        val end = parseDate(configured.endDate) ?: return null
-
-        // The calendar names the last day, not its midnight: a record taken on it belongs.
-        return start..Date(end.time + ONE_DAY_MILLIS - 1)
-    }
-
-    private fun parseDate(value: String?): Date? = value
-        ?.takeIf { it.isNotBlank() }
-        ?.let { date -> runCatching { java.sql.Date.valueOf(date) as Date }.getOrNull() }
-
-    private fun Date?.inRange(range: ClosedRange<Date>?): Boolean = when {
-        range == null -> true
-        this == null -> false
-        else -> this in range
-    }
-
-    private fun Event.dataValue(dataElement: String): String? =
-        trackedEntityDataValues()?.find { it.dataElement() == dataElement }?.value()
-
-    override suspend fun getConfiguredProfile(
-        teiUid: String,
-        program: String,
-    ): ConfiguredProfile? = withContext(Dispatchers.IO) {
-        val profile = appConfigRepository.getAppConfig(program)?.profile
-            ?: return@withContext null
-
-        val attributes = attributeValues(teiUid)
-
-        ConfiguredProfile(
-            identity = identityOf(profile, attributes),
-            tabs = profile.tabs
-                ?.filterNotNull()
-                ?.sortedBy { it.order ?: Int.MAX_VALUE }
-                ?.mapNotNull { tab ->
-                    val panels = tab.components
-                        ?.filterNotNull()
-                        ?.sortedBy { it.order ?: Int.MAX_VALUE }
-                        ?.mapNotNull { component -> panelOf(component, teiUid, program, attributes) }
-                        .orEmpty()
-
-                    if (panels.isEmpty()) {
-                        null
-                    } else {
-                        ProfileTabContent(
-                            id = tab.id ?: tab.displayName.orEmpty(),
-                            title = tab.displayName.orEmpty(),
-                            panels = panels,
-                        )
-                    }
-                }
-                .orEmpty(),
-        )
-    }
-
-    /**
-     * Builds the header from the identity card configuration.
-     *
-     * Attributes with no value are left out of the joined text rather than contributing an empty
-     * gap, which is what keeps a name from reading as a stray separator when a middle name is
-     * missing.
-     */
-    private fun identityOf(
-        profile: Profile,
-        attributes: Map<String, String>,
-    ): ProfileIdentity {
-        val card = profile.identityCard
-
-        fun joined(attributeUids: List<String?>?, separator: String?): String =
-            attributeUids
-                ?.filterNotNull()
-                ?.mapNotNull { attributes[it]?.takeIf(String::isNotBlank) }
-                ?.joinToString(separator ?: " ")
-                .orEmpty()
-
-        return ProfileIdentity(
-            title = joined(card?.title?.attributes, card?.title?.separator),
-            subtitle = joined(card?.subtitle?.attributes, card?.subtitle?.separator),
-            photo = card?.photo?.attribute?.let { attributes[it] }?.takeIf(String::isNotBlank),
-            badges = card?.badges
-                ?.filterNotNull()
-                ?.sortedBy { it.order ?: Int.MAX_VALUE }
-                ?.mapNotNull { badge ->
-                    // Only a badge naming an attribute can be resolved here. The other sources
-                    // are derived elsewhere in the record and are left out rather than guessed.
-                    badge.variable
-                        ?.takeIf { badge.source == BADGE_SOURCE_ATTRIBUTE }
-                        ?.let { attributes[it] }
-                        ?.takeIf(String::isNotBlank)
-                }
-                .orEmpty(),
-        )
-    }
-
-    /**
-     * Reads one panel, or nothing when this version cannot draw what it asks for.
-     *
-     * A panel type the app does not know is skipped instead of failing the tab, so that a
-     * deployment configuring ahead of the app still gets the rest of the page.
-     */
-    private fun panelOf(
-        component: ProfileComponent,
-        teiUid: String,
-        program: String,
-        attributes: Map<String, String>,
-    ): ProfilePanel? {
-        val title = component.displayName.orEmpty()
-        val editable = component.editable == true
-
-        return when (component.type) {
-            COMPONENT_TEI_FORM -> ProfilePanel(
-                title = title,
-                kind = ProfilePanelKind.CARDS,
-                editable = editable,
-                target = null,
-                records = listOf(
-                    ProfileRecord(id = teiUid, sections = attributeSections(program, attributes)),
-                ),
-            )
-
-            COMPONENT_EVENT_CARDS, COMPONENT_EVENT_TABLE -> {
-                val stage = component.details?.programStage?.takeIf { it.isNotBlank() }
-                    ?: return null
-
-                ProfilePanel(
-                    title = title.ifBlank { programStageName(stage) },
-                    kind = if (component.type == COMPONENT_EVENT_TABLE) {
-                        ProfilePanelKind.TABLE
-                    } else {
-                        ProfilePanelKind.CARDS
-                    },
-                    editable = editable,
-                    target = stage,
-                    records = eventRecords(teiUid, program, stage, component.details.pageSize),
-                )
-            }
-
-            else -> null
-        }
-    }
-
-    /**
-     * The events of [programStage], newest first and limited to what the panel asked for.
-     *
-     * A history can hold thousands of records, so the configured page size is a limit and not a
-     * hint: reading them all to show ten would make the page wait on records nobody sees.
-     */
-    private fun eventRecords(
-        teiUid: String,
-        program: String,
-        programStage: String,
-        pageSize: Int?,
-    ): List<ProfileRecord> {
-        val labels = dataElementLabels(programStage)
-        val optionLabels = labels.keys.associateWith { optionLabels(it) }
-
-        return events(teiUid, program, programStage)
-            .sortedByDescending { it.eventDate() }
-            .let { events -> pageSize?.takeIf { it > 0 }?.let(events::take) ?: events }
-            .map { event ->
-                val values = event.trackedEntityDataValues()
-                    ?.mapNotNull { dataValue ->
-                        val uid = dataValue.dataElement() ?: return@mapNotNull null
-                        val raw = dataValue.value()?.takeIf(String::isNotBlank)
-                            ?: return@mapNotNull null
-
-                        uid to ProfileValue(
-                            label = labels[uid] ?: uid,
-                            value = optionLabels[uid]?.get(raw) ?: raw,
-                        )
-                    }
-                    ?.toMap()
-                    .orEmpty()
-
-                ProfileRecord(
-                    id = event.uid(),
-                    heading = event.eventDate()?.let { DateHelper.formatDateWithWeekDay(it.time) },
-                    sections = grouped(sections = stageSections(programStage), values = values),
-                )
-            }
-    }
-
-    /**
-     * The sections of [programStage], each with the data elements it holds in the order the
-     * section puts them in.
-     *
-     * The order comes from the section itself and not from the stage: the stage numbers its data
-     * elements across all of its sections at once, so reading that instead would show a section
-     * shuffled.
-     */
-    private fun stageSections(programStage: String): List<Pair<String?, List<String>>> =
-        d2.programModule().programStageSections()
-            .byProgramStageUid().eq(programStage)
-            .withDataElements()
-            .blockingGet()
-            .sortedBy { it.sortOrder() ?: Int.MAX_VALUE }
-            .map { section ->
-                section.displayName() to section.dataElements().orEmpty().map { it.uid() }
-            }
-
-    /** The attributes of [program], grouped as the program groups them. */
-    private fun attributeSections(
-        program: String,
-        attributes: Map<String, String>,
-    ): List<ProfileSection> {
-        val labels = attributeLabels(program)
-        val values = labels.mapNotNull { (uid, label) ->
-            attributes[uid]
-                ?.takeIf(String::isNotBlank)
-                ?.let { uid to ProfileValue(label = label, value = it) }
-        }.toMap()
 
         val sections = d2.programModule().programSections()
             .byProgramUid().eq(program)
             .withAttributes()
             .blockingGet()
             .sortedBy { it.sortOrder() ?: Int.MAX_VALUE }
-            .map { section ->
-                section.displayName() to section.attributes().orEmpty().map { it.uid() }
-            }
+            .map { section -> section.displayName() to section.attributes().orEmpty().map { it.uid() } }
 
-        return grouped(sections = sections, values = values)
+        val title = tei.trackedEntityType()?.let {
+            d2.trackedEntityModule().trackedEntityTypes().uid(it).blockingGet()?.displayName()
+        }.orEmpty()
+
+        return ProfilePanel(
+            title = title,
+            target = null,
+            records = listOf(ProfileRecord(id = tei.uid(), sections = grouped(sections, values))),
+        )
     }
+
+    /**
+     * The records of [stage], newest first, each showing the data elements marked "display in
+     * reports", or its school and date when the stage marks none.
+     */
+    private fun stagePanel(stage: String, events: List<Event>): ProfilePanel {
+        val reported = d2.stageDataElements(stage).filter { it.displayInReports }
+        val title = programStageName(stage)
+        // A section named like its stage would only repeat the card title above it.
+        val sections = stageSections(stage).map { (name, uids) -> name.takeUnless { it == title } to uids }
+
+        return ProfilePanel(
+            title = title,
+            target = stage,
+            records = events.filter { it.programStage() == stage }.map { event ->
+                val heading = event.eventDate()?.let { DateHelper.formatDateWithWeekDay(it.time) }
+                val record = if (reported.isEmpty()) {
+                    listOf(
+                        ProfileSection(
+                            title = null,
+                            values = listOf(
+                                ProfileValue(
+                                    label = resourceManager.getString(R.string.profile_school),
+                                    value = orgUnitName(event.organisationUnit()),
+                                ),
+                            ),
+                        ),
+                    )
+                } else {
+                    val values = reported.mapNotNull { element ->
+                        valueDisplay.of(event.dataValue(element.uid), element.valueType, element.optionSet)
+                            ?.let { element.uid to ProfileValue(label = element.label, value = it) }
+                    }.toMap()
+                    grouped(sections, values)
+                }
+
+                ProfileRecord(id = event.uid(), heading = heading, sections = record)
+            },
+        )
+    }
+
+    /**
+     * The sections of [stage], each with the data elements it holds in the order the section
+     * puts them in.
+     */
+    private fun stageSections(stage: String): List<Pair<String?, List<String>>> =
+        d2.programModule().programStageSections()
+            .byProgramStageUid().eq(stage)
+            .withDataElements()
+            .blockingGet()
+            .sortedBy { it.sortOrder() ?: Int.MAX_VALUE }
+            .map { section -> section.displayName() to section.dataElements().orEmpty().map { it.uid() } }
 
     /**
      * Lays [values] out in [sections], keeping the order each section states.
      *
-     * What no section claims is not dropped: it is gathered into one untitled group at the end,
-     * so a value the configuration forgot to place still reaches whoever is reading the record.
-     * An empty section is left out rather than shown as a heading over nothing.
+     * What no section claims is not dropped: it is gathered into one untitled group at the end. An
+     * empty section is left out rather than shown as a heading over nothing.
      */
     private fun grouped(
         sections: List<Pair<String?, List<String>>>,
@@ -581,57 +370,36 @@ class TeiProfileRepositoryImpl @Inject constructor(
 
         val claimed = sections.flatMap { (_, uids) -> uids }.toSet()
         val grouped = sections.mapNotNull { (title, uids) ->
-            val sectionValues = uids.mapNotNull { values[it] }
-            sectionValues.takeIf { it.isNotEmpty() }
+            uids.mapNotNull { values[it] }
+                .takeIf { it.isNotEmpty() }
                 ?.let { ProfileSection(title = title, values = it) }
         }
         val unclaimed = values.filterKeys { it !in claimed }.values.toList()
 
-        return if (unclaimed.isEmpty()) {
-            grouped
-        } else {
-            grouped + ProfileSection(title = null, values = unclaimed)
-        }
+        return if (unclaimed.isEmpty()) grouped else grouped + ProfileSection(title = null, values = unclaimed)
     }
 
-    /** The attribute values of the person, keyed by attribute uid. */
-    private fun attributeValues(teiUid: String): Map<String, String> =
-        d2.trackedEntityModule().trackedEntityAttributeValues()
-            .byTrackedEntityInstance().eq(teiUid)
-            .blockingGet()
-            .mapNotNull { value ->
-                val uid = value.trackedEntityAttribute() ?: return@mapNotNull null
-                val raw = value.value()?.takeIf(String::isNotBlank) ?: return@mapNotNull null
-                uid to raw
-            }
-            .toMap()
+    private fun programStageName(stage: String): String =
+        d2.programModule().programStages().uid(stage).blockingGet()?.displayName()
+            .orEmpty()
+            .ifBlank { stage }
 
-    /** The attributes the program shows, in the order it configures, keyed by uid. */
-    private fun attributeLabels(program: String): Map<String, String> =
-        d2.programModule().programTrackedEntityAttributes()
-            .byProgram().eq(program)
-            .byDisplayInList().isTrue
-            .blockingGet()
-            .sortedBy { it.sortOrder() ?: Int.MAX_VALUE }
-            .mapNotNull { programAttribute ->
-                val uid = programAttribute.trackedEntityAttribute()?.uid()
-                    ?: return@mapNotNull null
-                val attribute = d2.trackedEntityModule().trackedEntityAttributes()
-                    .uid(uid)
-                    .blockingGet()
+    private fun orgUnitName(orgUnit: String?): String =
+        orgUnit?.let {
+            d2.organisationUnitModule().organisationUnits().uid(it).blockingGet()?.displayName()
+        }.orEmpty()
 
-                uid to (attribute?.displayFormName() ?: attribute?.displayName() ?: uid)
-            }
-            .toMap()
+    private fun TrackedEntityAttribute.formLabel(): String =
+        displayFormName()?.takeIf { it.isNotBlank() } ?: displayName().orEmpty()
+
+    private fun Event.dataValue(dataElement: String): String? =
+        trackedEntityDataValues()?.find { it.dataElement() == dataElement }?.value()
+
+    /** A configured uid, or null when the setting is missing or blank. */
+    private fun String?.stage(): String? = this?.takeIf { it.isNotBlank() }
 
     private companion object {
-        const val BADGE_SOURCE_ATTRIBUTE = "ATTRIBUTE"
-        const val COMPONENT_TEI_FORM = "TEI_FORM"
-        const val COMPONENT_EVENT_CARDS = "EVENT_CARDS"
-        const val COMPONENT_EVENT_TABLE = "EVENT_TABLE"
-        const val ONE_DAY_MILLIS = 24 * 60 * 60 * 1000L
-
-        /** Filter codes a deployment may give the section, as the home filters accept them. */
-        val SECTION_CODES = listOf(Constants.SECTION, Constants.SECTION_CLASS, Constants.CLASS)
+        const val ABSENT_KEY = "absent"
+        val FILE_VALUE_TYPES = setOf(ValueType.IMAGE, ValueType.FILE_RESOURCE)
     }
 }

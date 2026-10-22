@@ -39,6 +39,7 @@ import org.saudigitus.semis.core.data.repository.TeiTransferRepository
 import org.saudigitus.semis.core.data.repository.TeiTransferRepositoryImpl
 import org.saudigitus.semis.core.data.rules.RuleEngineRepository
 import org.saudigitus.semis.core.data.utils.Transformations
+import org.saudigitus.semis.core.data.utils.ValueDisplay
 import javax.inject.Singleton
 
 @Module
@@ -121,10 +122,14 @@ object DataModule {
         d2: D2,
         appConfigRepository: AppConfigRepository,
         transformations: Transformations,
+        valueDisplay: ValueDisplay,
+        resourceManager: ResourceManager,
     ): TeiProfileRepository = TeiProfileRepositoryImpl(
         d2 = d2,
         appConfigRepository = appConfigRepository,
         transformations = transformations,
+        valueDisplay = valueDisplay,
+        resourceManager = resourceManager,
     )
 
     @Provides
@@ -136,6 +141,7 @@ object DataModule {
         transformations: Transformations,
         networkUtils: NetworkUtils,
         resourceManager: ResourceManager,
+        valueDisplay: ValueDisplay,
     ): TeiTransferRepository = TeiTransferRepositoryImpl(
         d2 = d2,
         appConfigRepository = appConfigRepository,
@@ -143,6 +149,7 @@ object DataModule {
         transformations = transformations,
         networkUtils = networkUtils,
         resourceManager = resourceManager,
+        valueDisplay = valueDisplay,
     )
 
     @Provides

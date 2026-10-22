@@ -5,6 +5,7 @@ import kotlinx.coroutines.withContext
 import org.dhis2.commons.network.NetworkUtils
 import org.dhis2.commons.resources.ResourceManager
 import org.hisp.dhis.android.core.D2
+import org.hisp.dhis.android.core.arch.repositories.scope.RepositoryScope
 import org.hisp.dhis.android.core.event.Event
 import org.hisp.dhis.android.core.common.State
 import org.hisp.dhis.android.core.event.EventStatus
@@ -23,11 +24,15 @@ import org.saudigitus.semis.core.data.model.transfer.TeiTransferMetadata
 import org.saudigitus.semis.core.data.model.transfer.TeiTransferRequest
 import org.saudigitus.semis.core.data.model.transfer.TeiTransferResult
 import org.saudigitus.semis.core.data.model.transfer.TransferDecision
+import org.saudigitus.semis.core.data.model.transfer.TransferDetail
 import org.saudigitus.semis.core.data.model.transfer.TransferStatus
-import org.saudigitus.semis.core.data.model.transfer.learnerIdentity
+import org.saudigitus.semis.core.data.model.person.identity
 import org.saudigitus.semis.core.data.model.transfer.transferStatusOf
 import org.saudigitus.semis.core.data.model.transfer.transferableProgramStages
+import org.saudigitus.semis.core.data.utils.StageDataElement
 import org.saudigitus.semis.core.data.utils.Transformations
+import org.saudigitus.semis.core.data.utils.ValueDisplay
+import org.saudigitus.semis.core.data.utils.stageDataElements
 import org.saudigitus.semis.core.utils.DateHelper
 import java.util.Date
 import javax.inject.Inject
@@ -39,6 +44,7 @@ class TeiTransferRepositoryImpl @Inject constructor(
     private val transformations: Transformations,
     private val networkUtils: NetworkUtils,
     private val resourceManager: ResourceManager,
+    private val valueDisplay: ValueDisplay,
 ) : TeiTransferRepository {
 
     override suspend fun getTransferMetadata(
@@ -99,11 +105,13 @@ class TeiTransferRepositoryImpl @Inject constructor(
         val config = enabledConfig(program) ?: return@withContext emptyList()
         val transfer = config.transfer ?: return@withContext emptyList()
 
+        val columns = transferColumns(config, transfer)
+
         transferEvents(program, transfer)
             .byOrganisationUnitUid().eq(currentOrgUnit)
             .blockingGet()
             .asSequence()
-            .mapNotNull { event -> teiTransfer(event, program, config, transfer) }
+            .mapNotNull { event -> teiTransfer(event, program, columns, transfer) }
             .sortedByDescending { it.requestedAt }
             .toList()
     }
@@ -115,12 +123,14 @@ class TeiTransferRepositoryImpl @Inject constructor(
         val config = enabledConfig(program) ?: return@withContext emptyList()
         val transfer = config.transfer ?: return@withContext emptyList()
 
+        val columns = transferColumns(config, transfer)
+
         transferEvents(program, transfer)
             .blockingGet()
             .asSequence()
             .filter { event -> event.organisationUnit() != currentOrgUnit }
             .filter { event -> event.dataValue(transfer.destinySchool) == currentOrgUnit }
-            .mapNotNull { event -> teiTransfer(event, program, config, transfer) }
+            .mapNotNull { event -> teiTransfer(event, program, columns, transfer) }
             .sortedByDescending { it.requestedAt }
             .toList()
     }
@@ -420,7 +430,7 @@ class TeiTransferRepositoryImpl @Inject constructor(
     private fun teiTransfer(
         event: Event,
         program: String,
-        config: SEMISConfigItem,
+        columns: TransferColumns,
         transfer: Transfer,
     ): TeiTransfer? {
         val enrollmentUid = event.enrollment() ?: return null
@@ -435,7 +445,7 @@ class TeiTransferRepositoryImpl @Inject constructor(
             .one()
             .blockingGet()
             ?: return null
-        val identity = transformations.transform(tei, program, enrollment).learnerIdentity()
+        val identity = transformations.transform(tei, program, enrollment).identity()
         val originOrgUnit = event.organisationUnit().orEmpty()
         val destinationOrgUnit = event.dataValue(transfer.destinySchool).orEmpty()
 
@@ -444,48 +454,89 @@ class TeiTransferRepositoryImpl @Inject constructor(
             teiUid = teiUid,
             enrollmentUid = enrollmentUid,
             recordName = identity.name,
-            firstAttributeValue = identity.firstAttributeValue,
+            identifier = identity.identifier,
+            photoPath = identity.photoPath,
+            tags = identity.tags,
             originOrgUnit = originOrgUnit,
             originSchoolName = orgUnitName(originOrgUnit),
             destinationOrgUnit = destinationOrgUnit,
             destinationSchoolName = orgUnitName(destinationOrgUnit),
-            grade = learnerGrade(enrollmentUid, config),
-            reason = transferReason(event, transfer),
+            details = transferDetails(event, enrollmentUid, columns, transfer),
             status = transfer.transferStatusOf(event.dataValue(transfer.status)),
             requestedAt = event.created() ?: event.eventDate() ?: Date(),
         )
     }
 
     /**
-     * The class the learner is in, read from the registration event the same way the
-     * listings read it. Blank when the configuration does not name the data element.
+     * The columns the web shows for a request, so both apps list the same values: those of the
+     * registration stage, then those of the transfer stage it does not already show, each only
+     * when its stage displays it in reports. The status is left out, as it is the pill.
+     *
+     * The origin is always shown, whatever the flag says: it is the school the request was raised
+     * in, which the event itself records, so it is never missing. It keeps the place and the label
+     * of the origin school data element when the stage has one.
      */
-    private fun learnerGrade(enrollmentUid: String, config: SEMISConfigItem): String {
-        val gradeDataElement = config.registration?.grade?.takeIf { it.isNotBlank() }
-            ?: return ""
+    private fun transferColumns(config: SEMISConfigItem, transfer: Transfer): TransferColumns {
         val registrationStage = config.registration?.programStage?.takeIf { it.isNotBlank() }
-            ?: return ""
-
-        return d2.eventModule().events()
-            .byEnrollmentUid().eq(enrollmentUid)
-            .byProgramStageUid().eq(registrationStage)
-            .byDeleted().isFalse
-            .withTrackedEntityDataValues()
-            .blockingGet()
-            .firstNotNullOfOrNull { event -> event.dataValue(gradeDataElement) }
+        val registration = registrationStage
+            ?.let { d2.stageDataElements(it) }
             .orEmpty()
+            .filter { it.displayInReports }
+        val shown = registration.map { it.uid }.toSet()
+        val request = d2.stageDataElements(transfer.programStage.orEmpty())
+            .filter { it.displayInReports || it.uid == transfer.originSchool }
+            .filterNot { it.uid in shown || it.uid == transfer.status }
+        val origin = StageDataElement(
+            uid = ORIGIN_COLUMN,
+            label = resourceManager.getString(R.string.transfer_origin_school),
+            valueType = null,
+            optionSet = null,
+            displayInReports = true,
+        )
+
+        return TransferColumns(
+            registrationStage = registrationStage,
+            registration = registration,
+            request = if (request.any { it.uid == transfer.originSchool }) request else listOf(origin) + request,
+        )
     }
 
-    /**
-     * Why the learner is being sent. The configuration names the destination and the
-     * status but not the reason, so it is whatever else the request carries.
-     */
-    private fun transferReason(event: Event, transfer: Transfer): String =
-        event.trackedEntityDataValues()
-            ?.filterNot { it.dataElement() == transfer.destinySchool }
-            ?.filterNot { it.dataElement() == transfer.status }
-            ?.firstNotNullOfOrNull { it.value()?.takeIf(String::isNotBlank) }
-            .orEmpty()
+    private fun transferDetails(
+        event: Event,
+        enrollmentUid: String,
+        columns: TransferColumns,
+        transfer: Transfer,
+    ): List<TransferDetail> {
+        val registrationEvent = columns.registrationStage?.let { stage ->
+            d2.eventModule().events()
+                .byEnrollmentUid().eq(enrollmentUid)
+                .byProgramStageUid().eq(stage)
+                .byDeleted().isFalse
+                .withTrackedEntityDataValues()
+                .orderByTimeline(RepositoryScope.OrderByDirection.DESC)
+                .blockingGet()
+                .firstOrNull()
+        }
+
+        return columns.registration.map { column -> column.detail(registrationEvent) } +
+            columns.request.map { column ->
+                // As on the web, the origin is where the request was raised: the data element is
+                // optional and requests raised on the app leave it empty.
+                if (column.uid == transfer.originSchool || column.uid == ORIGIN_COLUMN) {
+                    TransferDetail(
+                        label = column.label,
+                        value = orgUnitName(event.organisationUnit().orEmpty()).ifBlank { null },
+                    )
+                } else {
+                    column.detail(event)
+                }
+            }
+    }
+
+    private fun StageDataElement.detail(event: Event?): TransferDetail = TransferDetail(
+        label = label,
+        value = valueDisplay.of(event?.dataValue(uid), valueType, optionSet),
+    )
 
     private fun orgUnitName(orgUnit: String): String =
         orgUnit.takeIf { it.isNotBlank() }
@@ -523,3 +574,13 @@ class TeiTransferRepositoryImpl @Inject constructor(
         return transfer
     }
 }
+
+/** What [TeiTransferRepositoryImpl] shows for every request of a list, read once per list. */
+private data class TransferColumns(
+    val registrationStage: String?,
+    val registration: List<StageDataElement>,
+    val request: List<StageDataElement>,
+)
+
+/** Stands for the origin column when the transfer stage has no origin school data element. */
+private const val ORIGIN_COLUMN = "origin"

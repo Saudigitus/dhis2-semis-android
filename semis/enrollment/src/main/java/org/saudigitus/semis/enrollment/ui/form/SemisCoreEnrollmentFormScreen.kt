@@ -76,7 +76,7 @@ fun SemisCoreEnrollmentFormScreen(
     when {
         state.completed -> {
             EnrollmentSummaryScreen(
-                learnerAttributes = state.learnerAttributes,
+                learnerIdentity = state.learnerIdentity,
                 registrationDetails = state.registrationDetails,
                 teiUid = state.tei.orEmpty(),
                 stepCount = state.plan.stepCount,

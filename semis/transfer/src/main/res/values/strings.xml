@@ -41,11 +41,6 @@
         <item quantity="one">%1$d year ago</item>
         <item quantity="other">%1$d years ago</item>
     </plurals>
-
-    <string name="transfer_destination_school">Destination school</string>
-    <string name="transfer_origin_school">Origin school</string>
-    <string name="transfer_grade">Grade</string>
-    <string name="transfer_reason">Reason of transfer</string>
     <string name="transfer_detail_missing">Not recorded</string>
 
     <string name="no_outgoing_transfers">No transfers requested by this school yet.</string>

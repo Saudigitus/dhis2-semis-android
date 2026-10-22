@@ -17,7 +17,6 @@ import org.saudigitus.semis.core.data.model.transfer.TeiTransfer
 import org.saudigitus.semis.core.data.model.transfer.TransferDecision
 import org.saudigitus.semis.core.designsystem.components.NoResults
 import org.saudigitus.semis.transfer.R
-import org.saudigitus.semis.transfer.model.TransferTab
 import java.util.Date
 
 /**
@@ -27,7 +26,6 @@ import java.util.Date
 @Composable
 internal fun TransferList(
     transfers: List<TeiTransfer>,
-    tab: TransferTab,
     isLoading: Boolean,
     isFiltered: Boolean,
     processingEventUids: Set<String>,
@@ -63,7 +61,6 @@ internal fun TransferList(
             items(transfers, key = { it.eventUid }) { transfer ->
                 TransferListItem(
                     transfer = transfer,
-                    tab = tab,
                     now = now,
                     processing = transfer.eventUid in processingEventUids,
                     onDecide = onDecide?.let { decide ->

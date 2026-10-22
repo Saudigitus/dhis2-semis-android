@@ -15,14 +15,15 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import org.hisp.dhis.mobile.ui.designsystem.component.AdditionalInfoItem
 import org.saudigitus.semis.core.data.model.SearchTeiModel
-import org.saudigitus.semis.core.data.model.transfer.learnerIdentity
+import org.saudigitus.semis.core.data.model.person.identity
 import org.saudigitus.semis.core.designsystem.components.avatar.AvatarInitials
 import org.saudigitus.semis.core.designsystem.theme.SemisPalette
 import org.saudigitus.semis.core.designsystem.theme.semisSoftShadow
 
 /**
  * Tracked entity row shared by the listing screens. Reuses the learner card introduced by the
- * transfer module and lists the attributes mapped for the record under the name.
+ * transfer module: the name and the identifier read with the shared rule, the coloured tags, and
+ * under them the other attributes the program shows in the list.
  */
 @Composable
 fun TeiLearnerCard(
@@ -34,15 +35,17 @@ fun TeiLearnerCard(
     trailing: (@Composable () -> Unit)? = null,
     supportingContent: (@Composable ColumnScope.() -> Unit)? = null,
 ) {
-    val identity = tei.learnerIdentity()
+    val identity = tei.identity()
     val uid = tei.uid()
     val attributes = additionalInfo
-        .filter { it.value.isNotBlank() && it.value != identity.firstAttributeValue }
+        .filter { it.value.isNotBlank() }
         .take(maxAdditionalInfo)
 
     LearnerCard(
         name = identity.name,
-        supportingText = identity.firstAttributeValue,
+        supportingText = identity.identifier,
+        photoPath = identity.photoPath,
+        tags = identity.tags,
         modifier = modifier.semisSoftShadow(CardShape),
         avatarColor = AvatarInitials.colorFor(uid),
         containerColor = SemisPalette.CardSurface,

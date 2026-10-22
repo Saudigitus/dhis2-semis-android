@@ -15,28 +15,28 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import org.saudigitus.semis.core.data.model.profile.ProfileTabKind
 import org.saudigitus.semis.core.designsystem.components.ToolbarActionState
+import org.saudigitus.semis.core.designsystem.components.avatar.AvatarInitials
+import org.saudigitus.semis.core.designsystem.components.cards.LearnerCard
 import org.saudigitus.semis.core.designsystem.components.model.ToolbarHeaders
 import org.saudigitus.semis.core.designsystem.components.notice.InlineNotice
 import org.saudigitus.semis.core.designsystem.components.tabs.SegmentedTabItem
 import org.saudigitus.semis.core.designsystem.components.tabs.SegmentedTabRow
 import org.saudigitus.semis.core.designsystem.templates.TopAppBarScaffold
+import org.saudigitus.semis.core.designsystem.theme.SemisPalette
 import org.saudigitus.semis.core.designsystem.theme.dark_warning
 import org.saudigitus.semis.core.designsystem.theme.semisScreenBackground
 import org.saudigitus.semis.enrollment.R
-import org.saudigitus.semis.enrollment.ui.profile.components.ConfiguredProfileSection
-import org.saudigitus.semis.enrollment.ui.profile.components.StudentAttendanceSection
-import org.saudigitus.semis.enrollment.ui.profile.components.StudentDetailsSection
-import org.saudigitus.semis.enrollment.ui.profile.components.StudentPerformanceSection
+import org.saudigitus.semis.enrollment.ui.profile.components.ProfileSummary
+import org.saudigitus.semis.enrollment.ui.profile.components.ProfileTabSection
 
 /**
- * Dashboard of one learner: who they are, then the socio-economic, attendance and
- * performance data captured for them under the selection made on the home screen.
+ * The page of one person for the academic year chosen in the home filters.
  *
- * The page is topped by the same toolbar as every other screen of the app. It carried a band of
- * its own before, with the selection repeated and counters that only made sense for a learner
- * being read for attendance, which made the one page that serves any registered person look
- * unlike the rest of the app.
+ * It is built from the program metadata by the rules the web shares: who the person is at the
+ * top, the figures of the year, then the tabs of the modules the program enables. The toolbar is
+ * the one every other screen of the app uses.
  */
 @Composable
 fun StudentProfileScreen(
@@ -47,14 +47,8 @@ fun StudentProfileScreen(
 
     TopAppBarScaffold(
         toolbarHeaders = ToolbarHeaders(
-            // The deployment says which attributes name the person and how they are joined;
-            // the derived name is what a deployment that has not configured that still gets.
-            title = state.configured?.identity?.title.orEmpty()
-                .ifBlank { profile?.name.orEmpty() }
-                .ifBlank { stringResource(R.string.profile_unknown_learner) },
-            subtitle = state.configured?.identity?.subtitle.orEmpty()
-                .ifBlank { profile?.systemId.orEmpty() }
-                .takeIf { it.isNotBlank() },
+            title = stringResource(R.string.profile_title),
+            subtitle = profile?.academicYear?.let { stringResource(R.string.profile_academic_year, it) },
         ),
         // Nothing on this page is filtered, so the toolbar carries sending and nothing else.
         toolbarActionState = ToolbarActionState(
@@ -90,55 +84,47 @@ fun StudentProfileScreen(
                         bottom = 24.dp,
                     ),
                 ) {
-                    // What the deployment configured is what the page shows. The fixed tabs remain
-                    // for a deployment that has configured nothing, so upgrading the app does not
-                    // empty a page that was working.
-                    if (state.isConfigured) {
+                    item {
+                        // The same card the lists use, so the person reads the same here as on
+                        // every list: photo or initials, name, identifier and tags.
+                        LearnerCard(
+                            name = profile.identity.name,
+                            supportingText = profile.identity.identifier,
+                            photoPath = profile.identity.photoPath,
+                            tags = profile.identity.tags,
+                            avatarColor = AvatarInitials.colorFor(state.teiUid),
+                            containerColor = SemisPalette.CardSurface,
+                            modifier = Modifier.padding(bottom = 12.dp),
+                        )
+                    }
+
+                    if (profile.summary.isNotEmpty()) {
                         item {
-                            SegmentedTabRow(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(bottom = 12.dp),
-                                tabs = configuredTabs(state),
-                                selectedId = state.currentTab?.id.orEmpty(),
-                                onSelect = { tab ->
-                                    onEvent(StudentProfileEvent.SelectConfiguredTab(tab.id))
-                                },
+                            ProfileSummary(
+                                figures = profile.summary,
+                                modifier = Modifier.padding(bottom = 12.dp),
                             )
                         }
+                    }
 
-                        item {
-                            state.currentTab?.let { tab -> ConfiguredProfileSection(tab = tab) }
-                        }
-                    } else {
-                        item {
-                            SegmentedTabRow(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(bottom = 12.dp),
-                                tabs = profileTabs(state),
-                                selectedId = state.selectedTab.name,
-                                onSelect = { tab ->
-                                    onEvent(
-                                        StudentProfileEvent.SelectTab(
-                                            StudentProfileTab.valueOf(tab.id),
-                                        ),
-                                    )
-                                },
-                            )
-                        }
+                    item {
+                        SegmentedTabRow(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 12.dp),
+                            tabs = profile.tabs.map { tab ->
+                                SegmentedTabItem(id = tab.kind.name, label = tabTitle(tab.kind))
+                            },
+                            selectedId = state.currentTab?.kind?.name.orEmpty(),
+                            onSelect = { tab ->
+                                onEvent(StudentProfileEvent.SelectTab(ProfileTabKind.valueOf(tab.id)))
+                            },
+                        )
+                    }
 
-                        item {
-                            when (state.selectedTab) {
-                                StudentProfileTab.DETAILS -> StudentDetailsSection(profile = profile)
-                                StudentProfileTab.ATTENDANCE -> StudentAttendanceSection(
-                                    history = profile.attendance,
-                                )
-
-                                StudentProfileTab.PERFORMANCE -> StudentPerformanceSection(
-                                    subjects = state.scoredSubjects,
-                                )
-                            }
+                    item {
+                        state.currentTab?.let { tab ->
+                            ProfileTabSection(tab = tab, academicYear = profile.academicYear)
                         }
                     }
                 }
@@ -147,29 +133,14 @@ fun StudentProfileScreen(
     }
 }
 
+/** The tab names, the same names the menu and the web use, in the user's language. */
 @Composable
-private fun profileTabs(state: StudentProfileUiState): List<SegmentedTabItem> = listOf(
-    SegmentedTabItem(
-        id = StudentProfileTab.DETAILS.name,
-        label = stringResource(R.string.profile_tab_details),
-    ),
-    SegmentedTabItem(
-        id = StudentProfileTab.ATTENDANCE.name,
-        label = stringResource(R.string.profile_tab_attendance),
-        badge = state.profile?.attendance?.recordedDays
-            ?.takeIf { it > 0 }
-            ?.toString(),
-    ),
-    SegmentedTabItem(
-        id = StudentProfileTab.PERFORMANCE.name,
-        label = stringResource(R.string.profile_tab_performance),
-        badge = state.scoredSubjects.size.takeIf { it > 0 }?.toString(),
-    ),
+private fun tabTitle(kind: ProfileTabKind): String = stringResource(
+    when (kind) {
+        ProfileTabKind.PERSONAL_DETAILS -> R.string.profile_tab_personal_details
+        ProfileTabKind.ATTENDANCE -> R.string.profile_tab_attendance
+        ProfileTabKind.PERFORMANCE -> R.string.profile_tab_performance
+        ProfileTabKind.FINAL_RESULT -> R.string.profile_tab_final_result
+        ProfileTabKind.TRANSFER -> R.string.profile_tab_transfer
+    },
 )
-
-/** The tabs the deployment configured, in the order it put them in. */
-@Composable
-private fun configuredTabs(state: StudentProfileUiState): List<SegmentedTabItem> =
-    state.configured?.tabs.orEmpty().map { tab ->
-        SegmentedTabItem(id = tab.id, label = tab.title)
-    }

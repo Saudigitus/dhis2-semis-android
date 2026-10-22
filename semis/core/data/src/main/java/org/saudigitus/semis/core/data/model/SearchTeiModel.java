@@ -31,6 +31,8 @@ public class SearchTeiModel {
     private String profilePicturePath;
     private String defaultTypeIcon;
     private String header;
+    @Nullable
+    private org.saudigitus.semis.core.data.model.person.PersonIdentity personIdentity;
 
     private Enrollment selectedEnrollment;
     private List<Enrollment> enrollments;
@@ -145,6 +147,15 @@ public class SearchTeiModel {
     @Nullable
     public String getHeader() {
         return header;
+    }
+
+    @Nullable
+    public org.saudigitus.semis.core.data.model.person.PersonIdentity getPersonIdentity() {
+        return personIdentity;
+    }
+
+    public void setPersonIdentity(@Nullable org.saudigitus.semis.core.data.model.person.PersonIdentity personIdentity) {
+        this.personIdentity = personIdentity;
     }
 
     public void setCurrentEnrollment(Enrollment enrollment) {

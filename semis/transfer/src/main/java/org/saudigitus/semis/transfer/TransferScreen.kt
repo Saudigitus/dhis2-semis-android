@@ -144,7 +144,6 @@ fun TransferScreen(
 
                 TransferList(
                     transfers = state.visibleTransfers,
-                    tab = state.selectedTab,
                     isLoading = state.isLoadingTab,
                     isFiltered = state.statusFilter != null,
                     processingEventUids = state.processingEventUids,

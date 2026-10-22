@@ -7,7 +7,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import org.saudigitus.semis.core.data.model.SearchTeiModel
-import org.saudigitus.semis.core.data.model.transfer.learnerIdentity
+import org.saudigitus.semis.core.data.model.person.identity
 import org.saudigitus.semis.core.designsystem.attendance.AttendanceButtonState
 import org.saudigitus.semis.core.designsystem.attendance.model.AttendanceButtonModel
 import org.saudigitus.semis.core.designsystem.components.avatar.AvatarInitials
@@ -31,12 +31,14 @@ internal fun AttendanceStudentCard(
     onStatusSelect: (AttendanceButtonModel) -> Unit,
     reasonContent: (@Composable ColumnScope.() -> Unit)? = null,
 ) {
-    val identity = learner.learnerIdentity()
+    val identity = learner.identity()
     val teiUid = learner.uid()
 
     LearnerCard(
         name = identity.name,
-        supportingText = identity.firstAttributeValue,
+        supportingText = identity.identifier,
+        photoPath = identity.photoPath,
+        tags = identity.tags,
         modifier = modifier
             .softShadow(RoundedCornerShape(20.dp), 15.dp),
         avatarColor = AvatarInitials.colorFor(teiUid),

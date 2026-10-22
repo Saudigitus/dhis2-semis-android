@@ -29,7 +29,7 @@ import androidx.compose.ui.unit.dp
 import org.saudigitus.campaign.core.form.R as FormRes
 import org.saudigitus.campaign.core.form.ui.component.FormStepHeader
 import org.saudigitus.campaign.core.form.ui.state.FormStepProgress
-import org.saudigitus.semis.core.data.model.transfer.learnerIdentity
+import org.saudigitus.semis.core.data.model.person.PersonIdentity
 import org.saudigitus.semis.core.designsystem.components.avatar.AvatarInitials
 import org.saudigitus.semis.core.designsystem.components.buttons.PrimaryActionButton
 import org.saudigitus.semis.core.designsystem.components.cards.DetailRows
@@ -47,7 +47,7 @@ import org.saudigitus.semis.enrollment.R
  * would otherwise have to go and look up: who the learner now is, read exactly as the listings
  * read them, and what the registration stage recorded about them.
  *
- * @param learnerAttributes everything captured about the learner, in configured order.
+ * @param learnerIdentity who the learner now is, read from the saved record as the lists read it.
  * @param registrationDetails what the registration stage recorded.
  * @param teiUid the record just created, which decides the colour of its avatar.
  * @param stepCount how many steps the user filled in, this summary excluded.
@@ -56,7 +56,7 @@ import org.saudigitus.semis.enrollment.R
  */
 @Composable
 internal fun EnrollmentSummaryScreen(
-    learnerAttributes: List<Pair<String, String>>,
+    learnerIdentity: PersonIdentity?,
     registrationDetails: List<Pair<String, String>>,
     teiUid: String,
     stepCount: Int,
@@ -104,17 +104,13 @@ internal fun EnrollmentSummaryScreen(
                 )
             }
 
-            if (learnerAttributes.isNotEmpty()) {
+            if (learnerIdentity != null) {
                 item {
-                    // The same reading of a learner the listings use, so the person just enrolled
-                    // is recognised here exactly as they will be on the list.
-                    val identity = learnerIdentity(learnerAttributes) {
-                        learnerAttributes.firstOrNull()?.second.orEmpty()
-                    }
-
                     LearnerCard(
-                        name = identity.name,
-                        supportingText = identity.firstAttributeValue,
+                        name = learnerIdentity.name,
+                        supportingText = learnerIdentity.identifier,
+                        photoPath = learnerIdentity.photoPath,
+                        tags = learnerIdentity.tags,
                         avatarColor = AvatarInitials.colorFor(teiUid),
                         containerColor = SemisPalette.CardSurface,
                     )

@@ -7,4 +7,8 @@
     <string name="transfer_record_required">Deve ser seleccionado pelo menos um registo</string>
     <string name="transfer_already_pending">Este registo já tem uma transferência à espera de decisão</string>
     <string name="transfer_incoming_download_failed">Não foi possível transferir os pedidos recebidos: %1$s</string>
+    <string name="value_yes">Sim</string>
+    <string name="value_no">Não</string>
+    <string name="profile_school">Escola</string>
+    <string name="transfer_origin_school">Escola de origem</string>
 </resources>
