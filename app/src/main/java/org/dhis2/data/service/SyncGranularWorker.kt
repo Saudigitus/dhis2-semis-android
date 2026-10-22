@@ -68,7 +68,7 @@ class SyncGranularWorker(
         val conflictType = inputData.getString(CONFLICT_TYPE)?.let { ConflictType.valueOf(it) }
 
         triggerNotification(
-            title = applicationContext.getString(R.string.app_name),
+            title = applicationContext.getString(R.string.launcher_name),
             content = applicationContext.getString(R.string.syncing_data),
             progress = 0,
         )

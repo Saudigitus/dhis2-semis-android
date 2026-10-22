@@ -66,8 +66,16 @@ val getBranchName by extra {
 }
 
 base {
-    archivesName.set("dhis2-v" + libs.versions.vName.get())
+    archivesName.set("SEMIS-" + libs.versions.semis.get())
 }
+
+/**
+ * The channel a build belongs to, read from the SEMIS version: a release candidate such as
+ * 2.1.0-rc4 installs as "SEMIS TEST" beside the released "SEMIS", and development builds as
+ * "SEMIS Dev". Each channel has its own package, so they never update one another.
+ */
+val semisVersion: String = libs.versions.semis.get()
+val isReleaseCandidate = Regex("""-rc\d+$""").containsMatchIn(semisVersion)
 
 android {
 
@@ -204,12 +212,23 @@ android {
             // custom application suffix which allows to
             // install debug and release builds at the same time
             applicationIdSuffix = ".debug"
+            resValue("string", "launcher_name", "SEMIS Dev")
+            buildConfigField("String", "SEMIS_CHANNEL", "\"development\"")
 
             buildConfigField("int", "MATOMO_ID", "2")
             buildConfigField("String", "BUILD_DATE", "\"" + getBuildDate() + "\"")
             buildConfigField("String", "GIT_SHA", "\"" + getCommitHash() + "\"")
         }
         getByName("release") {
+            // A release candidate installs beside the released app, so a test round never
+            // replaces, or is replaced by, the SEMIS a school works with.
+            if (isReleaseCandidate) applicationIdSuffix = ".test"
+            resValue("string", "launcher_name", if (isReleaseCandidate) "SEMIS TEST" else "SEMIS")
+            buildConfigField(
+                "String",
+                "SEMIS_CHANNEL",
+                if (isReleaseCandidate) "\"release-candidate\"" else "\"release\"",
+            )
             isShrinkResources = true
             isMinifyEnabled = true
             proguardFiles(
@@ -250,6 +269,8 @@ android {
         dataBinding = true
         viewBinding = true
         buildConfig = true
+        // The launcher name of each channel is a build value, never a translated string.
+        resValues = true
     }
 
     configurations.all {
@@ -295,7 +316,8 @@ androidComponents {
                     else -> ""
                 }
 
-                output.outputFileName = "dhis2-v${libs.versions.vName.get()}$suffix.apk"
+                // SEMIS-<version>.apk for the SEMIS release; the inherited flavours keep a suffix.
+                output.outputFileName = "SEMIS-$semisVersion$suffix.apk"
             }
         }
 
