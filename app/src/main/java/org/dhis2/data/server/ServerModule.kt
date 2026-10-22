@@ -195,7 +195,7 @@ class ServerModule {
             return D2Configuration
                 .builder()
                 .appName(BuildConfig.APPLICATION_ID)
-                .appVersion(BuildConfig.VERSION_NAME)
+                .appVersion(clientVersion(BuildConfig.VERSION_NAME, BuildConfig.CAPTURE_VERSION))
                 .connectTimeoutInSeconds(10 * 60)
                 .readTimeoutInSeconds(10 * 60)
                 .networkInterceptors(interceptors)

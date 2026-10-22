@@ -37,7 +37,9 @@ import org.hisp.dhis.android.core.D2Manager
 class AnalyticsInterceptor(
     private val analyticHelper: AnalyticsHelper,
 ) : Interceptor {
-    private val appVersionName = BuildConfig.VERSION_NAME
+    // The usual DHIS2 Matomo site counts Capture App versions, so SEMIS reports the one it is
+    // built on rather than mixing its own version numbers into those statistics.
+    private val appVersionName = BuildConfig.CAPTURE_VERSION
 
     override fun intercept(chain: Interceptor.Chain): Response {
         val request = chain.request()
