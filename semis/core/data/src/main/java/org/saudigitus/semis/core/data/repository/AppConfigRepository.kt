@@ -11,8 +11,8 @@ interface AppConfigRepository {
     /**
      * What the deployment wants the app to do once a record is written.
      *
-     * Answers DEFAULT whenever the deployment has not said otherwise, including when the setting
-     * cannot be read at all: how records are sent must never be what stops them being captured.
+     * Answers AUTO whenever the deployment has not said otherwise, including when the setting cannot
+     * be read at all: how records are sent must never be what stops them being captured.
      */
     suspend fun getSyncMode(): SyncMode
     /**
