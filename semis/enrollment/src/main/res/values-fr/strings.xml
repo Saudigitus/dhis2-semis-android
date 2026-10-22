@@ -21,7 +21,7 @@
     <string name="enrollment_add_another">Ajouter un autre enregistrement</string>
     <string name="enrollment_back_to_list">Retour à la liste</string>
     <string name="enrollment_summary_registration">Détails de l\'inscription</string>
-    <string name="enrollment_summary_registration_hint">Où l\'élève a été inscrit et ce qui a été enregistré.</string>
+    <string name="enrollment_summary_registration_hint">Où cette personne a été inscrite et ce qui a été enregistré.</string>
     <string name="enrollment_summary_org_unit">École</string>
     <string name="enrollment_summary_date">Date d\'inscription</string>
     <plurals name="profile_panel_records">
