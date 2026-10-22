@@ -21,7 +21,7 @@
     <string name="enrollment_add_another">Adicionar outro registo</string>
     <string name="enrollment_back_to_list">Voltar à lista</string>
     <string name="enrollment_summary_registration">Dados da matrícula</string>
-    <string name="enrollment_summary_registration_hint">Onde o aluno foi matriculado e o que foi registado.</string>
+    <string name="enrollment_summary_registration_hint">Onde esta pessoa foi matriculada e o que foi registado.</string>
     <string name="enrollment_summary_org_unit">Escola</string>
     <string name="enrollment_summary_date">Data da matrícula</string>
     <plurals name="profile_panel_records">
