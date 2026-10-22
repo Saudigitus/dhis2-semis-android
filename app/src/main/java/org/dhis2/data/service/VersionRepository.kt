@@ -11,7 +11,6 @@ import androidx.core.net.toUri
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import org.dhis2.BuildConfig
-import org.dhis2.bindings.newVersion
 import org.hisp.dhis.android.core.D2
 import java.io.File
 
@@ -32,7 +31,7 @@ class VersionRepository(
             .latestAppVersion()
             .blockingGet()
             ?.version()
-            .takeIf { it?.newVersion(BuildConfig.VERSION_NAME) ?: false }
+            .takeIf { it.isNewerVersionCodeThan(BuildConfig.VERSION_CODE) }
 
     private suspend fun checkVersionUpdates(): String? {
         val versionNameOrNull = getLatestVersionInfo()
@@ -108,3 +107,13 @@ class VersionRepository(
         _newAppVersion.tryEmit("")
     }
 }
+
+/**
+ * Whether the latest version configured on the server is a later build than this one.
+ *
+ * The Android settings on the server hold the version code of the build to publish, a single
+ * number that always increases, because a version name such as 2.1.0-rc4 cannot be compared part
+ * by part. A value that is not a number offers no update, rather than failing.
+ */
+fun String?.isNewerVersionCodeThan(currentVersionCode: Long): Boolean =
+    this?.trim()?.toLongOrNull()?.let { it > currentVersionCode } ?: false
