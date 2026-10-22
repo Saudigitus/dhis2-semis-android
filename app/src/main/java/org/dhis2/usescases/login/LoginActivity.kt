@@ -97,7 +97,7 @@ class LoginActivity : ActivityGlobalAbstract() {
         setContent {
             DHIS2Theme {
                 LoginScreen(
-                    versionName = buildInfo(),
+                    versionName = "SEMIS ${buildInfo()}",
                     fromHome = fromHome,
                     onNavigateToHome = {
                         app().createUserComponent()

@@ -9,7 +9,7 @@ plugins {
 apply(from = "${project.rootDir}/jacoco/jacoco.gradle.kts")
 
 base {
-    archivesName.set("psm-v" + libs.versions.vName.get())
+    archivesName.set("psm-v" + libs.versions.captureVersion.get())
 }
 
 android {

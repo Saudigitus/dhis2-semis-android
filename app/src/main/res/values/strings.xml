@@ -638,6 +638,8 @@
         <item quantity="one">There is %s program with specific settings</item>
         <item quantity="other">There are %s programs with specific settings</item>
     </plurals>
-    <string name="about_datastore">Datastore Version: %s</string>
-    <string name="about_semis">SEMIS Version: %s</string>
+    <string name="about_semis" translatable="false">SEMIS Version: %s</string>
+    <string name="about_capture" translatable="false">Capture App Version: %s</string>
+    <string name="about_sdk_version" translatable="false">SDK Version: %s</string>
+    <string name="about_semis_source">SEMIS is built on DHIS2 Android Capture. Its source code is available on <a href="https://github.com/Saudigitus/dhis2-semis-android">GitHub</a>. DHIS2 Android Capture is licensed under the terms of the GNU General Public License as published by the Free Software Foundation - see <a href="http://www.gnu.org/licenses/gpl-3.0.html">http://www.gnu.org/licenses/gpl-3.0.html</a>.</string>
 </resources>

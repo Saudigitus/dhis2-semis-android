@@ -16,7 +16,7 @@ repositories {
 }
 
 base {
-    archivesName.set("psm-v" + libs.versions.vName.get())
+    archivesName.set("psm-v" + libs.versions.captureVersion.get())
 }
 android {
     namespace = "org.saudigitus.semis.core.form"
