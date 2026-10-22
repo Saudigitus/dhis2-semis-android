@@ -83,7 +83,7 @@ android {
         create("release") {
             keyAlias = System.getenv("SIGNING_KEY_ALIAS")
             keyPassword = System.getenv("SIGNING_KEY_PASSWORD")
-            System.getenv("SIGNING_KEYSTORE_PATH")?.let { path ->
+            System.getenv("SIGNING_KEYSTORE_PATH")?.takeIf { it.isNotBlank() }?.let { path ->
                 storeFile = file(path)
             }
             storePassword = System.getenv("SIGNING_STORE_PASSWORD")
@@ -96,7 +96,7 @@ android {
             }
             storePassword = System.getenv("TRAINING_STORE_PASSWORD")
         }
-        val customKeystorePath = System.getenv("DEBUG_KEYSTORE_PATH")
+        val customKeystorePath = System.getenv("DEBUG_KEYSTORE_PATH")?.takeIf { it.isNotBlank() }
         if (customKeystorePath != null ) {
             getByName("debug") {
                 keyAlias = System.getenv("DEBUG_KEYSTORE_ALIAS")
