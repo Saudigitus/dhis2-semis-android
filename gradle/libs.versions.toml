@@ -5,11 +5,11 @@ lifecycleRuntimeCompose = "2.9.6"
 navigationCompose = "2.9.2"
 sdk = "36"
 minSdk = "23"
-vCode = "159"
+vCode = "160"
 # The DHIS2 Android Capture release this app is built on.
 captureVersion = "3.4.2"
 # The SEMIS version: the version name of the app, and the one every user and tester reads.
-semis = "2.1.0-rc3"
+semis = "2.1.0-rc4"
 gradle = "9.0.1"
 kotlin = '2.3.20'
 dagger = '2.57.2'
