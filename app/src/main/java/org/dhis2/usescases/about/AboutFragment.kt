@@ -41,12 +41,10 @@ class AboutFragment :
                 aboutGit.movementMethod = LinkMovementMethod.getInstance()
                 aboutDev.movementMethod = LinkMovementMethod.getInstance()
                 aboutContact.movementMethod = LinkMovementMethod.getInstance()
-                aboutApp.text = getString(R.string.about_app).format(context?.buildInfo())
-                appSDK.text = getString(R.string.about_sdk).format(BuildConfig.SDK_VERSION)
-                aboutSemis.text = getString(R.string.about_semis)
-                    .format(BuildConfig.SEMIS_VERSION)
-                aboutSemisDatastore.text = getString(R.string.about_datastore)
-                    .format(BuildConfig.DATASTORE_VERSION)
+                // The SEMIS version first, then what it is built on.
+                aboutSemis.text = getString(R.string.about_semis).format(context?.buildInfo())
+                aboutApp.text = getString(R.string.about_capture).format(BuildConfig.CAPTURE_VERSION)
+                appSDK.text = getString(R.string.about_sdk_version).format(BuildConfig.SDK_VERSION)
                 privacyPolicy.setOnClickListener { navigateToPrivacyPolicy() }
             }.root
     }

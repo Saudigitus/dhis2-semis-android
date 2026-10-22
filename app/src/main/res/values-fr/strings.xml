@@ -523,4 +523,5 @@
         <item quantity="many">Il y a %s programmes avec des paramètres spécifiques</item>
         <item quantity="other">Il y a %s programmes avec des paramètres spécifiques</item>
     </plurals>
+    <string name="about_semis_source">SEMIS est construit sur DHIS2 Android Capture. Son code source est disponible sur <a href="https://github.com/Saudigitus/dhis2-semis-android">GitHub</a>. DHIS2 Android Capture est sous licence de la GNU General Public License telle que publiée par la Free Software Foundation, voir <a href="http://www.gnu.org/licenses/gpl-3.0.html">http://www.gnu.org/licenses/gpl-3.0.html</a>.</string>
 </resources>

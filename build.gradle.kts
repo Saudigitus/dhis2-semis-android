@@ -1,6 +1,6 @@
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 group = "org.hisp.dhis"
-version = libs.versions.vName.get()
+version = libs.versions.captureVersion.get()
 
 buildscript {
     dependencies {

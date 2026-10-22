@@ -132,15 +132,14 @@ android {
         targetSdk = libs.versions.sdk.get().toInt()
         minSdk = libs.versions.minSdk.get().toInt()
         versionCode = libs.versions.vCode.get().toInt()
-        versionName = libs.versions.vName.get()
+        versionName = libs.versions.semis.get()
         testInstrumentationRunner = "org.dhis2.Dhis2Runner"
         vectorDrawables.useSupportLibrary = true
 
         val bitriseSentryDSN = System.getenv("SENTRY_DSN") ?: ""
 
         buildConfigField("String", "SDK_VERSION", "\"" + libs.versions.dhis2sdk.get() + "\"")
-        buildConfigField("String", "SEMIS_VERSION", "\"" + libs.versions.semis.get() + "\"")
-        buildConfigField("String", "DATASTORE_VERSION", "\"" + libs.versions.semisDatastore.get() + "\"")
+        buildConfigField("String", "CAPTURE_VERSION", "\"" + libs.versions.captureVersion.get() + "\"")
         buildConfigField("String", "MATOMO_URL", "\"https://usage.analytics.dhis2.org/matomo.php\"")
         buildConfigField("long", "VERSION_CODE", "${defaultConfig.versionCode}")
         buildConfigField("String", "VERSION_NAME", "\"${defaultConfig.versionName}\"")
