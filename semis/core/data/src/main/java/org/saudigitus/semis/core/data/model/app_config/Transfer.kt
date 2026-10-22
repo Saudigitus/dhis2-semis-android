@@ -17,8 +17,6 @@ data class Transfer(
     val enabled: Boolean?,
     @SerialName("lastUpdate")
     val lastUpdate: String?,
-    @SerialName("originSchool")
-    val originSchool: String?,
     @SerialName("penddingCode")
     @JsonNames("pendingCode")
     val pendingCode: String?,
@@ -65,10 +63,10 @@ private const val REJECTED_STATUS_KEY = "reproved"
 /**
  * Whether transfers can be listed and raised at all.
  *
- * [originSchool] is deliberately not required. The transfer program stage holds a single
- * organisation unit data element and it carries the destination; the origin is the
- * organisation unit the request event belongs to. The key is kept only because it is
- * still present in the datastore, and must never be read as a data element.
+ * The origin school is not part of the configuration: the transfer program stage holds a
+ * single organisation unit data element and it carries the destination, while the origin is
+ * the organisation unit the request event belongs to. A datastore that still carries an
+ * originSchool key loads as before and the key is ignored.
  */
 fun Transfer?.isTransferEnabledAndConfigured(): Boolean = this?.run {
     enabled == true &&

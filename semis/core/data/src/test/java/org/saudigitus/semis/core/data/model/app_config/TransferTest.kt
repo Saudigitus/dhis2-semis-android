@@ -54,13 +54,11 @@ class TransferTest {
     }
 
     @Test
-    fun `origin school key never takes part in deciding the configuration is usable`() {
+    fun `a datastore that still carries the origin school key loads and ignores it`() {
         val configured = decodeTransfer("pendingCode")
 
-        assertTrue(configured.copy(originSchool = null).isTransferEnabledAndConfigured())
-        assertTrue(
-            configured.copy(originSchool = configured.destinySchool).isTransferEnabledAndConfigured(),
-        )
+        assertTrue(configured.isTransferEnabledAndConfigured())
+        assertEquals("destination", configured.destinySchool)
     }
 
     private fun statusOption(code: String, key: String) = StatusOption(

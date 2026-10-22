@@ -48,7 +48,6 @@ class TransferStatusTest {
         destinySchool = "destination",
         enabled = true,
         lastUpdate = null,
-        originSchool = null,
         pendingCode = null,
         programStage = "stage",
         reprovedCode = null,

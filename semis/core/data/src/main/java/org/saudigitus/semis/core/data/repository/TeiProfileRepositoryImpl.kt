@@ -24,7 +24,6 @@ import org.saudigitus.semis.core.data.model.profile.ProfileTabContent
 import org.saudigitus.semis.core.data.model.profile.ProfileTabKind
 import org.saudigitus.semis.core.data.model.profile.ProfileValue
 import org.saudigitus.semis.core.data.utils.Transformations
-import org.saudigitus.semis.core.data.utils.StageDataElement
 import org.saudigitus.semis.core.data.utils.ValueDisplay
 import org.saudigitus.semis.core.data.utils.stageDataElements
 import org.saudigitus.semis.core.utils.DateHelper
@@ -113,11 +112,10 @@ class TeiProfileRepositoryImpl @Inject constructor(
 
         config?.transfer
             ?.takeIf { it.enabled == true }
-            ?.let { transfer ->
-                transfer.programStage.stage()?.let {
-                    val panel = stagePanel(it, events, TransferOrigin(transfer.originSchool))
-                    add(ProfileTabContent(ProfileTabKind.TRANSFER, listOf(panel)))
-                }
+            ?.programStage.stage()
+            ?.let {
+                val panel = stagePanel(it, events, showsOrigin = true)
+                add(ProfileTabContent(ProfileTabKind.TRANSFER, listOf(panel)))
             }
     }
 
@@ -310,14 +308,14 @@ class TeiProfileRepositoryImpl @Inject constructor(
      * The records of [stage], newest first, each showing the data elements marked "display in
      * reports", or its school and date when the stage marks none.
      *
-     * A transfer request also shows its [origin] whatever the stage marks, as the transfer lists
-     * do: it is the school the request was raised in, read from the event itself, and it takes
-     * the place and the label of the origin school data element when the stage still has one.
+     * A transfer request also shows its origin when [showsOrigin] is set, whatever the stage
+     * marks, as the transfer lists do: it is the school the request was raised in, read from the
+     * event itself and never from a data element or the configuration.
      */
     private fun stagePanel(
         stage: String,
         events: List<Event>,
-        origin: TransferOrigin? = null,
+        showsOrigin: Boolean = false,
     ): ProfilePanel {
         val reported = d2.stageDataElements(stage).filter { it.displayInReports }
         val title = programStageName(stage)
@@ -346,7 +344,7 @@ class TeiProfileRepositoryImpl @Inject constructor(
                         valueDisplay.of(event.dataValue(element.uid), element.valueType, element.optionSet)
                             ?.let { element.uid to ProfileValue(label = element.label, value = it) }
                     }.toMap()
-                    grouped(sections, origin?.let { values.withOrigin(it, event, reported) } ?: values)
+                    grouped(sections, if (showsOrigin) values.withOrigin(event) else values)
                 }
 
                 ProfileRecord(id = event.uid(), heading = heading, sections = record)
@@ -392,23 +390,16 @@ class TeiProfileRepositoryImpl @Inject constructor(
         return if (unclaimed.isEmpty()) grouped else grouped + ProfileSection(title = null, values = unclaimed)
     }
 
-    /**
-     * [values] with the origin of the request: in place of the origin school data element when
-     * the stage has one, otherwise after everything else.
-     */
-    private fun Map<String, ProfileValue>.withOrigin(
-        origin: TransferOrigin,
-        event: Event,
-        reported: List<StageDataElement>,
-    ): Map<String, ProfileValue> {
+    /** [values] with the origin of the request after everything else. */
+    private fun Map<String, ProfileValue>.withOrigin(event: Event): Map<String, ProfileValue> {
         val school = orgUnitName(event.organisationUnit()).ifBlank { return this }
-        val element = reported.find { it.uid == origin.dataElement }
-        val value = ProfileValue(
-            label = element?.label ?: resourceManager.getString(R.string.transfer_origin_school),
-            value = school,
-        )
 
-        return if (element != null) this + (element.uid to value) else this + (ORIGIN_KEY to value)
+        return this + (
+            ORIGIN_KEY to ProfileValue(
+                label = resourceManager.getString(R.string.transfer_origin_school),
+                value = school,
+            )
+            )
     }
 
     private fun programStageName(stage: String): String =
@@ -429,9 +420,6 @@ class TeiProfileRepositoryImpl @Inject constructor(
 
     /** A configured uid, or null when the setting is missing or blank. */
     private fun String?.stage(): String? = this?.takeIf { it.isNotBlank() }
-
-    /** The origin school data element a transfer stage may still carry, if it is configured. */
-    private data class TransferOrigin(val dataElement: String?)
 
     private companion object {
         const val ABSENT_KEY = "absent"

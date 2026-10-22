@@ -113,7 +113,6 @@ class TransferableStagesTest {
             destinySchool = "destination",
             enabled = true,
             lastUpdate = null,
-            originSchool = null,
             pendingCode = null,
             programStage = "transfer",
             reprovedCode = null,
