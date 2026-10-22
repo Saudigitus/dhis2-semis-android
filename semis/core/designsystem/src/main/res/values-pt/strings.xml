@@ -29,4 +29,5 @@
     <string name="sync_error_title">Erro de sincronização</string>
 
     <string name="save">Guardar</string>
+    <string name="person_no_name">Sem nome</string>
 </resources>

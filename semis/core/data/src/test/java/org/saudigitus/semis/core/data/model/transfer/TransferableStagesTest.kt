@@ -103,7 +103,6 @@ class TransferableStagesTest {
         key = "student",
         lastUpdate = null,
         performance = performance,
-        profile = null,
         program = "program",
         reenroll = null,
         registration = registration,

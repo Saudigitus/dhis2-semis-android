@@ -3,18 +3,22 @@ package org.saudigitus.semis.enrollment.ui.form
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.dhis2.commons.resources.ResourceManager
 import org.saudigitus.campaign.core.data.models.OrgUnit
 import org.saudigitus.campaign.core.form.data.models.FormSectionModel
 import org.saudigitus.campaign.core.form.data.repository.FormRepository
 import org.saudigitus.campaign.core.navigation.FormType
 import org.saudigitus.campaign.core.utils.DateHelper
+import org.saudigitus.semis.core.data.model.person.PersonIdentity
 import org.saudigitus.semis.core.data.repository.AppConfigRepository
+import org.saudigitus.semis.core.data.utils.Transformations
 import org.saudigitus.semis.enrollment.R
 import org.saudigitus.semis.enrollment.ui.form.model.EnrollmentPlan
 import org.saudigitus.semis.enrollment.ui.form.model.EnrollmentStep
@@ -29,6 +33,8 @@ data class EnrollmentCreationUiState(
     val isProcessing: Boolean = false,
     val completed: Boolean = false,
     val tei: String? = null,
+    /** Who the learner just enrolled is, read from the saved record with the shared rule. */
+    val learnerIdentity: PersonIdentity? = null,
     val enrollment: String? = null,
     val prefill: Map<String, String> = emptyMap(),
     val registrationStage: String? = null,
@@ -64,18 +70,6 @@ data class EnrollmentCreationUiState(
             is EnrollmentStep.Stage -> FormType.NEW_EVENT_WITH_REGISTRATION
             else -> FormType.NEW_ENROLLMENT
         }
-
-    /**
-     * Everything captured about the learner, in the order it was configured.
-     *
-     * The confirmation reads a learner out of this the same way the listings do, so that the same
-     * person is recognised the same way in both places.
-     */
-    val learnerAttributes: List<Pair<String, String>>
-        get() = captured[0].orEmpty()
-            .flatMap { section -> section.formFields }
-            .filter { field -> !field.value.isNullOrBlank() }
-            .map { field -> field.label to field.value.orEmpty() }
 
     /**
      * What was captured on the registration stage, to be reported back on the confirmation.
@@ -116,6 +110,7 @@ class EnrollmentCreationViewModel @Inject constructor(
     private val appConfigRepository: AppConfigRepository,
     private val formRepository: FormRepository,
     private val resourceManager: ResourceManager,
+    private val transformations: Transformations,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(EnrollmentCreationUiState())
@@ -252,6 +247,7 @@ class EnrollmentCreationViewModel @Inject constructor(
                 captured = emptyMap(),
                 completed = false,
                 tei = null,
+                learnerIdentity = null,
                 enrollment = null,
                 date = null,
                 errorMessage = null,
@@ -283,9 +279,17 @@ class EnrollmentCreationViewModel @Inject constructor(
                     backgroundStages = plan.backgroundStages,
                 )
             }.onSuccess { result ->
+                // Read back from the saved record, the way every list reads it, so the learner is
+                // recognised here exactly as they will be on the list.
+                val identity = result.tei?.let { tei ->
+                    withContext(Dispatchers.IO) {
+                        runCatching { transformations.identityOf(tei, program) }.getOrNull()
+                    }
+                }
                 _uiState.update {
                     it.copy(
                         tei = result.tei,
+                        learnerIdentity = identity,
                         enrollment = result.enrollment,
                         isProcessing = false,
                         completed = true,

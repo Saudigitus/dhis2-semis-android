@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="value_yes">Oui</string>
+    <string name="value_no">Non</string>
+    <string name="profile_school">École</string>
+    <string name="transfer_origin_school">École d\'origine</string>
+</resources>

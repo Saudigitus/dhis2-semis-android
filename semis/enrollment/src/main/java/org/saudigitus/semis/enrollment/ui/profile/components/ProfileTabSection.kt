@@ -24,7 +24,7 @@ import org.saudigitus.semis.core.designsystem.components.cards.DetailSectionCard
 import org.saudigitus.semis.enrollment.R
 
 /**
- * Draws the tab the deployment configured, one card per panel.
+ * Draws one tab of the page, one card per stage or for the attributes.
  *
  * The card is the one the transfer steps and the enrollment summary already use, so a record
  * reads the same wherever the app shows it back. Inside, the values keep the grouping the program
@@ -32,8 +32,9 @@ import org.saudigitus.semis.enrollment.R
  * the same way, and that grouping is what whoever configured the program chose to say.
  */
 @Composable
-internal fun ConfiguredProfileSection(
+internal fun ProfileTabSection(
     tab: ProfileTabContent,
+    academicYear: String?,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -41,14 +42,15 @@ internal fun ConfiguredProfileSection(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         tab.panels.forEach { panel ->
-            ConfiguredProfilePanel(panel = panel)
+            ProfilePanelCard(panel = panel, academicYear = academicYear)
         }
     }
 }
 
 @Composable
-private fun ConfiguredProfilePanel(
+private fun ProfilePanelCard(
     panel: ProfilePanel,
+    academicYear: String?,
     modifier: Modifier = Modifier,
 ) {
     DetailSectionCard(
@@ -58,7 +60,10 @@ private fun ConfiguredProfilePanel(
         modifier = modifier,
     ) {
         if (panel.records.isEmpty()) {
-            PanelCaption(text = stringResource(R.string.profile_panel_empty))
+            PanelCaption(
+                text = academicYear?.let { stringResource(R.string.profile_no_records_year, it) }
+                    ?: stringResource(R.string.profile_panel_empty),
+            )
             return@DetailSectionCard
         }
 
@@ -70,7 +75,7 @@ private fun ConfiguredProfilePanel(
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             }
 
-            ConfiguredProfileRecord(record = record)
+            ProfileRecordRows(record = record)
         }
     }
 }
@@ -89,7 +94,7 @@ private fun panelDescription(panel: ProfilePanel): String = when (panel.target) 
 }
 
 @Composable
-private fun ConfiguredProfileRecord(
+private fun ProfileRecordRows(
     record: ProfileRecord,
     modifier: Modifier = Modifier,
 ) {

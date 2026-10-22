@@ -25,4 +25,8 @@
     <string name="transfer_approved_status_missing">Transfer approved status code is missing</string>
     <string name="transfer_rejected_status_missing">Transfer rejected status code is missing</string>
     <string name="transfer_pending_status_missing">Pending transfer status option is missing</string>
+    <string name="value_yes">Yes</string>
+    <string name="value_no">No</string>
+    <string name="profile_school">School</string>
+    <string name="transfer_origin_school">Origin school</string>
 </resources>

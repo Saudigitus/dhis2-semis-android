@@ -17,7 +17,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import org.saudigitus.semis.core.data.model.transfer.learnerIdentity
+import org.saudigitus.semis.core.data.model.person.identity
 import org.saudigitus.semis.core.designsystem.components.avatar.AvatarInitials
 import org.saudigitus.semis.core.designsystem.components.cards.LearnerCard
 import org.saudigitus.semis.core.designsystem.theme.SemisPalette
@@ -78,12 +78,14 @@ internal fun ReviewStep(
         }
 
         items(state.selectedRecords, key = { it.tei.uid() }) { record ->
-            val identity = record.learnerIdentity()
+            val identity = record.identity()
 
             LearnerCard(
                 name = identity.name,
                 modifier = Modifier.fillMaxWidth(),
-                supportingText = identity.firstAttributeValue.takeIf { it.isNotBlank() },
+                supportingText = identity.identifier.takeIf { it.isNotBlank() },
+                photoPath = identity.photoPath,
+                tags = identity.tags,
                 avatarSize = 44.dp,
                 avatarColor = AvatarInitials.colorFor(record.tei.uid()),
                 containerColor = SemisPalette.CardSurface,

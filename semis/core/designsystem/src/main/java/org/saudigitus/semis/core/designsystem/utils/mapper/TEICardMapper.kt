@@ -23,6 +23,7 @@ import org.hisp.dhis.mobile.ui.designsystem.component.ButtonStyle
 import org.hisp.dhis.mobile.ui.designsystem.component.MetadataAvatarSize
 import org.hisp.dhis.mobile.ui.designsystem.theme.TextColor
 import org.saudigitus.semis.core.data.model.SearchTeiModel
+import org.saudigitus.semis.core.data.model.person.identity
 import org.saudigitus.semis.core.designsystem.R
 import java.io.File
 
@@ -105,22 +106,18 @@ class TEICardMapper(
         }
     }
 
+    /**
+     * The attributes the program shows in the list, except those the name and the identifier
+     * already show, at most two of them.
+     */
     private fun getAdditionalInfoList(searchTEIModel: SearchTeiModel): List<AdditionalInfoItem> {
-        val attributeList = searchTEIModel.attributeValues.map {
-            AdditionalInfoItem(
-                key = it.key,
-                value = it.value.value() ?: "-",
-            )
-        }.toMutableList()
+        val shownAbove = searchTEIModel.identity().usedAttributes
 
-        if (searchTEIModel.header == null) {
-            attributeList.removeFirstOrNull()
-        }
-        attributeList.removeIf { it.value.isEmpty() || it.value == "-" }
-
-        return if (attributeList.size > 2) {
-            attributeList.subList(0,2)
-        } else attributeList
+        return searchTEIModel.attributeValues
+            .filterValues { it.trackedEntityAttribute() !in shownAbove }
+            .map { (label, value) -> AdditionalInfoItem(key = label, value = value.value().orEmpty()) }
+            .filter { it.value.isNotBlank() && it.value != "-" }
+            .take(2)
     }
 
     @Composable

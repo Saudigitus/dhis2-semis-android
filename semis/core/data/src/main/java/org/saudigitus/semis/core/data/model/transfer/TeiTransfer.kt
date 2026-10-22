@@ -1,5 +1,6 @@
 package org.saudigitus.semis.core.data.model.transfer
 
+import org.saudigitus.semis.core.data.model.person.PersonTag
 import java.util.Date
 
 /**
@@ -8,28 +9,28 @@ import java.util.Date
  *
  * The learner belongs to [originOrgUnit] until the destination approves, so the origin
  * is the organisation unit the request event lives in and is never read from a data
- * element: the transfer program stage holds a single organisation unit data element and
- * it carries the destination.
+ * element: the origin school data element is optional and requests raised on the app
+ * leave it empty.
  *
  * [requestedAt] is when the request was raised, which is what the lists are ordered by
  * and what the relative time shown under the status is measured from.
  *
- * [grade] and [reason] are what a school needs to decide without opening the request:
- * which class the learner is in and why they are being sent. Both are blank when the
- * configuration does not name them or the request left them empty.
+ * [details] are the columns the web shows for the request: the registration stage values,
+ * then the transfer stage values, each one only when its stage displays it in reports.
  */
 data class TeiTransfer(
     val eventUid: String,
     val teiUid: String,
     val enrollmentUid: String,
     val recordName: String,
-    val firstAttributeValue: String,
+    val identifier: String,
+    val photoPath: String? = null,
+    val tags: List<PersonTag> = emptyList(),
     val originOrgUnit: String,
     val originSchoolName: String,
     val destinationOrgUnit: String,
     val destinationSchoolName: String,
-    val grade: String,
-    val reason: String,
+    val details: List<TransferDetail> = emptyList(),
     val status: TransferStatus,
     val requestedAt: Date,
 ) {
@@ -39,3 +40,9 @@ data class TeiTransfer(
      */
     val isPending: Boolean get() = status == TransferStatus.PENDING
 }
+
+/** One value of a request as the list shows it. [value] is null when the request left it empty. */
+data class TransferDetail(
+    val label: String,
+    val value: String?,
+)

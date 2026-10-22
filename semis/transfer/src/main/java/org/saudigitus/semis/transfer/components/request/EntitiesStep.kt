@@ -12,7 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import org.saudigitus.semis.core.data.model.SearchTeiModel
-import org.saudigitus.semis.core.data.model.transfer.learnerIdentity
+import org.saudigitus.semis.core.data.model.person.identity
 import org.saudigitus.semis.core.designsystem.components.FilterDetailsState
 import org.saudigitus.semis.core.designsystem.components.NoResults
 import org.saudigitus.semis.core.designsystem.components.SemisFilterDetails
@@ -76,14 +76,16 @@ internal fun EntitiesStep(
         }
 
         items(records, key = { it.tei.uid() }) { record ->
-            val identity = record.learnerIdentity()
+            val identity = record.identity()
             val uid = record.tei.uid()
             val selected = uid in selectedUids
 
             LearnerCard(
                 name = identity.name,
                 modifier = Modifier.fillMaxWidth(),
-                supportingText = identity.firstAttributeValue.takeIf { it.isNotBlank() },
+                supportingText = identity.identifier.takeIf { it.isNotBlank() },
+                photoPath = identity.photoPath,
+                tags = identity.tags,
                 selected = selected,
                 avatarColor = AvatarInitials.colorFor(uid),
                 containerColor = SemisPalette.CardSurface,

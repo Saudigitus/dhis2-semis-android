@@ -23,8 +23,8 @@ class StudentProfileViewModel @Inject constructor(
     private var initialized = false
 
     /**
-     * Loads the dashboard for [teiUid] under the selection the home screen is on, so the
-     * history shown belongs to the same academic year, school, grade and section.
+     * Loads the page of [teiUid] for the academic year the home filters are on, which is the year
+     * of the enrollment whose records the page shows.
      */
     fun initialize(
         teiUid: String,
@@ -34,26 +34,17 @@ class StudentProfileViewModel @Inject constructor(
         if (initialized) return
         initialized = true
 
-        _uiState.update { it.copy(isLoading = true) }
+        _uiState.update { it.copy(isLoading = true, teiUid = teiUid) }
 
         viewModelScope.launch {
             runCatching {
-                // The configured page is what the deployment asked for; the fixed one is kept as
-                // what a deployment that has configured nothing still gets.
-                repository.getConfiguredProfile(teiUid, program) to repository.getProfile(
+                repository.getProfile(
                     teiUid = teiUid,
                     program = program,
                     academicYear = filterDetailsState.academicYear,
                 )
-            }.onSuccess { (configured, profile) ->
-                _uiState.update {
-                    it.copy(
-                        isLoading = false,
-                        profile = profile,
-                        configured = configured,
-                        selectedTabId = configured?.tabs?.firstOrNull()?.id,
-                    )
-                }
+            }.onSuccess { profile ->
+                _uiState.update { it.copy(isLoading = false, profile = profile) }
             }.onFailure { error ->
                 _uiState.update {
                     it.copy(isLoading = false, errorMessage = error.message)
@@ -66,10 +57,6 @@ class StudentProfileViewModel @Inject constructor(
         when (event) {
             is StudentProfileEvent.SelectTab -> {
                 _uiState.update { it.copy(selectedTab = event.tab) }
-            }
-
-            is StudentProfileEvent.SelectConfiguredTab -> {
-                _uiState.update { it.copy(selectedTabId = event.tabId) }
             }
 
             // Leaving the page and sending what the device holds are both answered by whoever
