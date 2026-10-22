@@ -25,6 +25,8 @@ import org.saudigitus.semis.core.data.model.Module
 import org.saudigitus.semis.core.data.model.OrgUnit
 import org.saudigitus.semis.core.data.model.StoredFilterSelection
 import org.saudigitus.semis.core.data.model.app_config.Registration
+import org.saudigitus.semis.core.data.model.app_config.gradeFilterDataElement
+import org.saudigitus.semis.core.data.model.app_config.sectionFilterDataElement
 import org.saudigitus.semis.core.data.repository.AppConfigRepository
 import org.saudigitus.semis.core.data.repository.AppModulesRepository
 import org.saudigitus.semis.core.data.repository.FilterRepository
@@ -67,6 +69,14 @@ class HomeViewModel @Inject constructor(
 
     private val registration = MutableStateFlow<Registration?>(null)
     private val academicYearDL = MutableStateFlow<String>("")
+
+    /**
+     * The data elements the grade and section filters select on, taken from the filters
+     * themselves, so the options shown, the records downloaded and the records listed all follow
+     * the same field.
+     */
+    private val gradeDataElement = MutableStateFlow<String?>(null)
+    private val sectionDataElement = MutableStateFlow<String?>(null)
 
     /**
      * What the screen renders: the state plus the derived filter visibility.
@@ -225,6 +235,8 @@ class HomeViewModel @Inject constructor(
     private suspend fun setRegistration(program: String) {
         val config = appConfigRepository.getAppConfig(program)
         registration.value = config?.registration
+        gradeDataElement.value = config?.gradeFilterDataElement()
+        sectionDataElement.value = config?.sectionFilterDataElement()
     }
 
     private suspend fun setAcademicYear() {
@@ -299,19 +311,12 @@ class HomeViewModel @Inject constructor(
     private suspend fun reloadFilters(): MutableList<DropdownState> {
         val filters = _uiState.value.filterState.filters.toMutableList()
 
-        if (filters.isNotEmpty()) {
-            val item = filters.find { it.filterType == FilterType.GRADE }
-            val index = filters.indexOf(item)
-
-            filters.remove(item)
-
-            filters.add(
-                index,
-                DropdownState(
-                    FilterType.GRADE,
-                    displayName = item?.displayName.orEmpty(),
-                    data = dropdownItems(registration.value?.grade.orEmpty()),
-                ),
+        // The grade options can depend on the school, so they are read again from the grade
+        // filter's own data element. The filter keeps its name and its place.
+        val index = filters.indexOfFirst { it.filterType == FilterType.GRADE }
+        if (index >= 0) {
+            filters[index] = filters[index].copy(
+                data = dropdownItems(gradeDataElement.value.orEmpty()),
             )
         }
         filters.sortBy { it.order }
@@ -393,8 +398,8 @@ class HomeViewModel @Inject constructor(
                     program = _uiState.value.program,
                     dataElementIds = listOfNotNull(
                         academicYearDL.value,
-                        registration.value?.grade,
-                        registration.value?.section
+                        gradeDataElement.value,
+                        sectionDataElement.value
                     ),
                     dataValues = listOfNotNull(
                         selectedAcademicYearCode(),
@@ -447,8 +452,8 @@ class HomeViewModel @Inject constructor(
             stage = registration.value?.programStage.orEmpty(),
             dataElementIds = listOfNotNull(
                 academicYearDL.value,
-                registration.value?.grade,
-                registration.value?.section
+                gradeDataElement.value,
+                sectionDataElement.value
             ),
             dataValues = listOfNotNull(
                 selectedAcademicYearCode(),

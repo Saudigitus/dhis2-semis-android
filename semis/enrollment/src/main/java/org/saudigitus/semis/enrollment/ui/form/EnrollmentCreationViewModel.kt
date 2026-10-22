@@ -16,6 +16,8 @@ import org.saudigitus.campaign.core.form.data.models.FormSectionModel
 import org.saudigitus.campaign.core.form.data.repository.FormRepository
 import org.saudigitus.campaign.core.navigation.FormType
 import org.saudigitus.campaign.core.utils.DateHelper
+import org.saudigitus.semis.core.data.model.app_config.gradeFilterDataElement
+import org.saudigitus.semis.core.data.model.app_config.sectionFilterDataElement
 import org.saudigitus.semis.core.data.model.person.PersonIdentity
 import org.saudigitus.semis.core.data.repository.AppConfigRepository
 import org.saudigitus.semis.core.data.utils.Transformations
@@ -151,8 +153,10 @@ class EnrollmentCreationViewModel @Inject constructor(
 
             val prefill = buildMap {
                 academicYearField.putValue(this, academicYear)
-                config?.registration?.grade.putValue(this, grade)
-                config?.registration?.section.putValue(this, section)
+                // The picks come from the home filters, so they go to the fields those filters
+                // select on.
+                config?.gradeFilterDataElement().putValue(this, grade)
+                config?.sectionFilterDataElement().putValue(this, section)
             }
 
             _uiState.update {
