@@ -9,14 +9,14 @@ import java.util.Date
  *
  * The learner belongs to [originOrgUnit] until the destination approves, so the origin
  * is the organisation unit the request event lives in and is never read from a data
- * element: the origin school data element is optional and requests raised on the app
- * leave it empty.
+ * element or from the configuration.
  *
  * [requestedAt] is when the request was raised, which is what the lists are ordered by
  * and what the relative time shown under the status is measured from.
  *
  * [details] are the columns the web shows for the request: the registration stage values,
- * then the transfer stage values, each one only when its stage displays it in reports.
+ * the origin, then the transfer stage values, each stage value only when its stage displays
+ * it in reports.
  */
 data class TeiTransfer(
     val eventUid: String,
