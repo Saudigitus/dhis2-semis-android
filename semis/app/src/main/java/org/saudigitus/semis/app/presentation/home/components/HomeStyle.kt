@@ -43,7 +43,7 @@ internal fun Color.softContainer() = surfaceTone(0.12f)
 
 internal fun moduleAccent(module: String): Color = when (module) {
     Constants.ENROLLMENT -> HomeAccent.Blue
-    Constants.ATTENDANCE, Constants.ABSENTEEISM -> HomeAccent.Green
+    Constants.ATTENDANCE -> HomeAccent.Green
     Constants.PERFORMANCE -> HomeAccent.Purple
     Constants.TRANSFER -> HomeAccent.Amber
     Constants.TERMS -> HomeAccent.Teal

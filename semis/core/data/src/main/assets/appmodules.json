@@ -14,13 +14,6 @@
     "route": "attendance"
   },
   {
-    "key": "absenteeism",
-    "title": "Absenteeism",
-    "enabled": false,
-    "icon": "s_calendar",
-    "route": "absenteeism"
-  },
-  {
     "key": "performance",
     "title": "Performance",
     "enabled": true,
