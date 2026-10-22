@@ -26,7 +26,6 @@ object Constants {
 
     const val ATTENDANCE = "attendance"
     const val ENROLLMENT = "enrollment"
-    const val ABSENTEEISM = "absenteeism"
     const val PERFORMANCE = "performance"
     const val TRANSFER = "transfer"
     const val TERMS = "terms"
