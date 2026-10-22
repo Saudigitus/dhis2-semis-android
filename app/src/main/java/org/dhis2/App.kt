@@ -154,7 +154,9 @@ open class App : Application(), Components, DefaultLifecycleObserver {
                 SentryOptions.BeforeSendCallback { event, _ ->
                     if (SentryLevel.DEBUG == event.level) null else event
                 }
-            options.environment = if (BuildConfig.DEBUG) "debug" else "production"
+            // development, release-candidate or release, so a test round never counts as production.
+            options.environment = BuildConfig.SEMIS_CHANNEL
+            options.release = "${BuildConfig.APPLICATION_ID}@${BuildConfig.VERSION_NAME}+${BuildConfig.VERSION_CODE}"
             options.isDebug = BuildConfig.DEBUG
             // Enable view hierarchy for crashes
             options.isAttachViewHierarchy = true
