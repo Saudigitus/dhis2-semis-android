@@ -7,7 +7,10 @@ import org.saudigitus.semis.core.designsystem.components.FilterDetailsState
 import org.saudigitus.semis.transfer.R
 import org.saudigitus.semis.transfer.components.common.DetailRows
 
-/** Where the records belong today, stated the same way every other detail is. */
+/**
+ * Where the records belong today, stated the same way every other detail is. The two filters
+ * keep the names the program gives them, falling back to grade and class only when it gives none.
+ */
 @Composable
 internal fun CurrentPlacementSummary(
     state: FilterDetailsState,
@@ -15,8 +18,8 @@ internal fun CurrentPlacementSummary(
 ) {
     val academicYearLabel = stringResource(R.string.academic_year)
     val schoolLabel = stringResource(R.string.school)
-    val gradeLabel = stringResource(R.string.grade)
-    val classLabel = stringResource(R.string.class_name)
+    val gradeLabel = state.gradeLabel ?: stringResource(R.string.grade)
+    val classLabel = state.sectionLabel ?: stringResource(R.string.class_name)
 
     DetailRows(
         details = listOfNotNull(

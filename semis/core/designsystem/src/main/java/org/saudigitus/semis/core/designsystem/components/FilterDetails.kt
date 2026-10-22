@@ -29,12 +29,19 @@ import androidx.compose.ui.unit.sp
 import org.saudigitus.semis.core.designsystem.theme.colorPrimary
 
 
+/**
+ * The selection the home filters settled on. [gradeLabel] and [sectionLabel] are the names the
+ * program configuration gives those two filters, such as Employment Type for staff, so a screen
+ * that restates the selection names it the way the home did.
+ */
 @Immutable
 data class FilterDetailsState(
     val academicYear: String = "Academic Year",
     val orgUnit: String = "School",
     val grade: String? = null,
     val section: String? = null,
+    val gradeLabel: String? = null,
+    val sectionLabel: String? = null,
     val count: Int = 0,
     val enable: Boolean = true,
     val enableCounter: Boolean = true,

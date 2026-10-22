@@ -545,10 +545,16 @@ class HomeViewModel @Inject constructor(
                 ?: resourceManager.getString(R.string.school),
             grade = filterState.selectedFilters[FilterType.GRADE]?.itemName,
             section = filterState.selectedFilters[FilterType.SECTION]?.itemName,
+            gradeLabel = filterState.filterLabel(FilterType.GRADE),
+            sectionLabel = filterState.filterLabel(FilterType.SECTION),
         )
 
         return filterState.withFilterDetails(updatedFilterDetailsState)
     }
+
+    /** The name the program configuration gives the filter of [type], or null when it has none. */
+    private fun FilterComponentState.filterLabel(type: FilterType): String? =
+        filters.find { it.filterType == type }?.displayName?.takeIf { it.isNotBlank() }
 
     private companion object {
         /**
