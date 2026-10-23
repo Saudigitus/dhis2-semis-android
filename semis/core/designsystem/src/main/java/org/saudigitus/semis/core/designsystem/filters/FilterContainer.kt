@@ -171,6 +171,12 @@ private fun FilterActionButton(
             enabled = enabled,
             shape = SemisFieldShape,
             contentPadding = ACTION_PADDING,
+            // The default disabled colours are meant for a light background and turn unreadable on
+            // the header, so a disabled download is drawn as the same button waiting, in white.
+            colors = ButtonDefaults.buttonColors(
+                disabledContainerColor = Color.White.copy(alpha = 0.12f),
+                disabledContentColor = Color.White.copy(alpha = 0.6f),
+            ),
             content = content,
         )
     } else {
