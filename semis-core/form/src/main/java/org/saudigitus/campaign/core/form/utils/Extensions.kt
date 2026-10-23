@@ -40,10 +40,18 @@ fun List<FormSectionModel>.checkUnfilledMandatoryFields(): Boolean {
     return this.any { it.rendered && it.hasUnfilledMandatoryFields() }
 }
 
+/**
+ * A required question still unanswered, which is what holds a step back and the only field the
+ * form marks for it: a required field already answered has nothing left to ask.
+ */
+fun FormFieldModel.isMissingMandatoryAnswer(): Boolean =
+    rendered == true && mandatory == true && value.isNullOrEmpty()
+
 private fun FormFieldModel.isBlockingField(): Boolean {
     return rendered == true &&
         (
             hasError == true ||
+                !hasValueOfItsType() ||
                 (mandatory == true && enabled == true && value.isNullOrEmpty())
             )
 }
@@ -53,6 +61,10 @@ fun FormSectionModel.firstBlockingFieldIndex(): Int {
         it.isBlockingField()
     }
 }
+
+/** The first field of this section that keeps the step from moving on, if any. */
+fun FormSectionModel.firstBlockingField(): FormFieldModel? =
+    formFields.firstOrNull { it.isBlockingField() }
 
 fun List<FormSectionModel>.hasBlockingFields(): Boolean {
     return any { section -> section.rendered && section.firstBlockingFieldIndex() != -1 }

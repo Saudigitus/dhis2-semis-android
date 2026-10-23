@@ -19,4 +19,18 @@
     <string name="form_step_progress">Passo %1$d de %2$d</string>
     <string name="form_record_details">Detalhes do registo</string>
     <string name="save">Guardar</string>
+    <string name="form_answer_required">Responda a esta pergunta para continuar</string>
+    <string name="value_invalid_integer">Introduza um número inteiro</string>
+    <string name="value_invalid_integer_positive">Introduza um número inteiro maior que 0</string>
+    <string name="value_invalid_integer_negative">Introduza um número inteiro menor que 0</string>
+    <string name="value_invalid_integer_zero_or_positive">Introduza um número inteiro, 0 ou mais</string>
+    <string name="value_invalid_number">Introduza um número</string>
+    <string name="value_invalid_percentage">Introduza uma percentagem de 0 a 100</string>
+    <string name="value_invalid_unit_interval">Introduza um número de 0 a 1</string>
+    <string name="value_invalid_phone_number">Introduza um número de telefone, só com algarismos e um + opcional no início</string>
+    <string name="value_invalid_email">Introduza um endereço de e-mail como nome@exemplo.org</string>
+    <string name="value_invalid_letter">Introduza uma única letra</string>
+    <string name="value_invalid_date">Escolha uma data no calendário</string>
+    <string name="value_invalid_coordinate">Capture a localização outra vez</string>
+    <string name="value_invalid">Este valor não é válido</string>
 </resources>

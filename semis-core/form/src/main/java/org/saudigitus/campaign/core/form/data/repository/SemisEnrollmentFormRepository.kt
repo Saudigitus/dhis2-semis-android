@@ -24,6 +24,7 @@ import org.saudigitus.campaign.core.form.data.models.FormSectionModel
 import org.saudigitus.campaign.core.form.rules.applyRuleEffects
 import org.saudigitus.campaign.core.form.ui.state.FormSectionType
 import org.saudigitus.campaign.core.form.utils.toEntities
+import org.saudigitus.campaign.core.form.utils.hasValueOfItsType
 import timber.log.Timber
 import org.saudigitus.campaign.core.utils.Constants
 import java.sql.Date
@@ -541,9 +542,14 @@ class SemisEnrollmentFormRepository @Inject constructor(
         return baseSections.applyRuleEffects(effects)
     }
 
-    /** The values as typed, keyed by field, which is what an in memory evaluation runs against. */
+    /**
+     * The values as typed, keyed by field, which is what an in memory evaluation runs against. A
+     * value its type does not allow is left out: the form is already refusing it, and a rule
+     * reading it as a number or a date would only add a second, misleading error.
+     */
     private fun List<FormSectionModel>.typedValues(): Map<String, String> = this
         .flatMap { section -> section.formFields }
+        .filter { field -> field.hasValueOfItsType() }
         .mapNotNull { field ->
             field.value?.takeIf { it.isNotBlank() }?.let { value -> field.uid to value }
         }
