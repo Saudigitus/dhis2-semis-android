@@ -63,7 +63,8 @@ fun AttendanceScreen(
             message = stringResource(id = R.string.save_alert),
             onConfirm = {
                 onEvent(AttendanceUiEvent.BottomSheetAction(BottomSheetConfirmAction.PERFORM_SAVE))
-            }
+            },
+            onDismissRequest = { onEvent(AttendanceUiEvent.DismissSaveDialog) },
         )
     }
 
@@ -80,7 +81,8 @@ fun AttendanceScreen(
             message = stringResource(id = R.string.override_attendance),
             onConfirm = {
                 onEvent(AttendanceUiEvent.BulkOverrideAttendance)
-            }
+            },
+            onDismissRequest = { onEvent(AttendanceUiEvent.DismissBulkOverride) },
         )
     }
 

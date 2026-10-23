@@ -28,11 +28,17 @@ import androidx.compose.ui.unit.dp
 import org.saudigitus.semis.core.designsystem.theme.colorPrimary
 import org.saudigitus.semis.core.designsystem.R
 
+/**
+ * A confirmation with Cancel and OK.
+ *
+ * [onDismissRequest] has no default on purpose: it is what Cancel, Back and a tap outside do, and
+ * a dialog that leaves it out cannot be closed by anything but OK.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AlertDialog(
     modifier: Modifier = Modifier,
-    onDismissRequest: () -> Unit = {  },
+    onDismissRequest: () -> Unit,
     onConfirm: () -> Unit,
     message: String
 ) {
