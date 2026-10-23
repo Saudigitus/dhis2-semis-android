@@ -25,6 +25,10 @@
     <string name="transfer_approved_status_missing">Transfer approved status code is missing</string>
     <string name="transfer_rejected_status_missing">Transfer rejected status code is missing</string>
     <string name="transfer_pending_status_missing">Pending transfer status option is missing</string>
+    <string name="transfer_decision_offline">Deciding on a transfer needs the internet. Connect and try again.</string>
+    <string name="transfer_ownership_failed">The server did not hand the learner over: %1$s</string>
+    <string name="transfer_decision_not_sent">The decision is saved on this phone but the server did not accept it: %1$s</string>
+    <string name="transfer_no_server_reason">the server gave no reason</string>
     <string name="value_yes">Yes</string>
     <string name="value_no">No</string>
     <string name="profile_school">School</string>

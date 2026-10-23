@@ -10,6 +10,7 @@ import org.hisp.dhis.android.core.event.Event
 import org.hisp.dhis.android.core.common.State
 import org.hisp.dhis.android.core.event.EventStatus
 import org.hisp.dhis.android.core.organisationunit.OrganisationUnitMode
+import org.hisp.dhis.android.core.systeminfo.DHISVersion
 import org.saudigitus.semis.core.data.R
 import org.saudigitus.semis.core.data.model.app_config.SEMISConfigItem
 import org.saudigitus.semis.core.data.model.app_config.Transfer
@@ -27,6 +28,9 @@ import org.saudigitus.semis.core.data.model.transfer.TransferDecision
 import org.saudigitus.semis.core.data.model.transfer.TransferDetail
 import org.saudigitus.semis.core.data.model.transfer.TransferStatus
 import org.saudigitus.semis.core.data.model.person.identity
+import org.saudigitus.semis.core.data.model.transfer.ownershipOrgUnitParameter
+import org.saudigitus.semis.core.data.model.transfer.programOwnerOf
+import org.saudigitus.semis.core.data.model.transfer.serverMessageOf
 import org.saudigitus.semis.core.data.model.transfer.transferStatusOf
 import org.saudigitus.semis.core.data.model.transfer.transferableProgramStages
 import org.saudigitus.semis.core.data.utils.StageDataElement
@@ -236,6 +240,11 @@ class TeiTransferRepositoryImpl @Inject constructor(
         eventUid: String,
         decision: TransferDecision,
     ) = withContext(Dispatchers.IO) {
+        // The server has to move the learner before this school can be told it has.
+        if (!networkUtils.isOnline()) {
+            error(resourceManager.getString(R.string.transfer_decision_offline))
+        }
+
         val config = appConfigRepository.getAppConfig(program)
         val transfer = config?.transfer.requireConfigured()
         val event = d2.eventModule().events()
@@ -268,8 +277,21 @@ class TeiTransferRepositoryImpl @Inject constructor(
                 ?: error(resourceManager.getString(R.string.transfer_rejected_status_missing))
         }
 
+        val enrollmentUid = event.enrollment()
+            ?: error(resourceManager.getString(R.string.transfer_request_not_found))
+        val teiUid = d2.enrollmentModule().enrollments()
+            .uid(enrollmentUid)
+            .blockingGet()
+            ?.trackedEntityInstance()
+            ?: error(
+                resourceManager.getString(
+                    R.string.transfer_enrollment_not_found,
+                    enrollmentUid,
+                ),
+            )
+
         if (decision == TransferDecision.APPROVE) {
-            handOverLearner(event, program, currentOrgUnit, config)
+            handOverLearner(teiUid, enrollmentUid, program, currentOrgUnit, config)
         }
 
         d2.trackedEntityModule().trackedEntityDataValues()
@@ -277,35 +299,24 @@ class TeiTransferRepositoryImpl @Inject constructor(
             .blockingSet(statusCode)
 
         eventRepository.setEventStatus(eventUid, EventStatus.COMPLETED)
+
+        sendDecision(teiUid, program, refresh = decision == TransferDecision.APPROVE)
     }
 
     /**
      * Hands the learner over to the school that approved the request: the ownership
-     * first, because it is the operation that can be refused, and only then the
-     * enrollment and the history. The request event itself is left where it was raised.
+     * first, on the server, because it is the operation that can be refused, and only
+     * then the enrollment and the history. The request event itself is left where it
+     * was raised.
      */
-    private fun handOverLearner(
-        event: Event,
+    private suspend fun handOverLearner(
+        teiUid: String,
+        enrollmentUid: String,
         program: String,
         destinationOrgUnit: String,
         config: SEMISConfigItem?,
     ) {
-        val enrollmentUid = event.enrollment()
-            ?: error(resourceManager.getString(R.string.transfer_request_not_found))
-        val enrollment = d2.enrollmentModule().enrollments()
-            .uid(enrollmentUid)
-            .blockingGet()
-            ?: error(
-                resourceManager.getString(
-                    R.string.transfer_enrollment_not_found,
-                    enrollmentUid,
-                ),
-            )
-        val teiUid = enrollment.trackedEntityInstance()
-            ?: error(resourceManager.getString(R.string.transfer_request_not_found))
-
-        d2.trackedEntityModule().ownershipManager()
-            .blockingTransfer(teiUid, program, destinationOrgUnit)
+        transferOwnership(teiUid, program, destinationOrgUnit)
 
         d2.enrollmentModule().enrollments()
             .uid(enrollmentUid)
@@ -339,6 +350,87 @@ class TeiTransferRepositoryImpl @Inject constructor(
                     .uid(uid)
                     .setOrganisationUnitUid(destinationOrgUnit)
             }
+    }
+
+    /**
+     * Moves the ownership on the server at once, instead of through the SDK's ownership
+     * manager: that one sends it at the next sync with the `ou` parameter, which DHIS2 2.43
+     * refuses, and drops the refusal, so the learner never leaves the origin school.
+     *
+     * A refusal is accepted only when the server already has the learner at [orgUnit],
+     * as when an approval that failed afterwards is tried again: 2.43 refuses a transfer
+     * to the current owner.
+     */
+    private suspend fun transferOwnership(teiUid: String, program: String, orgUnit: String) {
+        val orgUnitParameter = ownershipOrgUnitParameter(
+            d2.systemInfoModule().versionManager().isGreaterOrEqualThan(DHISVersion.V2_42),
+        )
+
+        runCatching {
+            d2.httpServiceClient().put<String> {
+                url("tracker/ownership/transfer")
+                parameters {
+                    attribute("trackedEntity", teiUid)
+                    attribute("program", program)
+                    attribute(orgUnitParameter, orgUnit)
+                }
+            }
+        }.onFailure { failure ->
+            if (serverOwner(teiUid, program) != orgUnit) {
+                error(
+                    resourceManager.getString(
+                        R.string.transfer_ownership_failed,
+                        serverMessageOf(failure.message)
+                            ?: resourceManager.getString(R.string.transfer_no_server_reason),
+                    ),
+                )
+            }
+        }
+    }
+
+    private suspend fun serverOwner(teiUid: String, program: String): String? =
+        runCatching {
+            d2.httpServiceClient().get<String> {
+                url("tracker/trackedEntities/$teiUid")
+                parameters {
+                    attribute("program", program)
+                    attribute("fields", "programOwners")
+                }
+            }
+        }.getOrNull()?.let { programOwnerOf(it, program) }
+
+    /**
+     * Sends the learner with the decision straight away and checks the server took it, so
+     * the school is told the decision was recorded only once it really is.
+     *
+     * After an approval the learner is downloaded again, so this device holds it as the
+     * server now does, owned by this school.
+     */
+    private fun sendDecision(teiUid: String, program: String, refresh: Boolean) {
+        val learners = d2.trackedEntityModule().trackedEntityInstances()
+        learners.byUid().eq(teiUid).blockingUpload()
+
+        val state = learners.uid(teiUid).blockingGet()?.aggregatedSyncState()
+        if (state != State.SYNCED && state != State.WARNING) {
+            val conflict = d2.importModule().trackerImportConflicts()
+                .byTrackedEntityInstanceUid().eq(teiUid)
+                .blockingGet()
+                .firstNotNullOfOrNull { it.displayDescription() ?: it.conflict() }
+            error(
+                resourceManager.getString(
+                    R.string.transfer_decision_not_sent,
+                    conflict ?: resourceManager.getString(R.string.transfer_no_server_reason),
+                ),
+            )
+        }
+
+        if (refresh) {
+            d2.trackedEntityModule().trackedEntityInstanceDownloader()
+                .byUid().eq(teiUid)
+                .byProgramUid(program)
+                .overwrite(true)
+                .blockingDownload()
+        }
     }
 
     /**
