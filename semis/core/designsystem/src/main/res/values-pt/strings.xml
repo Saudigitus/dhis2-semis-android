@@ -30,4 +30,12 @@
 
     <string name="save">Guardar</string>
     <string name="person_no_name">Sem nome</string>
+    <string name="value_invalid_integer">Introduza um número inteiro</string>
+    <string name="value_invalid_integer_positive">Introduza um número inteiro maior que 0</string>
+    <string name="value_invalid_integer_negative">Introduza um número inteiro menor que 0</string>
+    <string name="value_invalid_integer_zero_or_positive">Introduza um número inteiro, 0 ou mais</string>
+    <string name="value_invalid_number">Introduza um número</string>
+    <string name="value_invalid_percentage">Introduza uma percentagem de 0 a 100</string>
+    <string name="value_invalid_unit_interval">Introduza um número de 0 a 1</string>
+    <string name="value_invalid">Este valor não é válido</string>
 </resources>

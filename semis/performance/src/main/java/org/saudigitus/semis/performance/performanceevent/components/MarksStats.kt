@@ -18,10 +18,12 @@ internal fun marksStats(
     dataElement: String?,
     fieldsData: List<FormFieldData>,
 ): MarksStats {
+    // A mark shown in error is refused on save, so it counts as missing rather than pulling the
+    // average and the highest mark towards a value that will never be kept.
     val values = learners.map { learner ->
         fieldsData.firstOrNull {
             it.tei == learner.tei.uid() && (dataElement == null || it.dataElement == dataElement)
-        }?.value?.trim().orEmpty()
+        }?.takeUnless { it.hasError }?.value?.trim().orEmpty()
     }
     val entered = values.filter { it.isNotEmpty() }
     val numbers = entered.mapNotNull { it.replace(',', '.').toDoubleOrNull() }

@@ -1,4 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="person_no_name">Sans nom</string>
+    <string name="value_invalid_integer">Saisissez un nombre entier</string>
+    <string name="value_invalid_integer_positive">Saisissez un nombre entier supérieur à 0</string>
+    <string name="value_invalid_integer_negative">Saisissez un nombre entier inférieur à 0</string>
+    <string name="value_invalid_integer_zero_or_positive">Saisissez un nombre entier, 0 ou plus</string>
+    <string name="value_invalid_number">Saisissez un nombre</string>
+    <string name="value_invalid_percentage">Saisissez un pourcentage de 0 à 100</string>
+    <string name="value_invalid_unit_interval">Saisissez un nombre de 0 à 1</string>
+    <string name="value_invalid">Cette valeur n\'est pas valide</string>
 </resources>
