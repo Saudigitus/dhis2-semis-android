@@ -39,7 +39,13 @@ enum class SyncMode {
 }
 
 /**
- * Reads the configured mode, and answers DEFAULT to everything else.
+ * What the app does when the deployment has not chosen: send without asking, so a record saved on
+ * a connection reaches the server without waiting for the periodic sync or the toolbar button.
+ */
+val UNCONFIGURED_SYNC_MODE = SyncMode.AUTO
+
+/**
+ * Reads the configured mode, and answers [UNCONFIGURED_SYNC_MODE] to everything else.
  *
  * A missing key, an empty one, a value this version does not know: all of them mean the deployment
  * has not asked for anything, and none of them is a reason to stand between a teacher and the
@@ -47,4 +53,4 @@ enum class SyncMode {
  */
 fun syncModeOf(value: String?): SyncMode =
     SyncMode.entries.firstOrNull { it.name.equals(value?.trim(), ignoreCase = true) }
-        ?: SyncMode.DEFAULT
+        ?: UNCONFIGURED_SYNC_MODE

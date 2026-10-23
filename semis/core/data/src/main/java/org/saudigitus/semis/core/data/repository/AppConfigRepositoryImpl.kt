@@ -9,6 +9,7 @@ import org.saudigitus.semis.core.data.model.schoolcalendar_config.isSchoolDay
 import org.saudigitus.semis.core.data.model.schoolcalendar_config.SchoolCalendarConfig
 import org.saudigitus.semis.core.data.model.app_config.AndroidSettings
 import org.saudigitus.semis.core.data.model.app_config.SyncMode
+import org.saudigitus.semis.core.data.model.app_config.UNCONFIGURED_SYNC_MODE
 import org.saudigitus.semis.core.data.model.app_config.syncModeOf
 import org.saudigitus.semis.core.utils.Constants.ANDROID_KEY
 import org.saudigitus.semis.core.utils.Constants.CALENDAR_KEY
@@ -39,8 +40,9 @@ class AppConfigRepositoryImpl
     }
 
     override suspend fun getSyncMode(): SyncMode = withContext(Dispatchers.IO) {
-        // Every way of not knowing means DEFAULT: the key absent, the value unreadable, the mode
-        // one this version has never heard of. None of them is worth an error on a capture screen.
+        // Every way of not knowing means the unconfigured mode: the key absent, the value unreadable,
+        // the mode one this version has never heard of. None of them is worth an error on a capture
+        // screen.
         runCatching {
             val dataStore = d2.dataStoreModule()
                 .dataStore()
@@ -53,7 +55,7 @@ class AppConfigRepositoryImpl
             )
 
             syncModeOf(settings?.syncMode)
-        }.getOrDefault(SyncMode.DEFAULT)
+        }.getOrDefault(UNCONFIGURED_SYNC_MODE)
     }
 
     override suspend fun getSchoolCalendar() = withContext(Dispatchers.IO) {

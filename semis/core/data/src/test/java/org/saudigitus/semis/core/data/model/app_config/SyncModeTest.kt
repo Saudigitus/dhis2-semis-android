@@ -24,15 +24,15 @@ class SyncModeTest {
     }
 
     @Test
-    fun `a deployment that said nothing gets the default`() {
-        assertEquals(SyncMode.DEFAULT, syncModeOf(null))
-        assertEquals(SyncMode.DEFAULT, syncModeOf(""))
-        assertEquals(SyncMode.DEFAULT, syncModeOf("   "))
+    fun `a deployment that said nothing sends automatically`() {
+        assertEquals(SyncMode.AUTO, syncModeOf(null))
+        assertEquals(SyncMode.AUTO, syncModeOf(""))
+        assertEquals(SyncMode.AUTO, syncModeOf("   "))
     }
 
     @Test
-    fun `a mode this version does not know gets the default`() {
-        assertEquals(SyncMode.DEFAULT, syncModeOf("BACKGROUND"))
-        assertEquals(SyncMode.DEFAULT, syncModeOf("1"))
+    fun `a mode this version does not know sends automatically`() {
+        assertEquals(SyncMode.AUTO, syncModeOf("BACKGROUND"))
+        assertEquals(SyncMode.AUTO, syncModeOf("1"))
     }
 }
