@@ -14,6 +14,12 @@ sealed class AttendanceUiEvent {
     data object ConfirmResetForm : AttendanceUiEvent()
     data object DismissResetDialog : AttendanceUiEvent()
     data object BulkOverrideAttendance : AttendanceUiEvent()
+
+    /** Cancel on the save confirmation: nothing is saved and the changes stay on screen. */
+    data object DismissSaveDialog : AttendanceUiEvent()
+
+    /** Cancel on overriding the register with one status for the class: the marks stay. */
+    data object DismissBulkOverride : AttendanceUiEvent()
     data class BottomSheetAction(val action: BottomSheetConfirmAction) : AttendanceUiEvent()
     data class DismissBottomSheet(val type: BottomSheetType): AttendanceUiEvent()
     data class ShowBottomSheet(val type: BottomSheetType): AttendanceUiEvent()

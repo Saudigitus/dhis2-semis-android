@@ -477,12 +477,22 @@ class AttendanceViewModel @Inject constructor(
                         it.copy(displayBulk = false)
                     }
                 } else {
-                    if (save()) {
-                        _uiState.update {
-                            it.copy(displayDialog = false)
-                        }
+                    // Closed whatever the outcome: a refused save explains itself in a message
+                    // that would otherwise sit behind the dialog, with no way past it.
+                    save()
+                    _uiState.update {
+                        it.copy(displayDialog = false)
                     }
                 }
+            }
+
+            AttendanceUiEvent.DismissSaveDialog -> {
+                _uiState.update { it.copy(displayDialog = false) }
+            }
+
+            AttendanceUiEvent.DismissBulkOverride -> {
+                cachedButtonModel = null
+                _uiState.update { it.copy(overrideBulk = false) }
             }
 
             else -> {}
