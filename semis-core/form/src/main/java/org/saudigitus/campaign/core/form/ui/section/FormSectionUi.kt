@@ -61,6 +61,7 @@ import org.saudigitus.campaign.core.form.ui.state.FormSectionType
 import org.saudigitus.campaign.core.form.ui.state.FormSectionUiState
 import org.saudigitus.campaign.core.form.ui.state.FormStepProgress
 import org.saudigitus.campaign.core.form.utils.completionPercentage
+import org.saudigitus.campaign.core.form.utils.firstBlockingField
 import org.saudigitus.campaign.core.form.utils.firstBlockingFieldIndex
 import org.saudigitus.campaign.core.utils.location.rememberCoordinateState
 import org.saudigitus.campaign.core.utils.location.state.CoordinateState
@@ -156,6 +157,8 @@ internal fun FormSectionUi(
         )
     }
 
+    var scrollTarget by remember { mutableStateOf<FieldScrollTarget?>(null) }
+
     // Where the record belongs and when it happened are settled once and apply to everything the
     // flow produces, so they are asked for on a single step. Asking on each one would invite them
     // to disagree. They sit on the second step, next to the rest of what the enrollment is about,
@@ -178,8 +181,15 @@ internal fun FormSectionUi(
         val blockingSection = visibleSections.indexOfFirst { it.firstBlockingFieldIndex() != -1 }
 
         if (blockingSection != -1) {
+            val blockingField = visibleSections[blockingSection].firstBlockingField()
+
+            // The section is scrolled to first so that its fields are laid out, and only then is
+            // the question itself brought into view, which a long section would otherwise hide.
             scrollScope.launch {
                 listState.animateScrollToItem(blockingSection + sectionsOffset)
+                blockingField?.let { field ->
+                    scrollTarget = FieldScrollTarget(field.uid, (scrollTarget?.attempt ?: 0) + 1)
+                }
             }
 
             return false
@@ -317,7 +327,11 @@ internal fun FormSectionUi(
                                         color = FormSurfaces.SectionTitle,
                                     )
 
-                                    MandatoryFieldWrapper(hasUnfilledMandatoryFields) {
+                                    MandatoryFieldWrapper(
+                                        showError = hasUnfilledMandatoryFields &&
+                                            state.orgUnit == null,
+                                        message = stringResource(R.string.form_answer_required),
+                                    ) {
                                         OuField(
                                             modifier = Modifier.fillMaxWidth(),
                                             placeholder = stringResource(R.string.administrative_area),
@@ -350,6 +364,7 @@ internal fun FormSectionUi(
                     section = section,
                     showMandatoryError = hasUnfilledMandatoryFields,
                     coordinateStates = coordinateStatesByField,
+                    scrollTarget = scrollTarget,
                     onEvent = onEvent,
                 )
             }

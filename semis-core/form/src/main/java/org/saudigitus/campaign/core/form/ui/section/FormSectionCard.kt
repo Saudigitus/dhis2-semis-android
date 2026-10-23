@@ -1,28 +1,42 @@
 package org.saudigitus.campaign.core.form.ui.section
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.saudigitus.campaign.core.designsystem.theme.FormSurfaces
 import org.saudigitus.campaign.core.designsystem.theme.formSoftShadow
+import org.saudigitus.campaign.core.form.R
 import org.saudigitus.campaign.core.form.data.models.FormSectionModel
 import org.saudigitus.campaign.core.form.ui.FormFieldItem
 import org.saudigitus.campaign.core.form.ui.component.MandatoryFieldWrapper
 import org.saudigitus.campaign.core.form.ui.state.FormEvent
+import org.saudigitus.campaign.core.form.utils.isMissingMandatoryAnswer
 import org.saudigitus.campaign.core.utils.location.state.CoordinateState
 
 private val SectionShape = RoundedCornerShape(20.dp)
+
+/**
+ * The field a refused Continue points at. [attempt] tells one refusal from the next, so the field
+ * is brought into view again each time even when it is the same one.
+ */
+internal data class FieldScrollTarget(val fieldUid: String, val attempt: Int)
 
 /**
  * A form section laid out as a card: its name and description on top and every rendered field
@@ -33,6 +47,7 @@ internal fun FormSectionCard(
     section: FormSectionModel,
     showMandatoryError: Boolean,
     coordinateStates: Map<String, CoordinateState>,
+    scrollTarget: FieldScrollTarget? = null,
     modifier: Modifier = Modifier,
     onEvent: (FormEvent) -> Unit,
 ) {
@@ -86,10 +101,21 @@ internal fun FormSectionCard(
                     )
                 }
 
-                if (field.mandatory == true) {
-                    MandatoryFieldWrapper(showMandatoryError) { fieldItem() }
-                } else {
-                    fieldItem()
+                val requester = remember(field.uid) { BringIntoViewRequester() }
+
+                LaunchedEffect(scrollTarget) {
+                    if (scrollTarget?.fieldUid == field.uid) requester.bringIntoView()
+                }
+
+                Box(modifier = Modifier.bringIntoViewRequester(requester)) {
+                    if (field.mandatory == true) {
+                        MandatoryFieldWrapper(
+                            showError = showMandatoryError && field.isMissingMandatoryAnswer(),
+                            message = stringResource(R.string.form_answer_required),
+                        ) { fieldItem() }
+                    } else {
+                        fieldItem()
+                    }
                 }
             }
         }

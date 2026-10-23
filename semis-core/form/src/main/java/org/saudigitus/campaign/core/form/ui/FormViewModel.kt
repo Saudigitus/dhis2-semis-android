@@ -28,6 +28,7 @@ import org.saudigitus.campaign.core.form.ui.state.FormSectionType
 import org.saudigitus.campaign.core.form.ui.state.FormSectionUiState
 import org.saudigitus.campaign.core.form.utils.CustomValueType
 import org.saudigitus.campaign.core.form.utils.hasBlockingFields
+import org.saudigitus.campaign.core.form.utils.withValueTypeChecked
 import org.saudigitus.campaign.core.navigation.AppRoute
 import org.saudigitus.campaign.core.utils.DateHelper
 import org.saudigitus.campaign.core.utils.formatBoolean
@@ -404,7 +405,7 @@ class FormViewModel @Inject constructor(
                         errorMessage = outcome.errorMessage,
                         hasWarning = outcome.hasWarning,
                         warningMessage = outcome.warningMessage,
-                    )
+                    ).withValueTypeChecked { resourceManager.getString(it) }
                 },
             )
         }
@@ -434,7 +435,10 @@ class FormViewModel @Inject constructor(
                         else -> value
                     }
 
+                    // Judged at once rather than after the rules, so that a Continue pressed before
+                    // they run already finds the value refused.
                     field.copy(value = normalisedValue)
+                        .withValueTypeChecked { resourceManager.getString(it) }
                 }
 
                 currentSection.copy(formFields = updatedFields)
