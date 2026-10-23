@@ -45,6 +45,22 @@ class StatusOptionTest {
     }
 
     @Test
+    fun `resolves the reject code under the rejected key the instances configure`() {
+        val transfer = JsonMapper.json.decodeFromString<Transfer>(
+            """{
+                "enabled":true,
+                "statusOptions":[
+                    {"code":"Approved","key":"approved"},
+                    {"code":"Pending","key":"pending"},
+                    {"code":"Rejected","key":"rejected"}
+                ]
+            }""".trimIndent()
+        )
+
+        assertEquals("Rejected", transfer.rejectedStatusCode())
+    }
+
+    @Test
     fun `resolves the approve and reject codes a decision writes`() {
         val transfer = JsonMapper.json.decodeFromString<Transfer>(
             """{

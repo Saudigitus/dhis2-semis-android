@@ -15,6 +15,19 @@ class TransferStatusTest {
     }
 
     @Test
+    fun `a request rejected under the rejected key reads as rejected`() {
+        val current = transfer.copy(
+            statusOptions = listOf(
+                statusOption("Approved", "approved"),
+                statusOption("Pending", "pending"),
+                statusOption("Rejected", "rejected"),
+            ),
+        )
+
+        assertEquals(TransferStatus.REJECTED, current.transferStatusOf("Rejected"))
+    }
+
+    @Test
     fun `codes are matched ignoring case and surrounding blanks`() {
         assertEquals(TransferStatus.PENDING, transfer.transferStatusOf("  pending "))
         assertEquals(TransferStatus.APPROVED, transfer.transferStatusOf("APPROVED"))
