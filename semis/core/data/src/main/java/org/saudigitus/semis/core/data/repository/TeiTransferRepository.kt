@@ -82,6 +82,10 @@ interface TeiTransferRepository {
      * the configuration lists all move to this school. Rejecting only records the
      * decision, because nothing had moved while the request was pending. Either way the
      * request itself stays in the origin school, where it was raised.
+     *
+     * Requires connectivity: the ownership moves on the server first, and the decision is
+     * sent at once, so returning means the server holds it. A failure says which step the
+     * server refused.
      */
     suspend fun decideIncomingTransfer(
         program: String,
