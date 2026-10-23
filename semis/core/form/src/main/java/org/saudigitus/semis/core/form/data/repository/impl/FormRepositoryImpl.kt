@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.updateAndGet
 import kotlinx.coroutines.withContext
+import org.dhis2.commons.resources.ResourceManager
 import org.hisp.dhis.android.core.common.ValueType
 import org.hisp.dhis.android.core.program.ProgramRuleActionType
 import timber.log.Timber
@@ -33,6 +34,8 @@ import org.saudigitus.semis.core.designsystem.theme.white
 import org.saudigitus.semis.core.designsystem.utils.UiDefaults
 import org.saudigitus.semis.core.designsystem.utils.UiDefaults.getAttendanceStatusColor
 import org.saudigitus.semis.core.form.data.AttendanceTransformation
+import org.saudigitus.semis.core.form.data.invalidValueMessage
+import org.saudigitus.semis.core.form.data.isValidValue
 import org.saudigitus.semis.core.form.data.model.FormFieldData
 import org.saudigitus.semis.core.form.data.model.FormFieldState
 import org.saudigitus.semis.core.form.data.repository.AttendanceOptionRepository
@@ -50,6 +53,7 @@ class FormRepositoryImpl @Inject constructor(
     private val eventRepository: EventRepository,
     private val transformations: AttendanceTransformation,
     private val attendanceOptionRepository: AttendanceOptionRepository,
+    private val resourceManager: ResourceManager,
 ) : FormRepository {
 
     private val attendanceButtonState = MutableStateFlow(AttendanceButtonState())
@@ -349,10 +353,26 @@ class FormRepositoryImpl @Inject constructor(
     ): List<FormFieldData> = withContext(Dispatchers.IO) {
         if (fieldsData.isEmpty()) return@withContext fieldsData
 
+        // A value its type does not allow is refused by the server after the app said it was
+        // saved, so it is held back here as an error, and the rules never read it.
+        val valueTypes = repository.getProgramStageDataElements(programStage)
+            .mapNotNull { element -> element.dataElement?.let { it.uid() to it.valueType() } }
+            .toMap()
+        val invalid = fieldsData.mapNotNull { record ->
+            val valueType = valueTypes[record.dataElement] ?: return@mapNotNull null
+            if (isValidValue(valueType, record.value)) {
+                null
+            } else {
+                (record.tei to record.dataElement) to valueType
+            }
+        }.toMap()
+
         val byPerson = fieldsData.groupBy { it.tei }
         val outcomes = byPerson.mapValues { (_, records) ->
             val values = records.mapNotNull { record ->
-                record.value?.takeIf { it.isNotBlank() }?.let { record.dataElement to it }
+                record.value
+                    ?.takeIf { it.isNotBlank() && (record.tei to record.dataElement) !in invalid }
+                    ?.let { record.dataElement to it }
             }.toMap()
 
             if (values.isEmpty()) {
@@ -385,7 +405,9 @@ class FormRepositoryImpl @Inject constructor(
         }
 
         return@withContext fieldsData.map { record ->
-            val outcome = outcomes[record.tei]?.get(record.dataElement)
+            val outcome = invalid[record.tei to record.dataElement]
+                ?.let { valueType -> true to resourceManager.getString(invalidValueMessage(valueType)) }
+                ?: outcomes[record.tei]?.get(record.dataElement)
             val isError = outcome?.first == true
             val isWarning = outcome != null && !isError
 

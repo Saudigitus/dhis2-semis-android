@@ -9,6 +9,7 @@ object FactoryData {
         ValueType.INTEGER,
         ValueType.INTEGER_POSITIVE,
         ValueType.INTEGER_NEGATIVE,
+        ValueType.INTEGER_ZERO_OR_POSITIVE,
         ValueType.NUMBER,
         ValueType.UNIT_INTERVAL,
         ValueType.PERCENTAGE

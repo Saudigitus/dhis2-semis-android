@@ -4,6 +4,7 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import org.dhis2.commons.resources.ResourceManager
 import org.hisp.dhis.android.core.D2
 import org.saudigitus.semis.core.data.repository.AppConfigRepository
 import org.saudigitus.semis.core.data.repository.EventRepository
@@ -46,7 +47,8 @@ object FormModule {
         ruleEngineRepository: RuleEngineRepository,
         eventRepository: EventRepository,
         transformations: AttendanceTransformation,
-        attendanceOptionRepository: AttendanceOptionRepository
+        attendanceOptionRepository: AttendanceOptionRepository,
+        resourceManager: ResourceManager,
     ): FormRepository = FormRepositoryImpl(
         appConfigRepository,
         programStageRepository,
@@ -55,5 +57,6 @@ object FormModule {
         eventRepository,
         transformations,
         attendanceOptionRepository,
+        resourceManager,
     )
 }
