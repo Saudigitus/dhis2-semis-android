@@ -1,0 +1,14 @@
+package org.saudigitus.semis.core.form.ui.state
+
+import androidx.compose.runtime.Immutable
+
+@Immutable
+data class FormBuilderState(
+    val orgUnit: String = "",
+    val program: String = "",
+    val programStage: String = "",
+    val dataElement: String = "",
+    val date: String = "",
+    val presetValues: Map<String, String> = emptyMap(),
+    val lockedDataElements: Set<String> = emptySet(),
+)

@@ -1,6 +1,6 @@
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 group = "org.hisp.dhis"
-version = libs.versions.vName.get()
+version = libs.versions.captureVersion.get()
 
 buildscript {
     dependencies {
@@ -17,6 +17,8 @@ plugins {
     alias(libs.plugins.compose) apply false
     alias(libs.plugins.kotlin.compose.compiler) apply false
     alias(libs.plugins.ksp) apply false
+    alias(libs.plugins.hilt) apply false
+    alias(libs.plugins.androidx.room) apply false
     alias(libs.plugins.cyclonedx)
     alias(libs.plugins.kotlin.multiplatform) apply false
     alias(libs.plugins.android.kotlin.multiplatform.library) apply false

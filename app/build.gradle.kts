@@ -19,6 +19,8 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.kotlin.compose.compiler)
     alias(libs.plugins.sentry)
+    // Hilt is here only so the SEMIS modules can inject; the base app uses Koin and Dagger.
+    alias(libs.plugins.hilt)
 }
 apply(from = "${project.rootDir}/jacoco/jacoco.gradle.kts")
 
@@ -64,8 +66,16 @@ val getBranchName by extra {
 }
 
 base {
-    archivesName.set("dhis2-v" + libs.versions.vName.get())
+    archivesName.set("SEMIS-" + libs.versions.semis.get())
 }
+
+/**
+ * The channel a build belongs to, read from the SEMIS version: a release candidate such as
+ * 2.1.0-rc4 installs as "SEMIS TEST" beside the released "SEMIS", and development builds as
+ * "SEMIS Dev". Each channel has its own package, so they never update one another.
+ */
+val semisVersion: String = libs.versions.semis.get()
+val isReleaseCandidate = Regex("""-rc\d+$""").containsMatchIn(semisVersion)
 
 android {
 
@@ -73,7 +83,7 @@ android {
         create("release") {
             keyAlias = System.getenv("SIGNING_KEY_ALIAS")
             keyPassword = System.getenv("SIGNING_KEY_PASSWORD")
-            System.getenv("SIGNING_KEYSTORE_PATH")?.let { path ->
+            System.getenv("SIGNING_KEYSTORE_PATH")?.takeIf { it.isNotBlank() }?.let { path ->
                 storeFile = file(path)
             }
             storePassword = System.getenv("SIGNING_STORE_PASSWORD")
@@ -86,7 +96,7 @@ android {
             }
             storePassword = System.getenv("TRAINING_STORE_PASSWORD")
         }
-        val customKeystorePath = System.getenv("DEBUG_KEYSTORE_PATH")
+        val customKeystorePath = System.getenv("DEBUG_KEYSTORE_PATH")?.takeIf { it.isNotBlank() }
         if (customKeystorePath != null ) {
             getByName("debug") {
                 keyAlias = System.getenv("DEBUG_KEYSTORE_ALIAS")
@@ -118,17 +128,18 @@ android {
     testNamespace = "org.dhis2.test"
 
     defaultConfig {
-        applicationId = "com.dhis2"
+        applicationId = "com.dhis2.semis"
         targetSdk = libs.versions.sdk.get().toInt()
         minSdk = libs.versions.minSdk.get().toInt()
         versionCode = libs.versions.vCode.get().toInt()
-        versionName = libs.versions.vName.get()
+        versionName = libs.versions.semis.get()
         testInstrumentationRunner = "org.dhis2.Dhis2Runner"
         vectorDrawables.useSupportLibrary = true
 
         val bitriseSentryDSN = System.getenv("SENTRY_DSN") ?: ""
 
         buildConfigField("String", "SDK_VERSION", "\"" + libs.versions.dhis2sdk.get() + "\"")
+        buildConfigField("String", "CAPTURE_VERSION", "\"" + libs.versions.captureVersion.get() + "\"")
         buildConfigField("String", "MATOMO_URL", "\"https://usage.analytics.dhis2.org/matomo.php\"")
         buildConfigField("long", "VERSION_CODE", "${defaultConfig.versionCode}")
         buildConfigField("String", "VERSION_NAME", "\"${defaultConfig.versionName}\"")
@@ -200,12 +211,23 @@ android {
             // custom application suffix which allows to
             // install debug and release builds at the same time
             applicationIdSuffix = ".debug"
+            resValue("string", "launcher_name", "SEMIS Dev")
+            buildConfigField("String", "SEMIS_CHANNEL", "\"development\"")
 
             buildConfigField("int", "MATOMO_ID", "2")
             buildConfigField("String", "BUILD_DATE", "\"" + getBuildDate() + "\"")
             buildConfigField("String", "GIT_SHA", "\"" + getCommitHash() + "\"")
         }
         getByName("release") {
+            // A release candidate installs beside the released app, so a test round never
+            // replaces, or is replaced by, the SEMIS a school works with.
+            if (isReleaseCandidate) applicationIdSuffix = ".test"
+            resValue("string", "launcher_name", if (isReleaseCandidate) "SEMIS TEST" else "SEMIS")
+            buildConfigField(
+                "String",
+                "SEMIS_CHANNEL",
+                if (isReleaseCandidate) "\"release-candidate\"" else "\"release\"",
+            )
             isShrinkResources = true
             isMinifyEnabled = true
             proguardFiles(
@@ -223,6 +245,9 @@ android {
     productFlavors {
         create("dhis2") {
             signingConfig = signingConfigs.getByName("release")
+            // Only the architectures phones run. The x86 ones exist for emulators alone, and
+            // with libraries stored uncompressed they were a third of the file.
+            ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") }
         }
         create("dhis2PlayServices") {
             signingConfig = signingConfigs.getByName("release")
@@ -243,6 +268,8 @@ android {
         dataBinding = true
         viewBinding = true
         buildConfig = true
+        // The launcher name of each channel is a build value, never a translated string.
+        resValues = true
     }
 
     configurations.all {
@@ -288,7 +315,8 @@ androidComponents {
                     else -> ""
                 }
 
-                output.outputFileName = "dhis2-v${libs.versions.vName.get()}$suffix.apk"
+                // SEMIS-<version>.apk for the SEMIS release; the inherited flavours keep a suffix.
+                output.outputFileName = "SEMIS-$semisVersion$suffix.apk"
             }
         }
 
@@ -315,7 +343,23 @@ kapt {
     correctErrorTypes = true
 }
 
+// The base app's Dagger modules are plain @Module declarations with no @InstallIn, which is
+// what Hilt's own check rejects. Hilt is present here only to build the component the SEMIS
+// modules inject from, so the check is switched off rather than annotating the base app.
+ksp {
+    arg("dagger.hilt.disableModulesHaveInstallInCheck", "true")
+}
+
 dependencies {
+    constraints {
+        // The DHIS2 SDK asks for 4.5.5, whose arm64 library is aligned to 4 KB, and a device with
+        // 16 KB pages tells the user the app was not built for it. This states the floor rather
+        // than forcing a version, so a later SDK that already asks for something newer wins.
+        implementation("net.zetetic:sqlcipher-android:4.6.1") {
+            because("the first release whose native library is aligned to 16 KB pages")
+        }
+    }
+
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
     implementation(project(":dhis_android_analytics"))
     implementation(project(":form"))
@@ -329,6 +373,10 @@ dependencies {
     implementation(project(":commonskmm"))
     implementation(project(":login"))
     implementation(project(":sync"))
+    implementation(libs.dagger.hilt.android)
+    implementation(project(":semis:app"))
+    implementation(project(":semis:core:data"))
+    implementation(project(":semis:core:utils"))
 
     implementation(libs.security.conscrypt)
     implementation(libs.security.rootbeer)
@@ -361,6 +409,7 @@ dependencies {
     "dhis2PlayServicesImplementation"(libs.google.auth.apiphone)
 
     ksp(libs.dagger.compiler)
+    ksp(libs.dagger.hilt.android.compiler)
 
     testImplementation(libs.test.archCoreTesting)
     testImplementation(libs.test.testCore)

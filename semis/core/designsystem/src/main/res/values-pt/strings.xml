@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="academic_year">Ano lectivo</string>
+    <string name="grade">Ano</string>
+    <string name="cls">Turma/Classe</string>
+    <string name="school">Escola</string>
+    <string name="filters_download_records">Transferir registos</string>
+    <string name="filters_reset">Limpar filtros</string>
+    <string name="unknown">Desconhecido</string>
+    <string name="calendar">Calendário</string>
+    <string name="filters">Filtros</string>
+    <string name="back">Voltar</string>
+    <string name="config_not_found">Aplicação não configurada, por favor contacte o Administrador do Sistema.</string>
+    <string name="no_records_found">Sem registos. Actualize os filtros, sincronize os dados ou adicione uma nova inscrição.</string>
+
+    <string name="not_synced">Não sincronizado</string>
+    <string name="programs">Programas</string>
+    <string name="sync_successful">Sincronização bem-sucedida</string>
+    <string name="sync_warning">Aviso de sincronização</string>
+    <string name="sync_error">Erro de sincronização</string>
+    <string name="sync_dialog_title_not_synced">Sincronização necessária</string>
+    <string name="sync_dialog_title_error">Erro de sincronização</string>
+    <string name="sync_dialog_title_synced">Sincronizado</string>
+    <string name="sync_dialog_title_warning">Aviso de sincronização</string>
+    <string name="sync_dialog_title_syncing">A sincronizar</string>
+    <string name="sync_dialog_title_sms_syced">SMS enviada</string>
+    <string name="enrolledIn">Inscrito em</string>
+    <string name="marked_follow_up">Marcado para acompanhamento</string>
+    <string name="sync_error_title">Erro de sincronização</string>
+
+    <string name="save">Guardar</string>
+    <string name="person_no_name">Sem nome</string>
+    <string name="value_invalid_integer">Introduza um número inteiro</string>
+    <string name="value_invalid_integer_positive">Introduza um número inteiro maior que 0</string>
+    <string name="value_invalid_integer_negative">Introduza um número inteiro menor que 0</string>
+    <string name="value_invalid_integer_zero_or_positive">Introduza um número inteiro, 0 ou mais</string>
+    <string name="value_invalid_number">Introduza um número</string>
+    <string name="value_invalid_percentage">Introduza uma percentagem de 0 a 100</string>
+    <string name="value_invalid_unit_interval">Introduza um número de 0 a 1</string>
+    <string name="value_invalid">Este valor não é válido</string>
+</resources>

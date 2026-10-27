@@ -1,0 +1,154 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 1,
+    "identityHash": "bf572308a74bfd6db8a41dfe21e87aeb",
+    "entities": [
+      {
+        "tableName": "goals",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`dataElement` TEXT NOT NULL, `name` TEXT NOT NULL, `type` TEXT NOT NULL, `goal` INTEGER NOT NULL, `scope` TEXT NOT NULL, PRIMARY KEY(`dataElement`))",
+        "fields": [
+          {
+            "fieldPath": "dataElement",
+            "columnName": "dataElement",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "type",
+            "columnName": "type",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "goal",
+            "columnName": "goal",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "scope",
+            "columnName": "scope",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "dataElement"
+          ]
+        }
+      },
+      {
+        "tableName": "goal_group_access",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`dataElement` TEXT NOT NULL, `groupId` TEXT NOT NULL, PRIMARY KEY(`dataElement`, `groupId`), FOREIGN KEY(`dataElement`) REFERENCES `goals`(`dataElement`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "dataElement",
+            "columnName": "dataElement",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "groupId",
+            "columnName": "groupId",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "dataElement",
+            "groupId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_goal_group_access_groupId",
+            "unique": false,
+            "columnNames": [
+              "groupId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_goal_group_access_groupId` ON `${TABLE_NAME}` (`groupId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "goals",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "dataElement"
+            ],
+            "referencedColumns": [
+              "dataElement"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "user_goal_progress",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`dataElement` TEXT NOT NULL, `userId` TEXT NOT NULL, `date` TEXT NOT NULL, `achieved` INTEGER NOT NULL, PRIMARY KEY(`dataElement`, `userId`, `date`))",
+        "fields": [
+          {
+            "fieldPath": "dataElement",
+            "columnName": "dataElement",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "userId",
+            "columnName": "userId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "date",
+            "columnName": "date",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "achieved",
+            "columnName": "achieved",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "dataElement",
+            "userId",
+            "date"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_user_goal_progress_userId_date",
+            "unique": false,
+            "columnNames": [
+              "userId",
+              "date"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_user_goal_progress_userId_date` ON `${TABLE_NAME}` (`userId`, `date`)"
+          }
+        ]
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'bf572308a74bfd6db8a41dfe21e87aeb')"
+    ]
+  }
+}

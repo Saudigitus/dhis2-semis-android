@@ -1,0 +1,450 @@
+package org.saudigitus.semis.core.form.ui
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import org.dhis2.commons.resources.ResourceManager
+import org.saudigitus.semis.core.data.model.SearchTeiModel
+import org.saudigitus.semis.core.designsystem.R
+import org.saudigitus.semis.core.designsystem.attendance.model.AttendanceButtonModel
+import org.saudigitus.semis.core.designsystem.components.bottomsheet.model.BottomSheetModel
+import org.saudigitus.semis.core.designsystem.components.model.ToolbarHeaders
+import org.saudigitus.semis.core.form.data.model.FormFieldData
+import org.saudigitus.semis.core.form.data.model.FormFieldState
+import org.saudigitus.semis.core.form.data.model.FormType
+import org.saudigitus.semis.core.form.data.repository.FormRepository
+import org.saudigitus.semis.core.form.ui.state.FormBuilderState
+import org.saudigitus.semis.core.form.ui.state.FormEvent
+import org.saudigitus.semis.core.form.ui.state.FormUiState
+import javax.inject.Inject
+
+private const val RULE_DEBOUNCE = 300L
+
+@HiltViewModel
+class FormViewModel @Inject constructor(
+    private val formRepository: FormRepository,
+    private val resourceManager: ResourceManager
+) : ViewModel() {
+
+    private var recordRulesJob: Job? = null
+
+    private val _uiState = MutableStateFlow(
+        FormUiState(
+            toolbarHeaders = ToolbarHeaders(
+                title = resourceManager.getString(R.string.form),
+            )
+        ),
+    )
+    val uiState = _uiState
+        .stateIn(
+            viewModelScope,
+            SharingStarted.Eagerly,
+            _uiState.value
+        )
+
+    val attendanceState = formRepository
+        .attendanceButtonStateFlow.map {
+            it
+        }.stateIn(
+            viewModelScope,
+            SharingStarted.Eagerly,
+            formRepository.attendanceButtonStateFlow.value
+        )
+
+    init {
+        viewModelScope.launch {
+            formRepository.attendanceButtonStateFlow
+                .collectLatest { newAttendanceState ->
+                    _uiState.update { currentState ->
+                        currentState.copy(
+                            attendanceButtonState = newAttendanceState,
+                            // Once flagged, a learner is cleared as soon as the field is filled,
+                            // rather than only on the next attempt to save.
+                            learnersMissingCompulsory = if (currentState.learnersMissingCompulsory.isEmpty()) {
+                                emptySet()
+                            } else {
+                                learnersMissingCompulsoryAttendanceFields(
+                                    fields = currentState.fields,
+                                    attendanceState = newAttendanceState,
+                                )
+                            },
+                        )
+                    }
+                }
+        }
+    }
+
+    fun initialize(formBuilderState: FormBuilderState) {
+        viewModelScope.launch {
+            val dl = formBuilderState.dataElement.ifEmpty { null }
+
+            _uiState.update {
+                it.copy(
+                    formBuilderState = formBuilderState,
+                    attendanceButtonState = attendanceState.value
+                )
+            }
+            loadForm(formBuilderState.program, formBuilderState.programStage, dl)
+        }
+    }
+
+    private fun updateAttendanceEvent(
+        tei: SearchTeiModel?,
+        buttonModel: AttendanceButtonModel
+    ) {
+        viewModelScope.launch {
+            val attendanceButtonState = formRepository.updateAttendanceEvent(
+                uiState.value.formBuilderState.date,
+                tei,
+                buttonModel
+            )
+
+            _uiState.update {
+                it.copy(
+                    hasCachedData = true,
+                    attendanceButtonState = attendanceButtonState
+                )
+            }
+        }
+    }
+
+    fun collectIndividualFormEvent(formFieldData: List<FormFieldData>) {
+        _uiState.update {
+            it.copy(fieldsData = formFieldData)
+        }
+
+        judgeStoredRecords()
+    }
+
+    /**
+     * Judges the values as they were stored, not only what is typed afterwards: a mark saved
+     * against a rule has to say so the moment the screen opens. The values and the form reach
+     * this view model in either order, so whichever arrives last starts the evaluation.
+     */
+    private fun judgeStoredRecords() {
+        val current = uiState.value
+
+        if (current.fieldsData.isNotEmpty() && current.formBuilderState.program.isNotBlank()) {
+            debounceRecordRules()
+        }
+    }
+
+    fun collectIndividualSummary(getSummaries: (List<BottomSheetModel>) -> Unit) {
+        viewModelScope.launch {
+            uiState.collectLatest {
+                val summary = formRepository.individualFormSummary(it.fieldsData)
+                getSummaries(summary)
+            }
+        }
+    }
+
+    private fun collectIndividual(tei: String, dataElement: String, value: String) {
+        val currentFormData = uiState.value.fieldsData.toMutableList()
+        val index = currentFormData.indexOfFirst { it.tei == tei && it.dataElement == dataElement }
+
+        if (index != -1) {
+            val removedFormField = currentFormData.removeAt(index)
+            val updatedField = removedFormField.copy(value = value, isUpdated = true)
+            currentFormData.add(index, updatedField)
+
+            _uiState.update {
+                it.copy(hasCachedData = true, fieldsData = currentFormData)
+            }
+
+            debounceRecordRules()
+        }
+    }
+
+    /**
+     * Judges what has been captured, once the typing settles.
+     *
+     * Every keystroke would otherwise start an evaluation that reads the rules, the variables and
+     * the constants, and the answer to a half typed number is not worth that. The job is replaced
+     * rather than queued, so only the values as they stand are ever judged.
+     */
+    private fun debounceRecordRules() {
+        recordRulesJob?.cancel()
+
+        recordRulesJob = viewModelScope.launch {
+            delay(RULE_DEBOUNCE)
+
+            val current = uiState.value
+            val evaluated = formRepository.applyProgramRulesToRecords(
+                orgUnit = current.formBuilderState.orgUnit,
+                program = current.formBuilderState.program,
+                programStage = current.formBuilderState.programStage,
+                fieldsData = current.fieldsData,
+            )
+
+            // What was typed while the rules were running lives in the state that is current now,
+            // so only what the rules decided is taken and the values are left as they stand.
+            _uiState.update { latest ->
+                val outcomes = evaluated.associateBy { it.tei to it.dataElement }
+
+                latest.copy(
+                    fieldsData = latest.fieldsData.map { record ->
+                        val outcome = outcomes[record.tei to record.dataElement] ?: record
+
+                        record.copy(
+                            hasError = outcome.hasError,
+                            errorMessage = outcome.errorMessage,
+                            hasWarning = outcome.hasWarning,
+                            warningMessage = outcome.warningMessage,
+                        )
+                    },
+                )
+            }
+        }
+    }
+
+    fun enableForm(enable: Boolean = true) {
+        _uiState.update { it.copy(isEnabled = enable) }
+    }
+
+    /**
+     * Shows [message] on the field of [dataElementUid], or clears it when null, for a rule the
+     * screen holding the form knows and the form cannot: whether a school is allowed there.
+     */
+    fun showFieldError(dataElementUid: String, message: String?) {
+        _uiState.update { current ->
+            current.copy(
+                fields = current.fields.map { field ->
+                    if (field.dataElementUid == dataElementUid) {
+                        field.copy(hasError = message != null, errorMessage = message)
+                    } else {
+                        field
+                    }
+                },
+            )
+        }
+    }
+
+    fun applyPresetValue(dataElementUid: String, value: String, locked: Boolean = false) {
+        if (dataElementUid.isBlank() || value.isBlank()) return
+
+        _uiState.update { current ->
+            if (current.fields.none { it.dataElementUid == dataElementUid }) {
+                return@update current
+            }
+            current.copy(
+                formBuilderState = current.formBuilderState.copy(
+                    presetValues = current.formBuilderState.presetValues +
+                        (dataElementUid to value),
+                    lockedDataElements = if (locked) {
+                        current.formBuilderState.lockedDataElements + dataElementUid
+                    } else {
+                        current.formBuilderState.lockedDataElements - dataElementUid
+                    },
+                ),
+                fields = current.fields.map { field ->
+                    if (field.dataElementUid == dataElementUid) {
+                        field.copy(value = value, enabled = !locked)
+                    } else {
+                        field
+                    }
+                },
+            )
+        }
+    }
+
+    fun resetCacheStatus() {
+        _uiState.update { it.copy(hasCachedData = false) }
+    }
+
+    fun markAttendanceChanged() {
+        _uiState.update { it.copy(hasCachedData = true) }
+    }
+
+    /**
+     * Flags and returns the learners whose register leaves a compulsory field empty; the
+     * register can be saved only when there are none. Compulsory is what the metadata says of
+     * the field, nothing more, and it holds on the first completion as on every later update.
+     */
+    fun validateAttendanceFields(): Set<String> {
+        val missing = learnersMissingCompulsoryAttendanceFields(
+            fields = _uiState.value.fields,
+            attendanceState = formRepository.attendanceButtonStateFlow.value,
+        )
+
+        _uiState.update { it.copy(learnersMissingCompulsory = missing) }
+
+        return missing
+    }
+
+    fun handleUiEvent(uiEvent: FormEvent) {
+        viewModelScope.launch {
+            when (uiEvent) {
+                is FormEvent.LoadForm -> {
+                    val dl = uiState.value.formBuilderState.dataElement.ifEmpty { null }
+
+                    loadForm(
+                        uiState.value.formBuilderState.program,
+                        uiState.value.formBuilderState.programStage,
+                        dl,
+                    )
+                }
+
+                is FormEvent.UpdateAttendance -> {
+                    updateAttendanceEvent(uiEvent.tei, uiEvent.buttonModel)
+                }
+
+                is FormEvent.UpdateField -> {
+                    when (uiEvent.formType) {
+                        FormType.ATTENDANCE -> {
+                            val updated = formRepository.updateAttendanceReason(
+                                uiEvent.tei,
+                                uiEvent.dataElementUid,
+                                uiEvent.value
+                            )
+
+                            // A reason is as much a change as a status: without this, leaving
+                            // after changing only a reason drops it without a word.
+                            if (updated != null) markAttendanceChanged()
+                        }
+
+                        FormType.INDIVIDUAL -> {
+                            collectIndividual(uiEvent.tei, uiEvent.dataElementUid, uiEvent.value)
+                        }
+
+                        else -> {
+                            updateField(
+                                uiEvent.dataElementUid,
+                                uiEvent.value
+                            )
+                        }
+                    }
+                }
+
+                is FormEvent.UpdateOrganisationUnit -> {
+                    updateOrganisationUnit(uiEvent.dataElementUid, uiEvent.orgUnit)
+                }
+
+                else -> {}
+            }
+        }
+    }
+
+    private suspend fun loadForm(program: String, programStage: String, dl: String? = null) {
+        _uiState.update {
+            it.copy(isLoading = true, error = null)
+        }
+        runCatching {
+            val builderState = uiState.value.formBuilderState
+            val fields = formRepository.getFormFields(program, programStage, dl).map { field ->
+                field.copy(
+                    value = builderState.presetValues[field.dataElementUid],
+                    enabled = field.dataElementUid !in builderState.lockedDataElements,
+                )
+            }
+            formRepository.applyProgramRules(
+                builderState.orgUnit,
+                builderState.program,
+                programStage,
+                fields,
+            )
+        }.onSuccess { updatedFields ->
+            _uiState.update {
+                it.copy(isLoading = false, fields = updatedFields, error = null)
+            }
+
+            judgeStoredRecords()
+        }.onFailure { error ->
+            _uiState.update {
+                it.copy(
+                    isLoading = false,
+                    fields = emptyList(),
+                    error = error.message
+                        ?: resourceManager.getString(R.string.form_load_failed),
+                )
+            }
+        }
+    }
+
+    private suspend fun updateField(dataElement: String, value: String) {
+        _uiState.update { current ->
+            val fields = current.fields.map { field ->
+                if (field.dataElementUid == dataElement) {
+                    validateField(field.copy(value = value))
+                } else field
+            }
+
+            val withRules = formRepository.applyProgramRules(
+                uiState.value.formBuilderState.orgUnit,
+                uiState.value.formBuilderState.program,
+                uiState.value.formBuilderState.programStage,
+                fields,
+            )
+            current.copy(fields = withRules)
+        }
+    }
+
+    private suspend fun updateOrganisationUnit(
+        dataElement: String,
+        orgUnit: org.saudigitus.semis.core.data.model.OrgUnit,
+    ) {
+        _uiState.update { current ->
+            val fields = current.fields.map { field ->
+                if (field.dataElementUid == dataElement) {
+                    validateField(field.copy(value = orgUnit.uid, selectedOrgUnit = orgUnit))
+                } else {
+                    field
+                }
+            }
+            val withRules = formRepository.applyProgramRules(
+                current.formBuilderState.orgUnit,
+                current.formBuilderState.program,
+                current.formBuilderState.programStage,
+                fields,
+            )
+            current.copy(fields = withRules, hasCachedData = true)
+        }
+    }
+
+    fun resetValues() {
+        _uiState.update { current ->
+            current.copy(
+                fields = current.fields.map {
+                    it.copy(
+                        value = current.formBuilderState.presetValues[it.dataElementUid],
+                        selectedOrgUnit = null,
+                        enabled = it.dataElementUid !in
+                            current.formBuilderState.lockedDataElements,
+                        hasError = false,
+                        errorMessage = null,
+                    )
+                },
+                hasCachedData = false,
+            )
+        }
+    }
+
+    private fun validateField(field: FormFieldState): FormFieldState {
+
+        if (!field.enabled || !field.rendered) return field.copy(
+            hasError = false,
+            errorMessage = null
+        )
+
+        return when {
+            field.mandatory && field.value.isNullOrBlank() -> {
+                field.copy(
+                    hasError = true,
+                    errorMessage = resourceManager.getString(
+                        R.string.required_field, field.label
+                    )
+                )
+            }
+
+            else -> field.copy(hasError = false, errorMessage = null)
+        }
+    }
+}

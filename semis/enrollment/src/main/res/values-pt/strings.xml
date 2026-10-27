@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="profile_title">Perfil</string>
+    <string name="profile_academic_year">Ano lectivo %1$s</string>
+    <string name="profile_tab_personal_details">Dados pessoais</string>
+    <string name="profile_tab_attendance">Assiduidade</string>
+    <string name="profile_tab_performance">Desempenho</string>
+    <string name="profile_tab_final_result">Resultado final</string>
+    <string name="profile_tab_transfer">Transferência</string>
+    <string name="profile_figure_absences">Faltas</string>
+    <string name="profile_figure_average">Média de %1$s</string>
+    <string name="profile_no_records_year">Sem registos para %1$s.</string>
+    <string name="profile_panel_empty">Nada foi registado neste cartão.</string>
+    <string name="profile_record_empty">Este registo não tem valores.</string>
+    <string name="profile_panel_attributes">O que foi registado sobre esta pessoa.</string>
+    <string name="profile_not_found">Não foi possível carregar este perfil.</string>
+    <string name="enrollment_config_unavailable">Não foi possível ler a configuração da matrícula. Sincronize os dados e tente novamente.</string>
+    <string name="enrollment_not_saved">Não foi possível guardar a matrícula. Nada foi registado, tente novamente.</string>
+    <string name="enrollment_complete_step">Concluída</string>
+    <string name="enrollment_complete_title">Matrícula concluída</string>
+    <string name="enrollment_add_another">Adicionar outro registo</string>
+    <string name="enrollment_back_to_list">Voltar à lista</string>
+    <string name="enrollment_summary_registration">Dados da matrícula</string>
+    <string name="enrollment_summary_registration_hint">Onde esta pessoa foi matriculada e o que foi registado.</string>
+    <string name="enrollment_summary_org_unit">Escola</string>
+    <string name="enrollment_summary_date">Data da matrícula</string>
+    <plurals name="profile_panel_records">
+        <item quantity="one">%1$d registo</item>
+        <item quantity="other">%1$d registos</item>
+    </plurals>
+</resources>

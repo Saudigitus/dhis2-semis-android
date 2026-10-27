@@ -35,3 +35,25 @@ include(":aggregates")
 include(":commonskmm")
 include(":login")
 include(":sync")
+
+// SEMIS modules
+include(":semis")
+include(":semis:attendance")
+include(":semis:performance")
+include(":semis:transfer")
+include(":semis:core")
+include(":semis:core:data")
+include(":semis:core:form")
+include(":semis:core:designsystem")
+include(":semis:core:utils")
+include(":semis:app")
+include(":semis:enrollment")
+include(":semis-core")
+include(":semis-core:data")
+// Not included: no module depends on :semis-core:designsystems, so the app never built it, and
+// its sources are written against classes that live in the shadowed half of :semis-core:data.
+// Including it only makes whole-project tasks such as ktlintCheck and testDebugUnitTest fail.
+// include(":semis-core:designsystems")
+include(":semis-core:form")
+include(":semis-core:navigation")
+include(":semis-core:utils")

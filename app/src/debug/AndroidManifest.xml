@@ -16,7 +16,7 @@
         android:allowBackup="false"
         android:fullBackupContent="@xml/old_backup_config"
         android:dataExtractionRules="@xml/data_extraction_rules"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_semis_launcher">
 
         <activity android:name=".usescases.development.DevelopmentActivity" />
     </application>

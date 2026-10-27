@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="form_title">Registration Form</string>
+    <string name="unable_load_form">Unable to load form</string>
+    <string name="something_went_wrong_loading_form">Something went wrong while loading the form. Please try again.</string>
+    <string name="retry">Retry</string>
+    <string name="administrative_area">Administrative area</string>
+    <string name="registration_date">Registration date</string>
+    <string name="current_precision">Precision: %s meters</string>
+    <string name="location" translatable="false">Lat: %s, Long: %s</string>
+    <string name="previous">Previous</string>
+    <string name="unsaved_changes_form">You have unsaved changes. If you discard them, your collected data will be lost. Tap ‘Keep Editing’ to continue.</string>
+    <string name="events_not_found">There are no event records yet. Press ‘Add New’ to create one.</string>
+    <string name="save_changes_form">Are you sure you want to save these changes?</string>
+    <string name="num_of_mandatory_field">Mandatory field(s): %s field(s)</string>
+    <string name="separator">|</string>
+    <string name="semis_form_yes">Yes</string>
+    <string name="semis_form_no">No</string>
+    <string name="reserved_value_unavailable">No value available. Sync the data to get new values.</string>
+    <string name="form_step_continue">Continue</string>
+    <string name="form_step_progress">Step %1$d of %2$d</string>
+    <string name="form_record_details">Record details</string>
+    <string name="save">Save</string>
+    <string name="form_answer_required">Answer this question to continue</string>
+    <string name="value_invalid_integer">Enter a whole number</string>
+    <string name="value_invalid_integer_positive">Enter a whole number greater than 0</string>
+    <string name="value_invalid_integer_negative">Enter a whole number less than 0</string>
+    <string name="value_invalid_integer_zero_or_positive">Enter a whole number, 0 or more</string>
+    <string name="value_invalid_number">Enter a number</string>
+    <string name="value_invalid_percentage">Enter a percentage from 0 to 100</string>
+    <string name="value_invalid_unit_interval">Enter a number from 0 to 1</string>
+    <string name="value_invalid_phone_number">Enter a phone number, digits only, with an optional + at the start</string>
+    <string name="value_invalid_email">Enter an e-mail address such as name@example.org</string>
+    <string name="value_invalid_letter">Enter a single letter</string>
+    <string name="value_invalid_date">Pick a date from the calendar</string>
+    <string name="value_invalid_coordinate">Capture the location again</string>
+    <string name="value_invalid">This value is not valid</string>
+</resources>

@@ -64,7 +64,14 @@ import timber.log.Timber
 import timber.log.Timber.Forest.plant
 import java.io.IOException
 import javax.inject.Singleton
+import dagger.hilt.android.HiltAndroidApp
 
+/**
+ * The SEMIS modules are wired with Hilt while the base app uses Koin and plain Dagger. Hilt
+ * builds its component from the application object, so the annotation has to sit here even
+ * though nothing in the base app is injected by Hilt.
+ */
+@HiltAndroidApp
 open class App : Application(), Components, DefaultLifecycleObserver {
     @Singleton
     lateinit var appComponent: AppComponent
@@ -147,7 +154,9 @@ open class App : Application(), Components, DefaultLifecycleObserver {
                 SentryOptions.BeforeSendCallback { event, _ ->
                     if (SentryLevel.DEBUG == event.level) null else event
                 }
-            options.environment = if (BuildConfig.DEBUG) "debug" else "production"
+            // development, release-candidate or release, so a test round never counts as production.
+            options.environment = BuildConfig.SEMIS_CHANNEL
+            options.release = "${BuildConfig.APPLICATION_ID}@${BuildConfig.VERSION_NAME}+${BuildConfig.VERSION_CODE}"
             options.isDebug = BuildConfig.DEBUG
             // Enable view hierarchy for crashes
             options.isAttachViewHierarchy = true

@@ -1,0 +1,309 @@
+# SEMIS Android Release
+#
+# Started by hand with "Run workflow", always from develop.
+#
+#   rc       e.g. 2.1.0-rc4  fully automatic, published as a GitHub pre-release.
+#                            Installs as "SEMIS TEST" (com.dhis2.semis.test).
+#   release  e.g. 2.1.0      same steps, but the GitHub release is a draft: edit the notes,
+#                            then approve the "semis-release-approval" environment. After the
+#                            approval the release is published and main is updated.
+#                            Installs as "SEMIS" (com.dhis2.semis).
+#
+# What a run does:
+#   1. Checks the version and that its tag and branch do not exist yet.
+#   2. Sets the SEMIS version and the next version code (one above every earlier rc and release).
+#   3. Builds and signs the APK and checks its package, name and versions (nothing is pushed if
+#      any of this fails).
+#   4. Creates the branch (rc/<version> or release/<version>) with the release commit, and the
+#      tag <version>.
+#   5. Writes the release notes from the pull requests merged into develop since the previous tag,
+#      and creates the GitHub release with SEMIS-<version>.apk.
+#
+# This repository is a fork of the DHIS2 Capture App. The workflow only ever runs in, and only
+# ever writes to, the SEMIS fork: every job is limited to it, the remote it pushes to is checked,
+# and every GitHub call names it explicitly. Nothing here can reach dhis2/dhis2-android-capture-app.
+#
+# Needs these repository secrets, from the one signing key used for every rc and release:
+#   SEMIS_KEYSTORE_BASE64   the keystore file, base64 encoded
+#   SEMIS_KEYSTORE_PASSWORD
+#   SEMIS_KEY_ALIAS
+#   SEMIS_KEY_PASSWORD
+# optionally SENTRY_DSN, and the environment "semis-release-approval" with the required reviewers.
+
+name: SEMIS Android Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      type:
+        description: "rc (pre-release, automatic) or release (final, notes reviewed before publishing)"
+        required: true
+        type: choice
+        options:
+          - rc
+          - release
+      version:
+        description: "SEMIS version, e.g. 2.1.0-rc4 for rc or 2.1.0 for release"
+        required: true
+        type: string
+
+concurrency:
+  group: semis-android-release
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+env:
+  # The only repository this workflow may touch.
+  SEMIS_REPO: Saudigitus/dhis2-semis-android
+  TYPE: ${{ inputs.type }}
+  VERSION: ${{ inputs.version }}
+  VERSIONS_FILE: gradle/libs.versions.toml
+  GH_TOKEN: ${{ github.token }}
+
+jobs:
+  prepare:
+    name: Build and create ${{ inputs.type }} ${{ inputs.version }}
+    # Never runs anywhere but the SEMIS fork, whatever happens to this file.
+    if: github.repository == 'Saudigitus/dhis2-semis-android'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check the inputs
+        run: |
+          set -euo pipefail
+          if [ "$GITHUB_REPOSITORY" != "$SEMIS_REPO" ]; then
+            echo "::error::This workflow only runs in $SEMIS_REPO (it was started in $GITHUB_REPOSITORY)."; exit 1
+          fi
+          if [ "$GITHUB_REF_NAME" != "develop" ]; then
+            echo "::error::Run this workflow from develop (it was started from $GITHUB_REF_NAME)."; exit 1
+          fi
+          if [ "$TYPE" = "rc" ]; then
+            [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+-rc[0-9]+$ ]] || { echo "::error::An rc version looks like 2.1.0-rc4."; exit 1; }
+          else
+            [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::A release version looks like 2.1.0."; exit 1; }
+          fi
+
+      - name: Check out develop
+        uses: actions/checkout@v4
+        with:
+          ref: develop
+          fetch-depth: 0
+
+      - name: Check that the version is new
+        id: names
+        run: |
+          set -euo pipefail
+          # Pushes go to the SEMIS fork and nowhere else.
+          origin=$(git remote get-url origin)
+          case "$origin" in
+            "https://github.com/$SEMIS_REPO"|"https://github.com/$SEMIS_REPO.git") ;;
+            *) echo "::error::origin is $origin, not $SEMIS_REPO."; exit 1 ;;
+          esac
+          if git remote | grep -qvx origin; then
+            echo "::error::Only the origin remote may exist in this checkout."; exit 1
+          fi
+          BRANCH="$TYPE/$VERSION"
+          echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
+          if git ls-remote --exit-code --tags origin "refs/tags/$VERSION" >/dev/null; then
+            echo "::error::The tag $VERSION already exists."; exit 1
+          fi
+          if git ls-remote --exit-code --heads origin "$BRANCH" >/dev/null; then
+            echo "::error::The branch $BRANCH already exists."; exit 1
+          fi
+
+      # Android only installs a build over another with a higher version code, so the code goes
+      # one above the highest of develop and of every earlier rc and release tag.
+      - name: Set the version and the version code
+        id: version
+        run: |
+          set -euo pipefail
+          code_of() { grep -E '^vCode *=' | head -1 | sed -E 's/[^0-9]//g'; }
+          highest=$(code_of < "$VERSIONS_FILE")
+          for tag in $(git tag --list | grep -E '^[0-9]+\.[0-9]+\.[0-9]+(-rc[0-9]+)?$' || true); do
+            code=$(git show "$tag:$VERSIONS_FILE" 2>/dev/null | code_of || true)
+            if [ -n "$code" ] && [ "$code" -gt "$highest" ]; then highest=$code; fi
+          done
+          next=$((highest + 1))
+          sed -i -E "s/^vCode *=.*/vCode = \"$next\"/; s/^semis *=.*/semis = \"$VERSION\"/" "$VERSIONS_FILE"
+          grep -E '^(vCode|semis|captureVersion|dhis2sdk) *=' "$VERSIONS_FILE"
+          echo "code=$next" >> "$GITHUB_OUTPUT"
+          echo "capture=$(grep -E '^captureVersion *=' "$VERSIONS_FILE" | sed -E 's/.*"(.*)".*/\1/')" >> "$GITHUB_OUTPUT"
+          echo "sdk=$(grep -E '^dhis2sdk *=' "$VERSIONS_FILE" | sed -E 's/.*"(.*)".*/\1/')" >> "$GITHUB_OUTPUT"
+
+      - name: Set up the JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: zulu
+          java-version: "17"
+          cache: gradle
+
+      - name: Write the signing key
+        env:
+          SEMIS_KEYSTORE_BASE64: ${{ secrets.SEMIS_KEYSTORE_BASE64 }}
+        run: |
+          set -euo pipefail
+          [ -n "$SEMIS_KEYSTORE_BASE64" ] || { echo "::error::The secret SEMIS_KEYSTORE_BASE64 is not set."; exit 1; }
+          echo "$SEMIS_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/semis.jks"
+
+      - name: Build the signed APK
+        env:
+          SIGNING_KEYSTORE_PATH: ${{ runner.temp }}/semis.jks
+          SIGNING_STORE_PASSWORD: ${{ secrets.SEMIS_KEYSTORE_PASSWORD }}
+          SIGNING_KEY_ALIAS: ${{ secrets.SEMIS_KEY_ALIAS }}
+          SIGNING_KEY_PASSWORD: ${{ secrets.SEMIS_KEY_PASSWORD }}
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+        run: |
+          set -euo pipefail
+          chmod +x ./gradlew
+          ./gradlew :app:assembleDhis2Release --no-daemon
+          cp "app/build/outputs/apk/dhis2/release/SEMIS-$VERSION.apk" "$RUNNER_TEMP/SEMIS-$VERSION.apk"
+
+      - name: Check the APK
+        env:
+          CODE: ${{ steps.version.outputs.code }}
+        run: |
+          set -euo pipefail
+          tools=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          apk="$RUNNER_TEMP/SEMIS-$VERSION.apk"
+          "$tools/apksigner" verify --print-certs "$apk" | grep -i "certificate SHA-256"
+          badging=$("$tools/aapt2" dump badging "$apk")
+          if [ "$TYPE" = "rc" ]; then package=com.dhis2.semis.test; label="SEMIS TEST"; else package=com.dhis2.semis; label=SEMIS; fi
+          echo "$badging" | grep -q "^package: name='$package' versionCode='$CODE' versionName='$VERSION'" \
+            || { echo "::error::The APK is not $package $VERSION ($CODE)."; echo "$badging" | head -1; exit 1; }
+          echo "$badging" | grep -q "^application-label:'$label'" \
+            || { echo "::error::The APK is not named $label."; exit 1; }
+          echo "$package $VERSION ($CODE), named $label"
+
+      - name: Create the branch and the tag
+        id: push
+        env:
+          BRANCH: ${{ steps.names.outputs.branch }}
+          CODE: ${{ steps.version.outputs.code }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout --quiet -b "$BRANCH"
+          git add "$VERSIONS_FILE"
+          git commit --quiet -m "chore(release): $VERSION" -m "SEMIS $VERSION, version code $CODE."
+          git tag -a "$VERSION" -m "SEMIS Android $VERSION"
+          touch "$RUNNER_TEMP/pushed"
+          git push --quiet origin "$BRANCH" "refs/tags/$VERSION"
+          echo "$BRANCH and $VERSION at $(git rev-parse HEAD)"
+
+      - name: Write the release notes
+        env:
+          CODE: ${{ steps.version.outputs.code }}
+          CAPTURE: ${{ steps.version.outputs.capture }}
+          SDK: ${{ steps.version.outputs.sdk }}
+        run: |
+          set -euo pipefail
+          # Changes since the previous rc or release (for a release: since the previous release).
+          if [ "$TYPE" = "rc" ]; then
+            pattern='^[0-9]+\.[0-9]+\.[0-9]+(-rc[0-9]+)?$'
+          else
+            pattern='^[0-9]+\.[0-9]+\.[0-9]+$'
+          fi
+          previous=$(git tag --sort=-creatordate | grep -E "$pattern" | grep -vxF "$VERSION" | head -1 || true)
+          since=""
+          if [ -n "$previous" ]; then
+            since=$(git for-each-ref "refs/tags/$previous" --format='%(creatordate:iso-strict)')
+          fi
+          if [ "$TYPE" = "rc" ]; then
+            app="SEMIS TEST (com.dhis2.semis.test)"
+          else
+            app="SEMIS (com.dhis2.semis)"
+          fi
+          notes="$RUNNER_TEMP/notes.md"
+          {
+            if [ "$TYPE" = "rc" ]; then
+              echo "Release candidate **$VERSION** of SEMIS Android, built from \`develop\` on $(date -u +%Y-%m-%d)."
+            else
+              echo "Release **$VERSION** of SEMIS Android, built from \`develop\` on $(date -u +%Y-%m-%d)."
+            fi
+            echo
+            echo "Install \`SEMIS-$VERSION.apk\`. It installs as $app."
+            echo
+            echo "| SEMIS Version | Capture App Version | SDK Version | Version code |"
+            echo "|---|---|---|---|"
+            echo "| $VERSION | $CAPTURE | $SDK | $CODE |"
+            echo
+            if [ -n "$previous" ]; then echo "## Changes since $previous"; else echo "## Changes"; fi
+            echo
+          } > "$notes"
+          search="is:merged"
+          [ -n "$since" ] && search="merged:>$since"
+          gh pr list --repo "$SEMIS_REPO" --base develop --state merged --search "$search" --limit 200 \
+            --json number,title,author,url \
+            --jq '.[] | "- \(.title) ([#\(.number)](\(.url))) by @\(.author.login)"' >> "$notes"
+          cat "$notes"
+
+      - name: Create the GitHub release
+        run: |
+          set -euo pipefail
+          if [ "$TYPE" = "rc" ]; then
+            kind=(--prerelease --latest=false)
+          else
+            # A draft: edit the notes, then approve the "semis-release-approval" environment.
+            kind=(--draft)
+          fi
+          gh release create "$VERSION" "$RUNNER_TEMP/SEMIS-$VERSION.apk" \
+            --repo "$SEMIS_REPO" --verify-tag --title "SEMIS Android $VERSION" \
+            --notes-file "$RUNNER_TEMP/notes.md" "${kind[@]}"
+          touch "$RUNNER_TEMP/release-created"
+
+      # If the run fails half way, remove what it created, so it can run again with the same version.
+      - name: Remove what this run created
+        if: failure()
+        env:
+          BRANCH: ${{ steps.names.outputs.branch }}
+        run: |
+          if [ -f "$RUNNER_TEMP/release-created" ]; then
+            gh release delete "$VERSION" --repo "$SEMIS_REPO" --yes || true
+          fi
+          if [ -f "$RUNNER_TEMP/pushed" ]; then
+            git push --quiet origin ":refs/heads/$BRANCH" 2>/dev/null || true
+            git push --quiet origin ":refs/tags/$VERSION" 2>/dev/null || true
+            echo "removed $BRANCH and $VERSION"
+          fi
+
+      - name: Remove the signing key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/semis.jks"
+
+  publish:
+    name: Publish ${{ inputs.version }} and update main
+    if: inputs.type == 'release' && github.repository == 'Saudigitus/dhis2-semis-android'
+    needs: prepare
+    runs-on: ubuntu-latest
+    environment: semis-release-approval
+    steps:
+      - name: Publish the release
+        run: gh release edit "$VERSION" --repo "$SEMIS_REPO" --draft=false --latest
+
+      # main becomes exactly the released version, without rewriting its history:
+      # a fast-forward when possible, otherwise a merge commit that keeps the files of the release.
+      - name: Update main
+        run: |
+          set -euo pipefail
+          dir=$(mktemp -d)
+          git init --quiet "$dir"
+          git -C "$dir" config user.name "github-actions[bot]"
+          git -C "$dir" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -C "$dir" remote add origin "https://x-access-token:${GH_TOKEN}@github.com/$SEMIS_REPO.git"
+          git -C "$dir" fetch --quiet origin "refs/tags/$VERSION:refs/tags/$VERSION"
+          release=$(git -C "$dir" rev-parse "$VERSION^{commit}")
+          if ! git -C "$dir" fetch --quiet origin "refs/heads/main:refs/remotes/origin/main" 2>/dev/null; then
+            git -C "$dir" push --quiet origin "$release:refs/heads/main"
+            echo "main created at $release"; exit 0
+          fi
+          main=$(git -C "$dir" rev-parse origin/main)
+          if git -C "$dir" merge-base --is-ancestor "$main" "$release"; then
+            git -C "$dir" push --quiet origin "$release:refs/heads/main"
+            echo "main fast-forwarded to $release"
+          else
+            merge=$(git -C "$dir" commit-tree "$release^{tree}" -p "$main" -p "$release" -m "chore(release): update main to $VERSION")
+            git -C "$dir" push --quiet origin "$merge:refs/heads/main"
+            echo "main updated to $VERSION with $merge"
+          fi

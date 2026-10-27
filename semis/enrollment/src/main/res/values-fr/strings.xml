@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="profile_title">Profil</string>
+    <string name="profile_academic_year">Année scolaire %1$s</string>
+    <string name="profile_tab_personal_details">Informations personnelles</string>
+    <string name="profile_tab_attendance">Assiduité</string>
+    <string name="profile_tab_performance">Performance</string>
+    <string name="profile_tab_final_result">Résultat final</string>
+    <string name="profile_tab_transfer">Transfert</string>
+    <string name="profile_figure_absences">Absences</string>
+    <string name="profile_figure_average">Moyenne %1$s</string>
+    <string name="profile_no_records_year">Aucun enregistrement pour %1$s.</string>
+    <string name="profile_panel_empty">Rien n\'a été enregistré pour cette carte.</string>
+    <string name="profile_record_empty">Cet enregistrement ne contient aucune valeur.</string>
+    <string name="profile_panel_attributes">Ce qui a été enregistré sur cette personne.</string>
+    <string name="profile_not_found">Ce profil n\'a pas pu être chargé.</string>
+    <string name="enrollment_config_unavailable">La configuration de l\'inscription n\'a pas pu être lue. Synchronisez les données et réessayez.</string>
+    <string name="enrollment_not_saved">L\'inscription n\'a pas pu être enregistrée. Rien n\'a été enregistré, veuillez réessayer.</string>
+    <string name="enrollment_complete_step">Terminée</string>
+    <string name="enrollment_complete_title">Inscription terminée</string>
+    <string name="enrollment_add_another">Ajouter un autre enregistrement</string>
+    <string name="enrollment_back_to_list">Retour à la liste</string>
+    <string name="enrollment_summary_registration">Détails de l\'inscription</string>
+    <string name="enrollment_summary_registration_hint">Où cette personne a été inscrite et ce qui a été enregistré.</string>
+    <string name="enrollment_summary_org_unit">École</string>
+    <string name="enrollment_summary_date">Date d\'inscription</string>
+    <plurals name="profile_panel_records">
+        <item quantity="one">%1$d enregistrement</item>
+        <item quantity="other">%1$d enregistrements</item>
+    </plurals>
+</resources>

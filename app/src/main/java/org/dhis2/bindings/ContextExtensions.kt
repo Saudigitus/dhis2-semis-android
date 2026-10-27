@@ -7,11 +7,12 @@ import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import org.dhis2.BuildConfig
 
+/** The SEMIS version, followed by the commit on a development build. */
 fun Context.buildInfo(): String =
     if (BuildConfig.BUILD_TYPE == "release") {
-        "v${BuildConfig.VERSION_NAME}"
+        BuildConfig.VERSION_NAME
     } else {
-        "v${BuildConfig.VERSION_NAME} : ${BuildConfig.GIT_SHA} "
+        "${BuildConfig.VERSION_NAME} : ${BuildConfig.GIT_SHA}"
     }
 
 fun Fragment.checkSMSPermission(

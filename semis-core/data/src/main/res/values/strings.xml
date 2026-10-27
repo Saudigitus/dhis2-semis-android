@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="form_title">Registration form</string>
+    <string name="error_creating_enrollment">Projection cannot be null</string>
+    <string name="tei_type_not_found">Tracked Entity Type not found for program %s</string>
+    <string name="event_date">Date: %s</string>
+    <string name="administrative_area">Administrative area</string>
+    <string name="sync_dialog_title_warning">Warning</string>
+    <string name="sync_error_title">Sync error</string>
+    <string name="not_synced">Not synced</string>
+</resources>

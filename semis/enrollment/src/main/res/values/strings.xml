@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">enrollment</string>
+    <string name="profile_title">Profile</string>
+    <string name="profile_academic_year">Academic year %1$s</string>
+    <string name="profile_tab_personal_details">Personal details</string>
+    <string name="profile_tab_attendance">Attendance</string>
+    <string name="profile_tab_performance">Performance</string>
+    <string name="profile_tab_final_result">Final result</string>
+    <string name="profile_tab_transfer">Transfer</string>
+    <string name="profile_figure_absences">Absences</string>
+    <string name="profile_figure_average">%1$s average</string>
+    <string name="profile_no_records_year">No records for %1$s.</string>
+    <string name="profile_panel_empty">Nothing was recorded for this card.</string>
+    <string name="profile_record_empty">This record holds no values.</string>
+    <string name="profile_panel_attributes">What was recorded about this person.</string>
+    <string name="profile_not_found">This profile could not be loaded.</string>
+    <string name="enrollment_config_unavailable">The enrollment setup could not be read. Sync the data and try again.</string>
+    <string name="enrollment_not_saved">The enrollment could not be saved. Nothing was recorded, please try again.</string>
+    <string name="enrollment_complete_step">Complete</string>
+    <string name="enrollment_complete_title">Enrollment complete</string>
+    <string name="enrollment_add_another">Add another record</string>
+    <string name="enrollment_back_to_list">Back to the list</string>
+    <string name="enrollment_summary_registration">Registration details</string>
+    <string name="enrollment_summary_registration_hint">Where this person was enrolled and what was recorded.</string>
+    <string name="enrollment_summary_org_unit">School</string>
+    <string name="enrollment_summary_date">Registration date</string>
+    <plurals name="profile_panel_records">
+        <item quantity="one">%1$d record</item>
+        <item quantity="other">%1$d records</item>
+    </plurals>
+</resources>

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="attendance">Attendance</string>
+    <string name="attendance_summary">Attendance Summary</string>
+    <string name="attendance_not_saved">You have unsaved attendance changes. If you go back now, your data will be discarded.</string>
+    <string name="attendance_form_reset">Attendance form reset</string>
+    <string name="attendance_status_incomplete">Select an attendance status for everyone before saving. %1$d selections remaining.</string>
+    <plurals name="attendance_compulsory_missing">
+        <item quantity="one">Fill in the required fields of %1$d person before saving.</item>
+        <item quantity="other">Fill in the required fields of %1$d people before saving.</item>
+    </plurals>
+    <string name="attendance_total">Total</string>
+    <string name="attendance_synced">Synced</string>
+    <string name="attendance_unsynced_count">%1$d unsynced</string>
+    <string name="attendance_all_recorded">Everyone recorded</string>
+    <plurals name="attendance_students_count">
+        <item quantity="one">%1$d person</item>
+        <item quantity="other">%1$d people</item>
+    </plurals>
+    <string name="attendance_not_recorded">No records, please take attendance!</string>
+    <string name="attendance_reset_warning">Resetting deletes the attendance already recorded for this day. This cannot be undone.</string>
+    <string name="attendance_completed">Attendance completed</string>
+    <string name="attendance_incomplete">Incomplete attendance</string>
+    <string name="select_attendance_date">Select attendance date</string>
+    <string name="reset_attendance">Reset attendance</string>
+    <string name="bulk_label">Bulk:</string>
+    <string name="bulk_all_status">All %1$s</string>
+    <plurals name="attendance_pending_records">
+        <item quantity="one">%1$d person not yet recorded</item>
+        <item quantity="other">%1$d people not yet recorded</item>
+    </plurals>
+</resources>

@@ -1,0 +1,101 @@
+package org.saudigitus.semis.core.data.repository
+
+import org.hisp.dhis.android.core.event.Event
+import org.hisp.dhis.android.core.event.EventStatus
+import org.saudigitus.semis.core.data.model.SearchTeiModel
+
+interface EventRepository {
+
+    suspend fun createEvent(
+        orgUnit: String,
+        program: String,
+        programStage: String,
+        enrollmentUid: String? = null,
+        data: List<Pair<String, String?>>,
+        eventDate: String? = null,
+        status: EventStatus = EventStatus.ACTIVE,
+    ): String
+
+    suspend fun setEventStatus(eventUid: String, status: EventStatus)
+
+    /**
+     * Creates an ACTIVE event without data values when this enrollment does not
+     * already have an event for the same program stage.
+     *
+     * @return the UID of the existing or newly-created event.
+     */
+    suspend fun createEmptyEvent(
+        orgUnit: String,
+        program: String,
+        programStage: String,
+        enrollment: String,
+    ): String
+
+    /**
+     * Saves an event to the database.
+     *
+     * This function is responsible for creating or updating an event in the database
+     * based on the provided parameters. It supports flexible data input through the [data] map,
+     * which defines the elements and corresponding values to store for the event.
+     *
+     * @param event The ID of the event to update. If `null`, a new event will be created.
+     * @param orgUnit The organisation unit where the event belongs.
+     * @param program The program associated with the event.
+     * @param programStage The program stage linked to the event.
+     * @param tei The Tracked Entity Instance (TEI) associated with this event.
+     * @param data A map of data elements and their values for the event.
+     * Each entry uses the following structure:
+     * ```
+     * data["dataElement"] = Pair("dataElementId", "value")
+     * data["reasonDataElement"] = Pair("dataElementId", "value")
+     * ```
+     * - The **`dataElement`** key is **mandatory** and represents the primary data value to be saved.
+     * - The **`reasonDataElement`** key is **optional** and is typically used in attendance-related events
+     *   to store an additional reason or comment.
+     * For default scenarios, only the `dataElement` key is required.
+     *
+     * @param eventDate The date when the event occurred. If `null`, the current date will be used.
+     */
+    /**
+     * @param contextValues the configured values saying which class the record belongs to. Only
+     * those the program stage actually holds are written, so a stage without them is unaffected.
+     */
+    suspend fun saveEvent(
+        event: String?,
+        orgUnit: String,
+        program: String,
+        programStage: String,
+        tei: SearchTeiModel? = null,
+        data: Map<String, Pair<String, String>>,
+        eventDate: String? = null,
+        contextValues: List<Pair<String, String>> = emptyList(),
+    )
+
+    suspend fun saveEvent(
+        event: String?,
+        orgUnit: String,
+        program: String,
+        programStage: String,
+        tei: SearchTeiModel? = null,
+        data: List<Pair<String, String?>>,
+        eventDate: String? = null,
+    )
+
+    suspend fun getEvents(
+        teiUids: List<String>,
+        orgUnit: String,
+        program: String,
+        programStage: String,
+        eventDate: String?
+    ): List<Event>
+
+    suspend fun getEvents(
+        ou: String,
+        program: String,
+        programStage: String,
+        dataElement: String,
+        teis: List<String>,
+    ): List<Event>
+
+    suspend fun deleteEvent(event: String)
+}

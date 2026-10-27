@@ -82,7 +82,9 @@ class CrashActivity : AppCompatActivity() {
 
     private fun loadCrashReport() =
         CrashReport(
-            buildVersion = BuildConfig.VERSION_NAME,
+            // Every version a report needs, so a copied report carries them all.
+            buildVersion = "SEMIS ${BuildConfig.VERSION_NAME} · Capture ${BuildConfig.CAPTURE_VERSION} · " +
+                "SDK ${BuildConfig.SDK_VERSION}",
             buildDate = BuildConfig.BUILD_DATE,
             currentDate =
                 SimpleDateFormat(

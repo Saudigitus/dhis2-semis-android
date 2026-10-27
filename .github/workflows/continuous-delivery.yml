@@ -19,7 +19,12 @@ on:
 
 jobs:
   deployment_job:
+    # This repository is a fork of the DHIS2 Capture App: the build only ever runs in the SEMIS fork.
+    if: github.repository == 'Saudigitus/dhis2-semis-android'
     runs-on: ubuntu-latest
+    env:
+      # The debug key is optional: without it the build is signed with the default debug key.
+      HAS_DEBUG_KEYSTORE: ${{ secrets.DEBUG_KEYSTORE_BASE64 != '' }}
     steps:
       - uses: actions/checkout@v6
 
@@ -43,6 +48,7 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: Decode Keystore
+        if: env.HAS_DEBUG_KEYSTORE == 'true'
         id: decode_keystore
         uses: timheuer/base64-to-file@784a1a4a994315802b7d8e2084e116e783d157be
         with:

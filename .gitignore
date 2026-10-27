@@ -4,6 +4,9 @@
 /.idea
 .DS_Store
 /build
+# Any module's build output, not just the root one: nested build directories were
+# reaching commits because only the root was ignored.
+build/
 /captures
 .externalNativeBuild
 /app/dhis_keystore.jks

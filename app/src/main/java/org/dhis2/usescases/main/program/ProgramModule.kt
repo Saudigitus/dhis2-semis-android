@@ -15,6 +15,8 @@ import org.dhis2.commons.viewmodel.DispatcherProvider
 import org.dhis2.data.dhislogic.DhisProgramUtils
 import org.dhis2.mobile.sync.domain.SyncStatusController
 import org.hisp.dhis.android.core.D2
+import kotlinx.coroutines.Dispatchers
+import org.saudigitus.semis.core.utils.ProgramValidator
 
 @Module
 class ProgramModule(
@@ -42,6 +44,14 @@ class ProgramModule(
             schedulerProvider,
         )
 
+    /**
+     * Decides whether a programme is claimed by SEMIS, which is what sends the home card to
+     * [org.saudigitus.semis.app.SEMISActivity] instead of the base app's tracker screens.
+     */
+    @Provides
+    @PerFragment
+    internal fun programValidator(d2: D2): ProgramValidator = ProgramValidator(d2, Dispatchers.IO)
+
     @Provides
     @PerFragment
     internal fun homeRepository(
@@ -51,6 +61,7 @@ class ProgramModule(
         schedulerProvider: SchedulerProvider,
         colorUtils: ColorUtils,
         metadataIconProvider: MetadataIconProvider,
+        programValidator: ProgramValidator,
     ): ProgramRepository =
         ProgramRepositoryImpl(
             d2,
@@ -59,5 +70,6 @@ class ProgramModule(
             ResourceManager(view.context, colorUtils),
             metadataIconProvider,
             schedulerProvider,
+            programValidator,
         )
 }

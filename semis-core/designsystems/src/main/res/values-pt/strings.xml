@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="unknown">Desconhecido</string>
+    <string name="calendar">Calendário</string>
+    <string name="filters">Filtros</string>
+    <string name="back">Voltar</string>
+    <string name="config_not_found">Aplicação não configurada. Por favor, contacte o Administrador do Sistema.</string>
+    <string name="no_records_found">Nenhum registo encontrado. Atualize os filtros e/ou sincronize os dados.</string>
+
+    <string name="not_synced">Não sincronizado</string>
+    <string name="programs">Programas</string>
+    <string name="sync_successful">Sincronização concluída com sucesso</string>
+    <string name="sync_warning">Aviso de sincronização</string>
+    <string name="sync_error">Erro de sincronização</string>
+    <string name="sync_dialog_title_not_synced">Sincronização necessária</string>
+    <string name="sync_dialog_title_error">Erro de sincronização</string>
+    <string name="sync_dialog_title_synced">Sincronizado</string>
+    <string name="sync_dialog_title_warning">Aviso de sincronização</string>
+    <string name="sync_dialog_title_syncing">A sincronizar</string>
+    <string name="sync_dialog_title_sms_syced">SMS enviado</string>
+    <string name="enrolledIn">Inscrito em</string>
+    <string name="marked_follow_up">Marcado para acompanhamento</string>
+    <string name="sync_error_title">Erro de sincronização</string>
+    <string name="update">Atualizar</string>
+    <string name="app_not_properly_config">A aplicação não está configurada corretamente. Por favor, contacte o Administrador do Sistema.</string>
+    <string name="not_saved">Não guardado</string>
+    <string name="yes_no_mandatory_error">Por favor, selecione Sim ou Não</string>
+    <string name="required_field">%s é um campo obrigatório</string>
+    <string name="form">Formulário</string>
+    <string name="save_alert">Tem a certeza? Se continuar, as suas alterações serão guardadas permanentemente.</string>
+    <string name="program_stages">Etapas do programa</string>
+    <string name="program_stage">Etapa do programa</string>
+    <string name="status_pending">PENDENTE</string>
+    <string name="status_synced">SINCRONIZADO</string>
+    <string name="status_total">TOTAL</string>
+    <string name="daily_goals_lb">Metas diárias</string>
+    <string name="see_less">Ver menos</string>
+    <string name="see_more">Ver mais</string>
+    <string name="no_attributes_available">Nenhum atributo disponível</string>
+
+    <string name="primary_services">Serviços Primários</string>
+    <string name="complementary_services">Serviços Adicionais</string>
+</resources>
